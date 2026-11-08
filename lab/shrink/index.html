@@ -1,0 +1,738 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>줄이고 또 줄이기 · 읽기 노트 실험실</title><meta name="description" content="같은 글을 100자, 50자, 25자로 세 번 줄여 쓰면서 끝까지 남는 내용을 찾는 요약 연습 도구">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../../rn.css">
+<style>
+  .card { scroll-margin-top: 72px; }
+  .top .brand { display: inline-flex; align-items: center; min-height: 44px; }
+  details.more > summary { display: flex; align-items: center; min-height: 44px; }
+  .card h1 { font-size: 23px; margin: 0 0 6px; letter-spacing: -.02em; line-height: 1.35; }
+  .lead { margin: 0 0 4px; font-size: 16px; color: var(--ink-2); }
+  .how-t { font-size: 15px; margin: 14px 0 4px; }
+  ol.how { margin: 0; padding-left: 1.3em; color: var(--ink-2); }
+  ol.how li { margin: 3px 0; }
+  .intro .btn-row { margin-top: 16px; }
+
+  .flab { display: block; font-weight: 700; font-size: 15px; margin: 18px 0 6px; }
+  .flab .hint { font-weight: 400; color: var(--muted); font-size: 13px; margin-left: 6px; }
+  .pick { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pick label {
+    position: relative; display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px;
+    border: 1px solid var(--line-2); border-radius: 999px; background: var(--paper); cursor: pointer; font-size: 15px;
+  }
+  .pick label:hover { border-color: var(--accent); }
+  .pick label.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+  .pick input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+  .pick label:focus-within { outline: 3px solid #8fb3ec; outline-offset: 2px; }
+
+  .ladder { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 16px; }
+  .ladder button {
+    min-height: 52px; padding: 6px 4px; border: 1px solid var(--line-2); border-radius: 10px;
+    background: var(--paper); color: var(--muted); cursor: pointer; line-height: 1.25;
+  }
+  .ladder button b { display: block; font-size: 15px; }
+  .ladder button small { display: block; font-size: 12px; }
+  .ladder button.done { color: var(--ink); border-color: var(--ink-2); }
+  .ladder button.now { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+  .ladder button.over { color: var(--bad); border-color: var(--bad); }
+  .ladder button:disabled { cursor: not-allowed; opacity: .55; }
+
+  .tipline { margin: 0 0 6px; font-size: 14px; color: var(--accent); }
+  .prev { margin: 12px 0 0; padding: 8px 12px; border-left: 3px solid var(--line-2); background: var(--bg); border-radius: 0 10px 10px 0; }
+  .prev.now { border-left-color: var(--accent); }
+  .prev .pl { font-size: 13px; font-weight: 700; color: var(--muted); }
+  .prev p { margin: 2px 0 0; white-space: pre-wrap; }
+  .prev.small p { font-size: 14px; color: var(--ink-2); }
+  .src-view { white-space: pre-wrap; font-size: 14px; color: var(--ink-2); margin-top: 8px; max-height: 40vh; overflow: auto; }
+  .meter { height: 6px; margin-top: 6px; background: var(--line); border-radius: 999px; overflow: hidden; }
+  .meter > span { display: block; height: 100%; width: 0; background: var(--accent); }
+  .meter.over > span { background: var(--bad); }
+  .count.over { color: var(--bad); font-weight: 700; }
+  .t.over, .t.over:focus { border-color: var(--bad); }
+  input.one { font-size: 18px; min-height: 52px; }
+  .stage .warn-box { margin-top: 10px; }
+  .stage .btn-row { margin-top: 14px; }
+
+  .res-h { font-size: 15px; margin: 22px 0 6px; }
+  .res-h .hint { font-weight: 400; color: var(--muted); font-size: 13px; margin-left: 6px; }
+  .bar-row { display: grid; grid-template-columns: 3em minmax(0, 1fr) 3.8em; gap: 8px; align-items: center; margin: 5px 0; font-size: 14px; }
+  .bar { height: 12px; background: var(--line); border-radius: 4px; overflow: hidden; }
+  .bar > span { display: block; height: 100%; background: var(--accent); }
+  .bar > span.over { background: var(--bad); }
+  .bn { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .words { display: flex; flex-wrap: wrap; gap: 6px; }
+  .word { display: inline-block; padding: 4px 12px; border: 1px solid var(--accent); border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+  .word.gone { border-color: var(--line-2); background: var(--paper); color: var(--muted); font-weight: 500; text-decoration: line-through; }
+  .drop-row { margin: 8px 0; }
+  .drop-row .dl { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  .res .btn-row { margin-top: 14px; }
+  #copyFb, #aiFb { margin-top: 10px; font-size: 14px; }
+
+  .basis { margin: 28px 0 0; font-size: 12px; line-height: 1.6; color: var(--muted); }
+  .print-only { display: none; }
+
+  @media (min-width: 1600px) { body { zoom: 1.25; } }
+
+  @media print {
+    .print-only { display: block; }
+    body { zoom: 1; }
+    #sheet { color: var(--ink); font-size: 13pt; line-height: 1.6; }
+    #sheet h1 { font-size: 18pt; margin: 0 0 6px; }
+    #sheet .sh-meta { display: flex; flex-wrap: wrap; gap: 6px 24px; font-size: 11pt; margin-bottom: 4px; }
+    #sheet .sh-blank { display: inline-block; width: 9em; border-bottom: 1px solid var(--ink); }
+    #sheet .sh-st { margin: 0; font-size: 11pt; }
+    #sheet .sh-sec { break-inside: avoid; border-top: 1px solid var(--line-2); padding: 8px 0 4px; margin-top: 8px; }
+    #sheet .sh-sec h3 { font-size: 12pt; margin: 0 0 2px; }
+    #sheet .sh-sec h3 small { font-weight: 400; }
+    #sheet .sh-sec p { margin: 0; white-space: pre-wrap; }
+    #sheet .sh-src p { font-size: 10.5pt; }
+    #sheet .sh-empty { color: var(--muted); }
+  }
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in"><a class="brand" href="../">읽기 노트 실험실</a><div class="grow who">줄이고 또 줄이기</div><span class="save-state" id="saveState" aria-live="polite"></span></div></header>
+
+<main class="wrap">
+  <div class="no-print">
+    <section class="card intro">
+      <h1>줄이고 또 줄이기</h1>
+      <p class="lead">같은 글을 100자, 50자, 25자로 세 번 줄여 쓰면서, 끝까지 남는 내용이 무엇인지 찾는 도구예요.</p>
+      <h2 class="how-t">이렇게 써요</h2>
+      <ol class="how">
+        <li>읽은 글을 붙여 넣어요. 종이책이면 제목과 쪽만 적어도 돼요.</li>
+        <li>1단 100자, 2단 50자, 3단 한 줄(25자)로 줄여 써요. 앞 단계 요약을 보면서 줄여요.</li>
+        <li>세 요약에 남은 낱말을 보고 무엇을 버렸는지 한 줄로 적은 뒤, 인쇄하거나 복사해서 내요.</li>
+      </ol>
+      <div class="btn-row">
+        <button type="button" class="btn" id="exAll">예시로 채워 보기</button>
+        <button type="button" class="btn" id="exSrc">예시 글만 넣기</button>
+        <button type="button" class="btn ghost" id="reset">처음부터</button>
+      </div>
+      <p class="note">적은 글은 이 기기의 브라우저에만 저장돼요.</p>
+    </section>
+
+    <section class="card" id="srcCard">
+      <div class="step-tag">읽은 글</div>
+      <h2>무엇을 읽었나요?</h2>
+      <label class="f" for="title">글 제목과 쪽 <span class="hint">예: 과학 교과서 112~113쪽</span></label>
+      <input id="title" class="t" type="text" data-k="title" autocomplete="off">
+      <label class="f" for="src">원문 <span class="hint">붙여 넣으면 그대로 옮긴 곳을 알려 줘요. 비워 둬도 돼요.</span></label>
+      <textarea id="src" class="t" rows="7" data-k="src"></textarea>
+      <div class="count" id="cSrc"></div>
+      <span class="flab" id="structLab">이 글은 어떤 구조인가요? <span class="hint">고르면 줄일 때 도움말이 나와요</span></span>
+      <div class="pick" role="radiogroup" aria-labelledby="structLab">
+        <label><input type="radio" name="struct" value="list">나열</label>
+        <label><input type="radio" name="struct" value="compare">비교·대조</label>
+        <label><input type="radio" name="struct" value="cause">원인·결과</label>
+        <label><input type="radio" name="struct" value="problem">문제·해결</label>
+        <label><input type="radio" name="struct" value="time">시간 순서</label>
+        <label><input type="radio" name="struct" value="unknown">잘 모르겠어요</label>
+      </div>
+    </section>
+
+    <nav class="ladder" aria-label="단계">
+      <button type="button" data-go="1"><b>1단</b><small>100자 안</small></button>
+      <button type="button" data-go="2"><b>2단</b><small>50자 안</small></button>
+      <button type="button" data-go="3"><b>3단</b><small>25자 안</small></button>
+      <button type="button" data-go="4"><b>마무리</b><small>낱말·성찰</small></button>
+    </nav>
+
+    <section class="card stage" id="st1">
+      <div class="step-tag">1단</div>
+      <h2>100자 안으로 줄여요</h2>
+      <p class="sub">덜 중요한 내용과 예는 지우고(삭제), 문단마다 중심 문장을 골라요(선택).</p>
+      <p class="tipline" data-tip hidden></p>
+      <label class="f" for="s1">1단 요약 <span class="hint">공백 포함 100자 안</span></label>
+      <textarea id="s1" class="t ruled" rows="4" data-k="s1" aria-describedby="c_s1"></textarea>
+      <div class="meter" id="m_s1"><span></span></div>
+      <div class="count" id="c_s1"></div>
+      <div class="warn-box" id="w_s1" hidden></div>
+      <div class="btn-row"><button type="button" class="btn primary" data-next="s1">2단으로 줄이기</button></div>
+      <div class="err" id="e_s1" role="alert"></div>
+    </section>
+
+    <section class="card stage" id="st2" hidden>
+      <div class="step-tag">2단</div>
+      <h2>50자 안으로 줄여요</h2>
+      <p class="sub">1단 요약에서 비슷한 것끼리 묶어 더 큰 말로 바꿔요(일반화).</p>
+      <p class="tipline" data-tip hidden></p>
+      <div id="prev2"></div>
+      <details class="more"><summary>원문 다시 보기</summary><div class="src-view" data-srcview></div></details>
+      <label class="f" for="s2">2단 요약 <span class="hint">공백 포함 50자 안</span></label>
+      <textarea id="s2" class="t ruled" rows="2" data-k="s2" aria-describedby="c_s2"></textarea>
+      <div class="meter" id="m_s2"><span></span></div>
+      <div class="count" id="c_s2"></div>
+      <div class="warn-box" id="w_s2" hidden></div>
+      <div class="btn-row">
+        <button type="button" class="btn primary" data-next="s2">3단으로 줄이기</button>
+        <button type="button" class="btn" data-pull="s2">1단 글 가져와서 줄이기</button>
+      </div>
+      <div class="err" id="e_s2" role="alert"></div>
+    </section>
+
+    <section class="card stage" id="st3" hidden>
+      <div class="step-tag">3단</div>
+      <h2>한 줄로 줄여요</h2>
+      <p class="sub">글 전체가 말하려는 것을 내 문장으로 새로 써요(재구성).</p>
+      <p class="tipline" data-tip hidden></p>
+      <div id="prev3"></div>
+      <details class="more"><summary>원문 다시 보기</summary><div class="src-view" data-srcview></div></details>
+      <label class="f" for="s3">3단 요약 <span class="hint">공백 포함 25자 안, 한 줄</span></label>
+      <input id="s3" class="t one" type="text" data-k="s3" autocomplete="off" aria-describedby="c_s3">
+      <div class="meter" id="m_s3"><span></span></div>
+      <div class="count" id="c_s3"></div>
+      <div class="warn-box" id="w_s3" hidden></div>
+      <div class="btn-row">
+        <button type="button" class="btn primary" data-next="s3">다 썼어요</button>
+        <button type="button" class="btn" data-pull="s3">2단 글 가져와서 줄이기</button>
+      </div>
+      <div class="err" id="e_s3" role="alert"></div>
+    </section>
+
+    <section class="card res" id="res" hidden>
+      <div class="step-tag">마무리</div>
+      <h2>세 요약 견주기</h2>
+      <p class="sub">무엇이 끝까지 남았고 무엇이 빠졌는지 봐요.</p>
+
+      <h3 class="res-h">글자 수</h3>
+      <div id="bars"></div>
+
+      <h3 class="res-h">세 요약에 모두 남은 낱말 <span class="hint">자동으로 뽑아서 조금 틀릴 수 있어요</span></h3>
+      <div class="words" id="common"></div>
+
+      <h3 class="res-h">줄이면서 빠진 낱말</h3>
+      <div class="drop-row"><div class="dl">1단에 있었는데 2단에서 빠진 낱말</div><div class="words" id="drop1"></div></div>
+      <div class="drop-row"><div class="dl">2단에 있었는데 3단에서 빠진 낱말</div><div class="words" id="drop2"></div></div>
+
+      <label class="f" for="refl">무엇을 버렸고, 왜 버렸나요? <span class="hint">한두 문장</span></label>
+      <textarea id="refl" class="t ruled" rows="3" data-k="refl" placeholder="예: ○○ 이야기는 뺐어요. 글 전체에서 보면 예를 든 부분이라서요."></textarea>
+      <div class="count" id="c_refl"></div>
+
+      <div class="btn-row">
+        <button type="button" class="btn primary" id="printBtn">인쇄하기</button>
+        <button type="button" class="btn" id="copyBtn">글로 복사하기</button>
+      </div>
+      <textarea id="copyFb" class="t" rows="8" readonly hidden aria-label="복사할 글"></textarea>
+
+      <details class="more" id="aiBox">
+        <summary>AI에게 질문 받기(부탁문 복사)</summary>
+        <p class="note" id="aiNote"></p>
+        <div class="btn-row"><button type="button" class="btn" id="aiCopy" disabled>부탁문 복사하기</button></div>
+        <textarea id="aiFb" class="t" rows="10" readonly hidden aria-label="AI 부탁문"></textarea>
+      </details>
+    </section>
+
+    <p class="basis">근거: 2022 개정 국어 [9국02-02] 읽기 목적과 글의 구조를 고려하며 글을 효과적으로 요약한다.<br>요약을 받는 것이 아니라 스스로 요약할 때 이해가 깊어진다(나민애 교수 특강: 챕터마다 스스로 요약).</p>
+  </div>
+
+  <div id="sheet" class="print-only"></div>
+</main>
+
+<footer id="app-credit" style="width:100%;box-sizing:border-box;margin:2.5rem 0 0;padding:14px 12px;text-align:center;font-size:12.5px;line-height:1.6;color:#8a8f98;font-family:system-ui,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;border-top:1px solid rgba(128,128,128,.25);">© 2026 조승재(과학이조선생) · 해누리중학교 · All rights reserved<br><span style="font-size:11px;opacity:.85;">최종 업데이트: 2026-11-08</span></footer>
+
+<script src="../../rn.js"></script>
+<script>
+(() => {
+  'use strict';
+  const { $, $$, esc, store, toast, copyText, len, fmtTime } = window.RN;
+
+  /*PURE-START*/
+  const STAGES = ['s1', 's2', 's3'];
+  const LIM = { s1: 100, s2: 50, s3: 25 };
+  const NAME = { s1: '1단', s2: '2단', s3: '3단' };
+  const STRUCTS = {
+    list: { n: '나열', tip: '늘어놓은 것들을 한 말로 묶을 수 있는지 찾아요.' },
+    compare: { n: '비교·대조', tip: '무엇과 무엇을 견주는지, 같은 점과 다른 점을 남겨요.' },
+    cause: { n: '원인·결과', tip: '원인과 결과를 한 문장으로 이어요.' },
+    problem: { n: '문제·해결', tip: '문제 하나와 해결 방법 하나를 남겨요.' },
+    time: { n: '시간 순서', tip: '처음과 끝, 그 사이에 바뀐 점을 남겨요.' },
+    unknown: { n: '', tip: '문단마다 중심 문장을 하나씩 찾아 밑줄을 그어 봐요.' }
+  };
+
+  // 공백 포함 글자 수(앞뒤 공백은 빼고, 줄바꿈은 한 글자)
+  const cntAll = s => Array.from(String(s == null ? '' : s).replace(/\r\n?/g, '\n').trim()).length;
+  const cntNS = s => String(s == null ? '' : s).replace(/\s/g, '').length;
+  const isWordCh = c => /[0-9A-Za-z가-힣]/.test(c);
+  const flat = s => String(s == null ? '' : s).replace(/[^0-9A-Za-z가-힣]/g, '');
+  const tokenize = s => String(s == null ? '' : s).split(/[^0-9A-Za-z가-힣]+/).filter(Boolean);
+
+  // 원문을 그대로 옮긴 정도: 띄어쓰기·문장부호를 빼고 10글자 넘게 이어서 같은 곳이 요약의 몇 %인지
+  function copied(sum, src) {
+    const K = 10;
+    const str = String(sum == null ? '' : sum);
+    const idx = [];
+    let F = '';
+    for (let i = 0; i < str.length; i++) { if (isWordCh(str[i])) { F += str[i]; idx.push(i); } }
+    const T = flat(src);
+    if (F.length < K || T.length < K) return { cov: 0, frag: '' };
+    const mark = new Uint8Array(F.length);
+    let bestLen = 0, bestAt = 0, i = 0;
+    while (i < F.length) {
+      let L = 0;
+      while (i + L < F.length && T.indexOf(F.slice(i, i + L + 1)) !== -1) L++;
+      if (L >= K) {
+        mark.fill(1, i, i + L);
+        if (L > bestLen) { bestLen = L; bestAt = i; }
+        i += L;
+      } else i++;
+    }
+    let m = 0;
+    for (let j = 0; j < mark.length; j++) m += mark[j];
+    const frag = bestLen ? str.slice(idx[bestAt], idx[bestAt + bestLen - 1] + 1) : '';
+    return { cov: m / F.length, frag };
+  }
+
+  // 낱말 끝의 조사를 떼어 낸 꼴(대충). 자주 쓰는 명사는 그대로 둔다
+  const ENDINGS = ['이라는', '에서는', '으로는', '에게는', '에서도', '으로도', '까지', '부터', '처럼', '보다', '에서', '으로', '에게', '한테',
+    '라는', '이다', '에는', '에도', '이나', '이며', '이고', '들이', '들은', '들을', '들의', '들도', '들',
+    '은', '는', '이', '가', '을', '를', '의', '에', '와', '과', '도', '만', '로'].sort((a, b) => b.length - a.length);
+  const NOSTRIP = new Set(['온도', '속도', '정도', '각도', '밀도', '습도', '고도', '농도', '강도', '경도', '위도', '적도', '철도', '지도', '태도', '제도', '포도',
+    '사과', '결과', '효과', '작가', '국가', '평가', '증가', '추가', '참가', '도로', '경로', '회로', '통로', '진로', '자기', '주의', '정의', '회의',
+    '고양이', '아이', '나이', '종이', '오이', '높이', '길이', '넓이', '깊이', '먹이', '차이', '사이', '놀이', '가을', '마을', '고을', '하늘', '바다', '나라', '우리']);
+  const STOP = new Set(['것', '수', '등', '및', '그', '이', '저', '더', '또', '잘', '안', '못', '때', '곳', '중', '점', '나', '너',
+    '있다', '없다', '한다', '된다', '하는', '있는', '되는', '없는', '같은', '같이', '같다', '그리고', '하지만', '그래서', '그러나', '또는',
+    '때문', '때문에', '위해', '위하여', '통해', '대해', '대한', '여러', '많은', '많이', '다른', '모든', '어떤', '이런', '그런', '저런',
+    '이것', '그것', '저것', '우리', '하나', '가지', '없이', '매우', '아주', '정말', '바로', '다시', '이렇게', '그렇게', '이처럼']);
+  const VERBISH = /(다|며|고|지만|는데|도록|려고|니까|하면|으면|다면|라면|려면|[어아여해써와워봐져쳐려켜겨]서)$/;
+  const KEEP = new Set(['바다', '최고', '창고', '사고', '경고', '광고']);
+
+  function base(t) {
+    let b = t;
+    for (let pass = 0; pass < 2; pass++) {
+      if (NOSTRIP.has(b)) break;
+      let cut = '';
+      for (const e of ENDINGS) {
+        if (b.length > e.length && b.endsWith(e)) {
+          const need = (pass === 0 && e !== '들') ? 1 : 2;
+          if (b.length - e.length >= need) { cut = e; break; }
+        }
+      }
+      if (!cut) break;
+      b = b.slice(0, -cut.length);
+    }
+    return b;
+  }
+  function prep(s) {
+    const toks = tokenize(s);
+    return { flat: flat(s), toks: new Set(toks), bases: new Set(toks.map(base)) };
+  }
+  // 낱말 t(뗀 꼴 b)가 다른 글 O 에 있는지. 'b' = 뗀 꼴로 찾음, 't' = 원래 꼴로만 찾음
+  function found(t, b, O) {
+    if (b.length >= 2 && O.flat.includes(b)) return 'b';
+    if (b.length === 1 && (O.bases.has(b) || O.toks.has(b))) return 'b';
+    if (t !== b && t.length >= 2 && O.flat.includes(t)) return 't';
+    return '';
+  }
+  function commonWords(s1, s2, s3) {
+    if (!cntNS(s1) || !cntNS(s2) || !cntNS(s3)) return [];
+    const A = prep(s1), B = prep(s2);
+    const out = [], seen = new Set();
+    for (const t of tokenize(s3)) {
+      const b = base(t);
+      const ra = found(t, b, A), rb = found(t, b, B);
+      if (!ra || !rb) continue;
+      const w = (ra === 'b' && rb === 'b') ? b : t;
+      if (seen.has(w) || STOP.has(w) || STOP.has(t) || STOP.has(b)) continue;
+      seen.add(w);
+      out.push(w);
+    }
+    return out;
+  }
+  function droppedWords(from, to) {
+    if (!cntNS(from) || !cntNS(to)) return [];
+    const T = prep(to);
+    const out = [], seen = new Set();
+    for (const t of tokenize(from)) {
+      const b = base(t);
+      if (found(t, b, T)) continue;
+      if (b === t && VERBISH.test(t) && !KEEP.has(t)) continue;
+      if (seen.has(b) || STOP.has(b) || STOP.has(t)) continue;
+      seen.add(b);
+      out.push(b);
+      if (out.length >= 12) break;
+    }
+    return out;
+  }
+  /*PURE-END*/
+
+  // ---------- 예시 (직접 쓴 글) ----------
+  const EX = {
+    title: '철새는 어떻게 길을 찾을까 (예시 글)',
+    struct: 'list',
+    src: '해마다 가을이 되면 많은 철새가 수천 킬로미터를 날아 따뜻한 곳으로 옮겨 간다. 지도가 없는데도 철새가 길을 잃지 않는 까닭은 여러 단서를 함께 쓰기 때문이다.\n\n' +
+      '낮에 나는 새는 해의 위치로 방향을 잡는다. 시간이 지나면 하늘에서 해의 위치가 바뀌지만, 새는 몸속 시계로 시각을 알아 그만큼 방향을 바로잡는다. 밤에 나는 새는 북극성 둘레의 별자리를 보고 북쪽을 찾는다. 흐려서 해나 별이 보이지 않을 때도 지구 자기장을 느껴 방향을 알 수 있다.\n\n' +
+      '목적지에 가까워지면 산줄기, 강, 해안선 같은 땅의 모양을 알아보고, 어떤 새는 냄새도 단서로 쓴다.',
+    s1: '철새는 지도 없이도 여러 단서로 길을 찾는다. 낮에는 해, 밤에는 별자리를 보고, 흐린 날에도 지구 자기장으로 방향을 안다. 목적지 근처에서는 땅의 모양을 알아본다.',
+    s2: '철새는 해, 별자리, 지구 자기장, 땅의 모양 같은 여러 단서로 길을 찾는다.',
+    s3: '철새는 여러 단서를 함께 써서 길을 찾는다.',
+    refl: '몸속 시계로 방향을 바로잡는 설명과 냄새 이야기는 버렸어요. 단서 하나하나를 자세히 풀어 준 부분이라, 한 줄에서는 「여러 단서」로 묶었어요.'
+  };
+
+  // ---------- 상태 ----------
+  const KEY = 'rnlab_shrink_v1';
+  const TEXT_KEYS = ['title', 'src', 'struct', 's1', 's2', 's3', 'refl'];
+  const blank = () => ({ v: 1, title: '', src: '', struct: '', s1: '', s2: '', s3: '', refl: '', open: 1, t: 0 });
+  function load() {
+    const raw = store.get(KEY, null);
+    const s = blank();
+    if (raw && typeof raw === 'object') {
+      TEXT_KEYS.forEach(k => { if (typeof raw[k] === 'string') s[k] = raw[k]; });
+      const o = parseInt(raw.open, 10);
+      if (o >= 1 && o <= 4) s.open = o;
+      if (typeof raw.t === 'number') s.t = raw.t;
+    }
+    if (!STRUCTS[s.struct]) s.struct = '';
+    return s;
+  }
+  let S = load();
+  const isEmpty = () => !['title', 'src', 's1', 's2', 's3', 'refl'].some(k => cntNS(S[k]));
+
+  // ---------- 저장 ----------
+  const saveEl = $('#saveState');
+  let saveTimer = 0;
+  function showSaved(ok) {
+    saveEl.textContent = ok ? '저장됨 · ' + fmtTime(new Date(S.t).toISOString()) : '저장 못 함';
+    saveEl.classList.toggle('bad', !ok);
+  }
+  function saveNow() {
+    clearTimeout(saveTimer);
+    saveTimer = 0;
+    S.t = Date.now();
+    const ok = store.set(KEY, S);
+    showSaved(ok);
+    return ok;
+  }
+  function saveSoon() {
+    clearTimeout(saveTimer);
+    saveEl.textContent = '저장 중…';
+    saveEl.classList.remove('bad');
+    saveTimer = setTimeout(saveNow, 400);
+  }
+  window.addEventListener('pagehide', () => { if (saveTimer) saveNow(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && saveTimer) saveNow(); });
+
+  // ---------- 화면 그리기 ----------
+  function fillInputs() {
+    $$('[data-k]').forEach(el => { el.value = S[el.dataset.k] || ''; });
+    $$('input[name="struct"]').forEach(r => { r.checked = r.value === S.struct; });
+  }
+
+  function prevBox(k, cls) {
+    const n = cntAll(S[k]);
+    const body = cntNS(S[k]) ? esc(S[k].trim()) : '<span class="note">아직 비어 있어요.</span>';
+    return `<div class="prev ${cls || ''}"><div class="pl">${NAME[k]} 요약 · 공백 포함 ${n}자</div><p>${body}</p></div>`;
+  }
+
+  function renderCounts() {
+    const sn = cntAll(S.src);
+    $('#cSrc').textContent = sn ? `공백 포함 ${sn}자 · 공백 빼고 ${cntNS(S.src)}자` : '';
+    for (const k of STAGES) {
+      const n = cntAll(S[k]), lim = LIM[k], over = n > lim;
+      const c = $('#c_' + k);
+      c.textContent = `공백 포함 ${n}자 · 공백 빼고 ${cntNS(S[k])}자 / ${lim}자 안` + (over ? ` · ${n - lim}자 넘었어요` : '');
+      c.classList.toggle('over', over);
+      $('#' + k).classList.toggle('over', over);
+      const m = $('#m_' + k);
+      m.classList.toggle('over', over);
+      m.firstElementChild.style.width = Math.min(100, n / lim * 100) + '%';
+    }
+    const rn = cntAll(S.refl);
+    $('#c_refl').textContent = rn ? `공백 포함 ${rn}자` : '';
+  }
+
+  function renderLadder() {
+    $$('.ladder button').forEach(btn => {
+      const n = +btn.dataset.go;
+      const k = STAGES[n - 1];
+      btn.disabled = n > S.open;
+      btn.classList.toggle('now', n === S.open);
+      btn.classList.toggle('done', n < S.open);
+      if (n === S.open) btn.setAttribute('aria-current', 'step'); else btn.removeAttribute('aria-current');
+      const sub = btn.querySelector('small');
+      if (k) {
+        const c = cntAll(S[k]);
+        sub.textContent = c ? `${c}/${LIM[k]}자` : `${LIM[k]}자 안`;
+        btn.classList.toggle('over', c > LIM[k]);
+      } else {
+        sub.textContent = cntNS(S.refl) ? '성찰 씀' : '낱말·성찰';
+      }
+    });
+  }
+
+  function renderResult() {
+    if (S.open < 4) return;
+    const rows = [];
+    const srcN = cntAll(S.src);
+    if (srcN) rows.push(['원문', srcN, 0]);
+    STAGES.forEach(k => rows.push([NAME[k], cntAll(S[k]), LIM[k]]));
+    const max = Math.max(1, ...rows.map(r => r[1]));
+    $('#bars').innerHTML = rows.map(([nm, n, lim]) =>
+      `<div class="bar-row"><span class="bl">${nm}</span><span class="bar"><span class="${lim && n > lim ? 'over' : ''}" style="width:${n ? Math.max(1, n / max * 100).toFixed(1) : 0}%"></span></span><span class="bn">${n}자</span></div>`
+    ).join('');
+
+    const cw = commonWords(S.s1, S.s2, S.s3);
+    $('#common').innerHTML = cw.length
+      ? cw.map(w => `<span class="word">${esc(w)}</span>`).join('')
+      : '<p class="note">세 요약에 모두 나온 낱말이 없어요. 3단 한 줄에 글의 중심 낱말이 들어갔는지 살펴봐요.</p>';
+    const drops = (list) => list.length
+      ? list.map(w => `<span class="word gone">${esc(w)}</span>`).join('')
+      : '<span class="note">없어요.</span>';
+    $('#drop1').innerHTML = drops(droppedWords(S.s1, S.s2));
+    $('#drop2').innerHTML = drops(droppedWords(S.s2, S.s3));
+
+    const ready = cntNS(S.refl) >= 5;
+    $('#aiCopy').disabled = !ready;
+    $('#aiNote').textContent = ready
+      ? '부탁문을 복사해 AI 채팅 창에 붙여 넣어요. 부탁문에는 요약을 대신 쓰지 말고 질문만 해 달라는 말이 들어 있어요.'
+      : '버린 것과 까닭을 먼저 쓰면 누를 수 있어요.';
+  }
+
+  function renderCopyWarn() {
+    const hasSrc = cntNS(S.src) > 0;
+    for (const k of STAGES) {
+      const box = $('#w_' + k);
+      const r = hasSrc ? copied(S[k], S.src) : { cov: 0, frag: '' };
+      if (r.cov >= 0.5) {
+        const frag = r.frag.length > 40 ? r.frag.slice(0, 40) + '…' : r.frag;
+        box.innerHTML = '<b>내 말로 바꿔 써요.</b> 원문 문장을 그대로 옮긴 부분이 많아요. 원문을 잠깐 덮고, 친구에게 말하듯 써 보면 쉬워요.' +
+          (frag ? `<br>그대로 옮긴 곳: 「${esc(frag)}」` : '');
+        box.hidden = false;
+      } else {
+        box.hidden = true;
+        box.textContent = '';
+      }
+    }
+  }
+  let warnTimer = 0;
+  const warnSoon = () => { clearTimeout(warnTimer); warnTimer = setTimeout(renderCopyWarn, 250); };
+
+  function refresh() {
+    renderCounts();
+    $('#prev2').innerHTML = prevBox('s1', 'now');
+    $('#prev3').innerHTML = prevBox('s1', 'small') + prevBox('s2', 'now');
+    $$('[data-srcview]').forEach(el => { el.textContent = cntNS(S.src) ? S.src.trim() : '원문을 붙여 넣지 않았어요. 책을 펴서 다시 봐요.'; });
+    const st = STRUCTS[S.struct];
+    $$('[data-tip]').forEach(el => {
+      el.hidden = !st;
+      el.textContent = st ? (st.n ? `${st.n} 구조의 글: ${st.tip}` : st.tip) : '';
+    });
+    $$('.pick label').forEach(l => l.classList.toggle('on', l.querySelector('input').checked));
+    $('#st2').hidden = S.open < 2;
+    $('#st3').hidden = S.open < 3;
+    $('#res').hidden = S.open < 4;
+    renderLadder();
+    renderResult();
+    warnSoon();
+  }
+
+  const clearErrs = () => STAGES.forEach(k => { $('#e_' + k).textContent = ''; });
+  const motionOK = () => !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function reveal(card, input) {
+    requestAnimationFrame(() => {
+      card.scrollIntoView({ behavior: motionOK() ? 'smooth' : 'auto', block: 'start' });
+      if (input) setTimeout(() => input.focus({ preventScroll: true }), motionOK() ? 400 : 0);
+    });
+  }
+
+  // ---------- 단계 넘기기 ----------
+  function problem(k) {
+    const n = cntAll(S[k]);
+    if (!cntNS(S[k])) return `${NAME[k]} 요약을 먼저 써요.`;
+    if (n > LIM[k]) return `${LIM[k]}자 안으로 줄여요. 지금 ${n - LIM[k]}자 넘었어요.`;
+    if (k !== 's1') {
+      const p = k === 's2' ? 's1' : 's2';
+      if (flat(S[k]) === flat(S[p])) return `${NAME[p]} 요약과 똑같아요. 한 번 더 줄여 써요.`;
+    }
+    if (cntNS(S.src) && copied(S[k], S.src).cov >= 0.5) return '원문을 그대로 옮긴 부분이 많아요. 내 말로 바꿔 쓴 뒤에 넘어가요.';
+    return '';
+  }
+  function goNext(k) {
+    const i = STAGES.indexOf(k);
+    const err = $('#e_' + k);
+    for (let j = 0; j <= i; j++) {
+      const kk = STAGES[j];
+      const p = problem(kk);
+      if (p) {
+        err.textContent = kk === k ? p : `${NAME[kk]}을 먼저 고쳐요. ${p}`;
+        return;
+      }
+    }
+    err.textContent = '';
+    S.open = Math.max(S.open, i + 2);
+    saveNow();
+    refresh();
+    if (i < 2) reveal($('#st' + (i + 2)), $('#' + STAGES[i + 1]));
+    else reveal($('#res'), $('#refl'));
+  }
+  function pull(k) {
+    const p = k === 's2' ? 's1' : 's2';
+    if (!cntNS(S[p])) { toast(`${NAME[p]} 요약이 비어 있어요.`); return; }
+    if (cntNS(S[k]) && !confirm(`지금 쓴 ${NAME[k]} 글을 ${NAME[p]} 글로 바꿀까요?`)) return;
+    S[k] = k === 's3' ? S[p].replace(/\s*\n\s*/g, ' ').trim() : S[p];
+    const el = $('#' + k);
+    el.value = S[k];
+    saveSoon();
+    refresh();
+    el.focus();
+  }
+
+  // ---------- 예시·처음부터 ----------
+  function fillExample(all) {
+    if (!isEmpty() && !confirm('지금 적은 글을 지우고 예시로 바꿀까요?')) return;
+    S = blank();
+    S.title = EX.title;
+    S.src = EX.src;
+    S.struct = EX.struct;
+    if (all) {
+      S.s1 = EX.s1; S.s2 = EX.s2; S.s3 = EX.s3; S.refl = EX.refl;
+      S.open = 4;
+    }
+    fillInputs();
+    clearErrs();
+    saveNow();
+    refresh();
+    renderCopyWarn();
+    if (all) { reveal($('#res'), null); toast('예시로 채웠어요. 세 요약과 남은 낱말을 살펴봐요.'); }
+    else { reveal($('#st1'), $('#s1')); toast('예시 글을 넣었어요. 1단부터 줄여 써요.'); }
+  }
+  function resetAll() {
+    if (!isEmpty() && !confirm('적은 글을 모두 지우고 처음부터 할까요? 지운 글은 되살릴 수 없어요.')) return;
+    store.del(KEY);
+    clearTimeout(saveTimer);
+    saveTimer = 0;
+    S = blank();
+    fillInputs();
+    clearErrs();
+    $('#copyFb').hidden = true;
+    $('#aiFb').hidden = true;
+    $('#aiBox').open = false;
+    refresh();
+    renderCopyWarn();
+    saveEl.textContent = '새로 시작';
+    saveEl.classList.remove('bad');
+    window.scrollTo({ top: 0, behavior: motionOK() ? 'smooth' : 'auto' });
+    toast('처음부터 다시 시작해요.');
+  }
+
+  // ---------- 인쇄·복사 ----------
+  function sheetHTML() {
+    const d = new Date();
+    const date = `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.`;
+    const st = STRUCTS[S.struct];
+    const txt = s => cntNS(s) ? esc(String(s).trim()) : '<span class="sh-empty">(비어 있음)</span>';
+    const part = (h, body, cls) => `<section class="sh-sec${cls ? ' ' + cls : ''}"><h3>${h}</h3><p>${body}</p></section>`;
+    let h = '<h1>줄이고 또 줄이기</h1>' +
+      `<div class="sh-meta"><span>글: ${cntNS(S.title) ? esc(S.title.trim()) : '(제목 없음)'}</span><span>날짜: ${date}</span><span>이름: <span class="sh-blank"></span></span></div>`;
+    if (st && st.n) h += `<p class="sh-st">글의 구조: ${esc(st.n)}</p>`;
+    if (cntNS(S.src)) h += part('원문', esc(S.src.trim()), 'sh-src');
+    STAGES.forEach(k => { h += part(`${NAME[k]} · ${LIM[k]}자 안 <small>(공백 포함 ${cntAll(S[k])}자)</small>`, txt(S[k])); });
+    const cw = commonWords(S.s1, S.s2, S.s3);
+    h += part('세 요약에 모두 남은 낱말', cw.length ? cw.map(esc).join(' · ') : '<span class="sh-empty">(없음)</span>');
+    h += part('무엇을 버렸고, 왜 버렸나요?', txt(S.refl));
+    return h;
+  }
+  const buildSheet = () => { $('#sheet').innerHTML = sheetHTML(); };
+  window.addEventListener('beforeprint', buildSheet);
+
+  function plainText() {
+    const st = STRUCTS[S.struct];
+    const L = ['[줄이고 또 줄이기]', `글: ${S.title.trim() || '(제목 없음)'}`];
+    if (st && st.n) L.push(`글의 구조: ${st.n}`);
+    STAGES.forEach(k => { L.push('', `${NAME[k]} (${LIM[k]}자 안, 공백 포함 ${cntAll(S[k])}자)`, S[k].trim() || '(비어 있음)'); });
+    const cw = commonWords(S.s1, S.s2, S.s3);
+    L.push('', `세 요약에 모두 남은 낱말: ${cw.length ? cw.join(', ') : '(없음)'}`);
+    L.push('', '무엇을 버렸고, 왜 버렸나요?', S.refl.trim() || '(비어 있음)');
+    return L.join('\n');
+  }
+
+  function aiPrompt() {
+    const hasSrc = cntNS(S.src) > 0;
+    return [
+      '나는 중학생이고, 아래 글을 세 번 줄여서 요약했어. (1단 100자 안, 2단 50자 안, 3단 한 줄 25자 안)',
+      '',
+      `[글 제목] ${S.title.trim() || '(제목 없음)'}`,
+      '[원문]',
+      hasSrc ? S.src.trim() : '(종이책이라 원문은 붙이지 않았어.)',
+      '',
+      `[1단] ${S.s1.trim()}`,
+      `[2단] ${S.s2.trim()}`,
+      `[3단] ${S.s3.trim()}`,
+      `[내가 버린 것과 까닭] ${S.refl.trim()}`,
+      '',
+      '부탁:',
+      '1. 요약을 대신 써 주거나 고친 문장을 보여 주지 마.',
+      '2. 원문의 중심 내용 가운데 내 3단 한 줄에서 빠진 것이 있는지 내가 스스로 찾아볼 수 있게 질문을 2개만 해 줘.',
+      '3. 내가 버린 것 가운데 다시 생각해 볼 만한 것이 있으면, 답 대신 질문 1개로 물어봐 줘.',
+      '4. 원문이 없어서 내용을 모르면 지어내지 말고 "원문에서 다시 확인해 봐"라고 해 줘.',
+      '5. 중학생이 알아듣는 말로 짧게 해 줘.'
+    ].join('\n');
+  }
+
+  // ---------- 이벤트 ----------
+  document.addEventListener('input', e => {
+    const el = e.target;
+    const k = el && el.dataset ? el.dataset.k : '';
+    if (!k) return;
+    S[k] = el.value;
+    if (STAGES.includes(k)) $('#e_' + k).textContent = '';
+    saveSoon();
+    refresh();
+  });
+  $$('input[name="struct"]').forEach(r => r.addEventListener('change', () => {
+    if (!r.checked) return;
+    S.struct = r.value;
+    saveSoon();
+    refresh();
+  }));
+  // 빈 요약 칸에 원문을 그대로 붙여 넣으면 바로 알려 준다
+  STAGES.forEach(k => {
+    const el = $('#' + k);
+    el.addEventListener('paste', () => {
+      const wasEmpty = !cntNS(el.value);
+      setTimeout(() => {
+        if (wasEmpty && cntNS(S.src) && copied(el.value, S.src).cov >= 0.5) {
+          renderCopyWarn();
+          toast('원문을 그대로 붙여 넣었어요. 내 말로 바꿔 써요.', 3200);
+        }
+      }, 0);
+    });
+  });
+  $$('[data-next]').forEach(b => b.addEventListener('click', () => goNext(b.dataset.next)));
+  $$('[data-pull]').forEach(b => b.addEventListener('click', () => pull(b.dataset.pull)));
+  $$('.ladder button').forEach(b => b.addEventListener('click', () => {
+    const n = +b.dataset.go;
+    if (n > S.open) return;
+    const card = n < 4 ? $('#st' + n) : $('#res');
+    reveal(card, n < 4 ? $('#' + STAGES[n - 1]) : $('#refl'));
+  }));
+  $('#exAll').addEventListener('click', () => fillExample(true));
+  $('#exSrc').addEventListener('click', () => fillExample(false));
+  $('#reset').addEventListener('click', resetAll);
+  $('#printBtn').addEventListener('click', () => { if (saveTimer) saveNow(); buildSheet(); window.print(); });
+  $('#copyBtn').addEventListener('click', async () => {
+    if (saveTimer) saveNow();
+    const fb = $('#copyFb');
+    fb.hidden = true;
+    const ok = await copyText(plainText(), fb);
+    toast(ok ? '복사했어요. 낼 곳에 붙여 넣어요.' : '아래 칸의 글을 길게 눌러 직접 복사해 주세요.');
+  });
+  $('#aiCopy').addEventListener('click', async () => {
+    const fb = $('#aiFb');
+    fb.hidden = true;
+    const ok = await copyText(aiPrompt(), fb);
+    toast(ok ? '부탁문을 복사했어요.' : '아래 칸의 부탁문을 직접 복사해 주세요.');
+  });
+
+  // ---------- 시작 ----------
+  fillInputs();
+  refresh();
+  renderCopyWarn();
+  if (S.t) showSaved(true);
+})();
+</script>
+</body>
+</html>

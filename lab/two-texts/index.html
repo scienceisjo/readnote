@@ -1,0 +1,936 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>두 글 견주기 · 읽기 노트 실험실</title>
+<meta name="description" content="같은 화제를 다룬 글 두 편의 주장과 근거, 믿을 만한 정도를 표로 견주고 두 글에서 가져온 내용으로 내 생각을 쓰는 학생용 도구">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../../rn.css">
+<style>
+  .sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+  /* 맨 위 */
+  .intro h1 { font-size: 24px; letter-spacing: -.02em; margin: 0 0 6px; }
+  .intro .lead { margin: 0; color: var(--ink-2); }
+  .how { list-style: none; margin: 14px 0 16px; padding: 0; counter-reset: s; display: grid; gap: 8px; }
+  .how li { counter-increment: s; display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; }
+  .how li::before {
+    content: counter(s); width: 28px; height: 28px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent); font-weight: 800; font-size: 14px;
+    display: grid; place-items: center;
+  }
+  .how b { margin-right: 4px; }
+
+  /* A·B 표시 */
+  .side-mark {
+    display: inline-grid; place-items: center; flex: none;
+    width: 26px; height: 26px; border-radius: 50%;
+    font-weight: 800; font-size: 14px; margin-right: 6px; vertical-align: middle;
+  }
+  .side-a { background: var(--accent-soft); color: var(--accent); }
+  .side-b { background: var(--warn-soft); color: var(--warn); }
+  .tag-a { color: var(--accent); }
+  .tag-b { color: var(--warn); }
+
+  /* 1단계: 글 두 편 */
+  .ex-pick { margin-top: 14px; }
+  .ex-pick .note { margin: 0 0 6px; }
+  .pair { display: grid; gap: 16px; margin-top: 8px; }
+  .src { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px 14px; }
+  .src-h { display: flex; align-items: center; font-weight: 800; font-size: 16px; }
+  .src label.f:first-of-type { margin-top: 10px; }
+  .src-body { font-size: 15px; line-height: 1.75; }
+  .take { margin-top: 8px; }
+  @media (min-width: 860px) { .pair { grid-template-columns: 1fr 1fr; } }
+
+  /* 2단계: 견주기 표 */
+  .col-head { display: none; }
+  .cmp .row { border-top: 1px solid var(--line); padding: 14px 0; }
+  .cmp .row:first-child { border-top: 0; }
+  .row-h b { display: block; font-size: 15px; }
+  .row-hint { display: block; font-size: 13px; color: var(--muted); }
+  .row-cells { display: grid; gap: 12px; margin-top: 8px; }
+  .cell textarea { font-size: 15px; }
+  .cell-tag { font-size: 13px; font-weight: 800; margin-bottom: 4px; }
+  .togs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tog {
+    min-height: 44px; padding: 0 14px; border-radius: 999px;
+    border: 1px solid var(--line-2); background: var(--paper);
+    cursor: pointer; font-weight: 600; font-size: 14px;
+  }
+  .tog:hover { border-color: var(--ink-2); }
+  .tog[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .tog[data-side="B"][aria-pressed="true"] { background: var(--warn); border-color: var(--warn); }
+  .togs + textarea { margin-top: 8px; }
+  .kinds-help { margin: 10px 0 0; display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; font-size: 14px; }
+  .kinds-help dt { font-weight: 700; }
+  .kinds-help dd { margin: 0; color: var(--ink-2); }
+  @media (min-width: 640px) {
+    .row-cells { grid-template-columns: 1fr 1fr; }
+    .cell-tag { display: none; }
+    .col-head {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+      position: sticky; top: 48px; z-index: 5;
+      background: var(--paper); border-bottom: 1px solid var(--line-2);
+      padding: 10px 0 8px; margin-top: 8px; font-weight: 800;
+    }
+    .col-head > div { display: flex; align-items: center; min-width: 0; }
+    .col-head span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .col-head .ch-k { display: none; }
+  }
+  @media (min-width: 980px) {
+    .cmp .row { display: grid; grid-template-columns: 170px 1fr; gap: 12px; }
+    .row-cells { margin-top: 0; }
+    .col-head { grid-template-columns: 170px 1fr 1fr; }
+    .col-head .ch-k { display: block; }
+  }
+
+  /* 3단계: 내 생각 */
+  .mark-row { margin: 10px 0 8px; }
+  .gate { list-style: none; padding: 0; margin: 10px 0 0; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; color: var(--muted); }
+  .gate li { display: flex; align-items: center; gap: 6px; }
+  .gate li::before { content: ''; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--line-2); flex: none; }
+  .gate li.ok { color: var(--ink); }
+  .gate li.ok::before { background: var(--accent); border-color: var(--accent); }
+  .gate-msg { margin: 8px 0 0; }
+  .views { margin-top: 10px; }
+  .view-col { min-width: 0; }
+  .view {
+    white-space: pre-wrap; background: var(--bg); border-radius: 10px;
+    padding: 10px 12px; margin: 6px 0 8px; max-height: 45vh; overflow: auto;
+    font-size: 15px; line-height: 1.75;
+  }
+  .view.empty { color: var(--muted); }
+  .save-row { margin-top: 14px; }
+
+  /* 한 장 */
+  .sheet-bar h2 { margin-bottom: 2px; }
+  .sheet-bar .btn-row { margin-top: 12px; }
+  #copyFallback { margin-top: 8px; font-size: 13px; }
+  #sheetWarn { margin-top: 12px; }
+  #sheetBody { margin-top: 18px; }
+  .sh-head { display: flex; justify-content: space-between; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; border-bottom: 2px solid var(--ink); padding-bottom: 6px; }
+  .sh-title { margin: 0; font-size: 20px; letter-spacing: -.02em; }
+  .sh-meta { font-size: 14px; color: var(--ink-2); }
+  .sh-topic { margin: 10px 0 4px; }
+  .sh-src { margin: 2px 0; font-size: 14px; display: flex; align-items: flex-start; }
+  .sh-src .side-mark { width: 22px; height: 22px; font-size: 12px; }
+  .sh-au { color: var(--muted); }
+  .sh-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; table-layout: fixed; }
+  .sh-table th, .sh-table td { border: 1px solid var(--line-2); padding: 8px 10px; vertical-align: top; text-align: left; }
+  .sh-table thead th { background: var(--bg); }
+  .sh-table .sh-k { width: 7.5em; background: var(--bg); font-weight: 700; }
+  .sh-empty { color: var(--muted); }
+  .sh-sub { font-size: 16px; margin: 16px 0 6px; }
+  .sh-mine { border: 1px solid var(--line-2); border-radius: 8px; padding: 10px 12px; line-height: 1.8; }
+  .mk {
+    display: inline-block; font-size: .82em; font-weight: 800; line-height: 1.5;
+    padding: 0 6px; border-radius: 6px; border: 1px solid currentColor; margin-right: 2px;
+  }
+  .mk-a { background: var(--accent-soft); color: var(--accent); }
+  .mk-b { background: var(--warn-soft); color: var(--warn); }
+  #aiText { font-size: 13px; margin-top: 8px; }
+  @media screen and (max-width: 600px) {
+    .sh-table, .sh-table tbody, .sh-table tr, .sh-table th, .sh-table td { display: block; width: auto; }
+    .sh-table thead { display: none; }
+    .sh-table tr { border-top: 1px solid var(--line-2); padding: 8px 0; }
+    .sh-table tbody th { border: 0; padding: 0 0 4px; background: none; }
+    .sh-table td { border: 0; padding: 2px 0 8px; }
+    .sh-table td::before { content: attr(data-side); display: block; font-size: 12px; font-weight: 800; color: var(--muted); }
+  }
+
+  details.more > summary { min-height: 44px; display: flex; align-items: center; }
+  .cell textarea { overflow: hidden; }
+
+  .basis { font-size: 12px; color: var(--muted); line-height: 1.6; margin: 28px 0 0; }
+
+  /* 전자칠판 같은 큰 화면 */
+  @media screen and (min-width: 1700px) { body { zoom: 1.2; } }
+
+  @media print {
+    @page { size: A4; margin: 12mm; }
+    body { font-size: 10.5pt; }
+    body.has-sheet main > :not(#sheet) { display: none !important; }
+    .sh-table { font-size: 10pt; }
+    .sh-table th, .sh-table td { border-color: #888; padding: 5px 7px; }
+    .sh-table tr { break-inside: avoid; }
+    .sh-mine { border-color: #888; }
+    #sheetBody { margin-top: 0; }
+  }
+</style>
+</head>
+<body>
+<header class="top wide"><div class="top-in"><a class="brand" href="../">읽기 노트 실험실</a><div class="grow who">두 글 견주기</div><span class="save-state" id="saveState"></span></div></header>
+
+<main class="wrap wide">
+
+  <section class="card intro">
+    <h1>두 글 견주기</h1>
+    <p class="lead">같은 화제를 다룬 글 두 편을 나란히 놓고 주장과 근거를 표로 견주어 읽는 도구예요.</p>
+    <ol class="how">
+      <li><span><b>글 넣기</b>글 A와 글 B를 붙여 넣거나 예시 글을 골라요.</span></li>
+      <li><span><b>표 채우기</b>두 글의 주장, 근거, 근거의 종류, 믿을 만한 정도, 빼놓은 것을 칸마다 적어요.</span></li>
+      <li><span><b>내 생각 쓰기</b>두 글에서 한 군데 이상씩 가져와 내 생각을 쓰고, 한 장으로 인쇄하거나 글로 복사해요.</span></li>
+    </ol>
+    <div class="btn-row no-print">
+      <button type="button" class="btn" id="btnDemo">예시로 채워 보기</button>
+      <button type="button" class="btn ghost" id="btnReset">처음부터</button>
+    </div>
+    <p class="note">적은 내용은 이 기기의 브라우저에만 자동으로 저장돼요. 다른 기기에서는 보이지 않아요.</p>
+  </section>
+
+  <section class="card" id="s1">
+    <div class="step-tag">1단계</div>
+    <h2>글 두 편 넣기</h2>
+    <p class="sub">같은 화제를 다룬 글 두 편을 붙여 넣어요. 연습할 때는 예시 글을 골라도 돼요.</p>
+
+    <label class="f" for="topic">화제</label>
+    <input class="t" id="topic" data-k="topic" autocomplete="off" placeholder="예: 학교에서 휴대폰 사용 시간을 정해야 할까">
+
+    <div class="ex-pick no-print">
+      <p class="note">예시 글 가져오기 · 연습용으로 새로 쓴 글이고, 글쓴이는 가상 인물이에요.</p>
+      <div class="btn-row" id="exList"></div>
+    </div>
+
+    <div class="pair">
+      <div class="src">
+        <div class="src-h"><span class="side-mark side-a">A</span>글 A</div>
+        <label class="f" for="A_title">제목</label>
+        <input class="t" id="A_title" data-k="A.title" autocomplete="off">
+        <label class="f" for="A_author">글쓴이 <span class="hint">모르면 비워 둬요</span></label>
+        <input class="t" id="A_author" data-k="A.author" autocomplete="off">
+        <label class="f" for="A_body">본문</label>
+        <textarea class="t src-body" id="A_body" data-k="A.body" rows="12" placeholder="글 A 본문을 붙여 넣어요"></textarea>
+        <div class="count" id="A_count"></div>
+        <button type="button" class="btn take no-print" data-take="A" data-from="ta">고른 부분을 내 생각에 넣기</button>
+      </div>
+      <div class="src">
+        <div class="src-h"><span class="side-mark side-b">B</span>글 B</div>
+        <label class="f" for="B_title">제목</label>
+        <input class="t" id="B_title" data-k="B.title" autocomplete="off">
+        <label class="f" for="B_author">글쓴이 <span class="hint">모르면 비워 둬요</span></label>
+        <input class="t" id="B_author" data-k="B.author" autocomplete="off">
+        <label class="f" for="B_body">본문</label>
+        <textarea class="t src-body" id="B_body" data-k="B.body" rows="12" placeholder="글 B 본문을 붙여 넣어요"></textarea>
+        <div class="count" id="B_count"></div>
+        <button type="button" class="btn take no-print" data-take="B" data-from="ta">고른 부분을 내 생각에 넣기</button>
+      </div>
+    </div>
+    <p class="note box">본문에서 눈여겨본 부분을 끌어서 고른 뒤 「고른 부분을 내 생각에 넣기」를 누르면, 3단계 내 생각 칸 끝에 [A에서]나 [B에서] 표시와 함께 들어가요.</p>
+  </section>
+
+  <section class="card" id="s2">
+    <div class="step-tag">2단계</div>
+    <h2>견주기 표 채우기</h2>
+    <p class="sub">칸마다 글 A와 글 B를 나란히 적어요. 여기에는 글에 있는 내용을 바탕으로 적고, 내 생각은 3단계에서 써요.</p>
+    <details class="more">
+      <summary>근거의 종류와 믿을 만한지 따지는 법</summary>
+      <dl class="kinds-help">
+        <dt>자료·수치</dt><dd>조사 결과나 측정값처럼 숫자로 나타낸 것</dd>
+        <dt>경험</dt><dd>글쓴이나 주변 사람이 직접 겪은 일</dd>
+        <dt>전문가 말</dt><dd>그 분야를 잘 아는 사람의 말을 옮긴 것</dd>
+        <dt>예시</dt><dd>주장에 맞는 사례를 들어 보인 것</dd>
+      </dl>
+      <p class="note">믿을 만한지 따질 때는 이렇게 물어봐요. 누가 한 말인지 밝혔나요? 몇 명에게, 어디서 조사했나요? 글쓴이 주장에 유리한 것만 골랐나요? 다른 자료로 확인할 수 있나요?</p>
+    </details>
+    <div class="col-head" aria-hidden="true">
+      <div class="ch-k"></div>
+      <div><span class="side-mark side-a">A</span><span id="ch_A">글 A</span></div>
+      <div><span class="side-mark side-b">B</span><span id="ch_B">글 B</span></div>
+    </div>
+    <div class="cmp" id="cmp"></div>
+  </section>
+
+  <section class="card" id="s3">
+    <div class="step-tag">3단계</div>
+    <h2>두 글을 다 읽은 내 생각</h2>
+    <p class="sub">두 글에서 한 군데 이상씩 가져와 내 생각을 써요. 가져온 내용 앞에 [A에서], [B에서] 표시를 붙이고, 그 뒤에 내 말을 이어 써요.</p>
+    <div class="btn-row no-print mark-row">
+      <button type="button" class="btn" data-mark="A">[A에서] 넣기</button>
+      <button type="button" class="btn" data-mark="B">[B에서] 넣기</button>
+    </div>
+    <label class="sr" for="mine">두 글을 다 읽은 내 생각</label>
+    <textarea class="t ruled" id="mine" data-k="mine" rows="10" placeholder="[A에서] 글 A에서 가져온 내용을 적고 내 생각을 이어 써요. [B에서] 글 B에서 가져온 내용도 적어요."></textarea>
+    <ul class="gate" id="gate">
+      <li id="g_A">글 A에서 가져온 곳 <b>0군데</b></li>
+      <li id="g_B">글 B에서 가져온 곳 <b>0군데</b></li>
+      <li id="g_n">내 생각 <b>0자</b> (50자 이상)</li>
+    </ul>
+
+    <details class="more no-print" id="viewBox">
+      <summary>두 글 다시 보기</summary>
+      <p class="note">본문에서 가져올 부분을 끌어서 고른 뒤 단추를 누르면 내 생각 칸 끝에 들어가요.</p>
+      <div class="pair views">
+        <div class="view-col">
+          <div class="src-h"><span class="side-mark side-a">A</span><span id="vt_A">글 A</span></div>
+          <div class="view" id="view_A"></div>
+          <button type="button" class="btn take" data-take="A" data-from="view">고른 부분 넣기</button>
+        </div>
+        <div class="view-col">
+          <div class="src-h"><span class="side-mark side-b">B</span><span id="vt_B">글 B</span></div>
+          <div class="view" id="view_B"></div>
+          <button type="button" class="btn take" data-take="B" data-from="view">고른 부분 넣기</button>
+        </div>
+      </div>
+    </details>
+
+    <div class="btn-row no-print save-row">
+      <button type="button" class="btn primary" id="btnSave" disabled>저장하고 한 장으로 보기</button>
+    </div>
+    <p class="note gate-msg" id="gateMsg"></p>
+  </section>
+
+  <section class="card" id="sheet" hidden>
+    <div class="sheet-bar no-print">
+      <h2>한 장으로 보기</h2>
+      <p class="sub" id="savedInfo"></p>
+      <label class="f" for="who">학번과 이름 <span class="hint">인쇄할 때 맨 위에 적혀요. 비워 둬도 돼요</span></label>
+      <input class="t" id="who" data-k="who" autocomplete="off" placeholder="예: 20315 홍길동">
+      <div class="btn-row">
+        <button type="button" class="btn primary" id="btnPrint">인쇄하기</button>
+        <button type="button" class="btn" id="btnCopy">글로 복사하기</button>
+      </div>
+      <textarea class="t" id="copyFallback" rows="6" hidden readonly aria-label="복사할 글"></textarea>
+      <p class="warn-box" id="sheetWarn" hidden>저장한 뒤 고친 내용 때문에 두 글에서 가져온 곳이나 글자 수가 모자라요. 3단계를 다시 채우면 한 장이 다시 보여요.</p>
+    </div>
+    <div id="sheetBody"></div>
+    <details class="more no-print" id="aiBox">
+      <summary>AI에게 질문 받기</summary>
+      <p class="note">AI가 답을 대신 써 주지 않고 내 표와 생각을 더 따져 볼 질문만 하도록 부탁하는 글이에요. 복사해서 선생님이 안내한 AI 채팅 창에 붙여 넣어요.</p>
+      <div class="btn-row">
+        <button type="button" class="btn" id="btnAi">부탁문 복사하기</button>
+      </div>
+      <textarea class="t" id="aiText" rows="8" readonly aria-label="AI에게 줄 부탁문"></textarea>
+    </details>
+  </section>
+
+  <p class="basis">근거: 2022 개정 국어 [9국02-06] 「동일한 화제를 다룬 여러 글이나 자료를 주제 통합적으로 읽는다.」 2028학년도 수능 독서와 작문 예시문항은 여러 글을 견주고 신뢰성을 따지며 자기 관점을 세우는 읽기를 권한다(한국교육과정평가원).</p>
+</main>
+
+<footer id="app-credit" style="width:100%;box-sizing:border-box;margin:2.5rem 0 0;padding:14px 12px;text-align:center;font-size:12.5px;line-height:1.6;color:#8a8f98;font-family:system-ui,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;border-top:1px solid rgba(128,128,128,.25);">© 2026 조승재(과학이조선생) · 해누리중학교 · All rights reserved<br><span style="font-size:11px;opacity:.85;">최종 업데이트: 2026-11-08</span></footer>
+
+<script src="../../rn.js"></script>
+<script>
+(function () {
+  'use strict';
+  const { esc, $, $$, store, len, toast, copyText } = window.RN;
+
+  const KEY = 'rnlab_two-texts_v1';
+  const SIDES = ['A', 'B'];
+  const KINDS = ['자료·수치', '경험', '전문가 말', '예시'];
+  const TRUST = [{ v: 'high', t: '높음' }, { v: 'mid', t: '보통' }, { v: 'low', t: '낮음' }];
+  const MIN_MINE = 50;   // 내 생각 글자 수(공백·표시 뺀)
+  const MIN_TAKE = 4;    // 표시 뒤에 와야 하는 글자 수
+  const MAX_PICK = 200;  // 한 번에 가져올 수 있는 길이
+  const MARK = /\[\s*(?:글\s*)?([ABab])\s*에서\s*\]/g;
+
+  const ROWS = [
+    { k: 'claim', name: '글쓴이의 주장', hint: '글쓴이가 가장 하고 싶은 말을 한 문장으로 적어요.', ph: '글쓴이가 가장 하고 싶은 말', rows: 2 },
+    { k: 'evidence', name: '근거', hint: '주장을 받치려고 글쓴이가 든 내용을 적어요.', ph: '주장을 받치려고 든 내용', rows: 4 },
+    { k: 'kinds', name: '근거의 종류', hint: '해당하는 것을 모두 골라요.' },
+    { k: 'trust', name: '믿을 만한 정도와 까닭', hint: '정도를 고르고, 그렇게 본 까닭을 적어요.', ph: '누가 말했는지, 얼마나 넓게 조사했는지, 한쪽에 치우치지 않았는지', rows: 3 },
+    { k: 'missing', name: '이 글이 빼놓은 것', hint: '글에서 다루지 않은 사람, 상황, 반대 의견을 적어요.', ph: '다루지 않은 사람·상황·반대 의견', rows: 3 }
+  ];
+
+  // ---------- 예시 (연습용으로 새로 쓴 글, 글쓴이는 가상 인물) ----------
+  const P = a => a.join('\n\n');
+  const EXAMPLES = [
+    {
+      label: '휴대폰 사용 시간',
+      topic: '학교에서 휴대폰 사용 시간을 정해야 할까',
+      A: {
+        title: '학교에 있는 동안은 휴대폰을 걷어 두자',
+        author: '김도윤 · 중학교 2학년 학생회 부회장 · 가상 인물',
+        body: P([
+          '우리 학교는 지난 학기부터 아침 조회 때 휴대폰을 걷고 종례 때 돌려준다. 처음에는 불만이 많았다. 그래도 나는 이 규칙을 이어 가야 한다고 생각한다.',
+          '학생회가 한 학기 뒤에 2학년 한 반 27명에게 물었더니 20명이 "쉬는 시간에 친구와 이야기하는 시간이 늘었다"고 답했다. 담임 선생님도 "쉬는 시간에 복도에서 어울려 노는 학생이 많아졌고, 종이 치면 자리에 앉는 속도가 빨라졌다"고 말씀하셨다.',
+          '나도 예전에는 쉬는 시간마다 짧은 영상을 보았다. 종이 울린 뒤에도 한동안 영상 생각이 났다. 지금은 쉬는 시간에 다음 시간 준비물을 챙길 여유가 생겼다.',
+          '휴대폰은 편리한 도구다. 하지만 학교에 있는 동안만큼은 서로 얼굴을 보며 지내는 시간이 더 필요하다.'
+        ])
+      },
+      B: {
+        title: '휴대폰, 걷기보다 쓰는 규칙을 함께 정하자',
+        author: '박서연 · 중학교 3학년 · 가상 인물',
+        body: P([
+          '학교가 휴대폰을 하루 종일 걷어 가는 것은 지나치다. 시간을 정해 막기보다 언제, 어디서, 어떻게 쓸지 학생들이 함께 정하는 편이 낫다.',
+          '휴대폰은 놀이 도구만이 아니다. 지난달 과학 시간에 우리 모둠은 휴대폰으로 운동장의 막대 그림자를 찍어, 그림자가 해의 반대쪽에 생긴다는 것을 확인했다. 사회 시간에는 지도 앱으로 우리 동네의 언덕과 하천 위치를 찾아보았다. 휴대폰을 모두 걷어 두면 이런 수업을 하기 어렵다.',
+          '갑자기 몸이 아파 부모님께 연락해야 했던 날, 걷어 간 휴대폰을 찾느라 한참을 기다린 적도 있다.',
+          '어느 교육 전문가는 "스스로 조절하는 힘은 금지가 아니라 연습으로 길러진다"고 말했다. 학생회가 쓰는 시간과 장소를 정하고 한 달 동안 지켜 보는 것부터 시작하면 좋겠다.'
+        ])
+      },
+      rows: {
+        A: {
+          claim: '학교에 있는 동안 휴대폰을 걷어 두는 규칙을 이어 가야 한다.',
+          evidence: '2학년 한 반 27명 가운데 20명이 쉬는 시간에 친구와 이야기하는 시간이 늘었다고 답했다. 담임 선생님이 학생들이 복도에서 더 어울리고 자리에 빨리 앉는다고 하셨다. 글쓴이도 쉬는 시간에 여유가 생겼다.',
+          kinds: ['자료·수치', '경험', '전문가 말'],
+          trust: 'mid',
+          why: '숫자가 있어서 믿음이 간다. 하지만 한 반에만 물어보았고, 규칙을 찬성하는 학생회가 조사해서 한쪽으로 치우쳤을 수 있다. 담임 선생님 말은 날마다 반을 직접 본 사람의 말이라 믿을 만하다.',
+          missing: '급하게 연락해야 할 때나 수업에 휴대폰이 필요할 때는 다루지 않았다. 이야기하는 시간이 늘지 않았다고 답한 7명의 생각도 빠졌다.'
+        },
+        B: {
+          claim: '휴대폰을 하루 종일 걷기보다 쓰는 시간과 장소를 학생들이 함께 정하자.',
+          evidence: '과학 시간에 휴대폰으로 그림자를 찍었고, 사회 시간에 지도 앱을 썼다. 몸이 아파 부모님께 연락해야 했는데 휴대폰을 찾느라 오래 기다렸다. 교육 전문가가 스스로 조절하는 힘은 연습으로 길러진다고 했다.',
+          kinds: ['경험', '전문가 말', '예시'],
+          trust: 'mid',
+          why: '수업 예시는 구체적이어서 그럴듯하다. 그런데 전문가가 누구인지 이름이 없어서 확인할 수 없다. 숫자로 된 자료도 없다.',
+          missing: '쉬는 시간에 휴대폰을 보면 친구와 이야기하는 시간이 줄 수 있다는 점을 다루지 않았다. 학생들이 정한 규칙을 지키지 않으면 어떻게 할지도 빠졌다.'
+        }
+      },
+      mine: '[A에서] 한 반 27명 가운데 20명이 쉬는 시간에 친구와 이야기하는 시간이 늘었다고 답했다. 쉬는 시간에 휴대폰을 덜 보면 친구와 더 어울린다는 점은 나도 맞다고 생각한다. 그런데 [B에서] 과학 시간에 휴대폰으로 그림자를 찍은 것처럼 수업에 휴대폰이 필요한 때도 있다. 그래서 나는 쉬는 시간에는 걷어 두고, 수업에 쓰는 시간이나 급히 연락할 때만 선생님께 받아 쓰는 규칙이 좋다고 생각한다. A의 조사는 한 반에만 물어본 것이라 다른 반에도 물어보면 좋겠다.'
+    },
+    {
+      label: '교실 환기',
+      topic: '쉬는 시간마다 교실 창문을 열어야 할까',
+      A: {
+        title: '쉬는 시간마다 창문을 열자',
+        author: '이하준 · 중학교 과학 동아리 · 가상 인물',
+        body: P([
+          '점심시간이 지난 5교시가 되면 우리 반에는 조는 친구가 많다. 나는 그 까닭 가운데 하나가 교실 공기라고 생각한다.',
+          '사람이 내쉬는 숨에는 들이마신 공기보다 이산화 탄소가 많이 들어 있다. 창문을 닫은 교실에 서른 명 가까이 앉아 있으면 교실 공기 속 이산화 탄소가 점점 늘어난다.',
+          '과학 동아리에서 이산화 탄소 센서를 교실 가운데에 두고 재 보았다. 창문을 닫고 수업한 45분 동안 값이 계속 올라 수업 시작 때의 두 배를 넘었다. 쉬는 시간에 앞뒤 창문을 모두 열자 몇 분 만에 값이 크게 내려갔다.',
+          '과학 선생님께서는 이산화 탄소가 많은 공기에서 오래 지내면 머리가 무겁고 졸릴 수 있다고 하셨다. 쉬는 시간마다 창문을 여는 습관을 들이자.'
+        ])
+      },
+      B: {
+        title: '창문 열기, 바깥 공기를 보고 정하자',
+        author: '최유나 · 중학교 보건 도우미 · 가상 인물',
+        body: P([
+          '쉬는 시간마다 무조건 창문을 열자는 의견에는 찬성하기 어렵다. 바깥 공기가 늘 깨끗한 것은 아니기 때문이다.',
+          '미세 먼지가 많은 날 창문을 활짝 열어 두면 바깥의 미세 먼지가 교실 안으로 들어온다. 지난봄 미세 먼지 예보가 ‘나쁨’이던 날, 창문을 오래 열어 둔 뒤 기침하는 친구들이 늘었고 보건실을 찾은 학생도 있었다.',
+          '한겨울에 창문을 자주 열면 교실이 금방 차가워진다. 교실을 다시 데우는 데 난방 에너지도 더 든다.',
+          '그래서 나는 날마다 미세 먼지 예보를 확인하자고 제안한다. 공기가 좋은 날에는 창문을 열고, 나쁜 날에는 공기 청정기를 켜고 창문은 짧게만 열자.'
+        ])
+      },
+      rows: {
+        A: {
+          claim: '쉬는 시간마다 교실 창문을 열어 환기하자.',
+          evidence: '사람이 내쉬는 숨에는 이산화 탄소가 많다. 센서로 재 보니 창문을 닫은 45분 동안 이산화 탄소 값이 두 배를 넘었고, 창문을 열자 크게 내려갔다. 과학 선생님이 이산화 탄소가 많으면 머리가 무겁고 졸릴 수 있다고 하셨다.',
+          kinds: ['자료·수치', '전문가 말'],
+          trust: 'high',
+          why: '센서로 직접 잰 값이 있고, 숨에 이산화 탄소가 많다는 것은 과학 시간에 배운 내용과 맞다. 다만 며칠 동안 몇 번 재 본 것인지는 나와 있지 않다.',
+          missing: '5교시에 조는 것은 점심을 먹은 뒤라서일 수도 있다. 미세 먼지가 많은 날이나 아주 추운 날에는 어떻게 할지 말하지 않았다.'
+        },
+        B: {
+          claim: '바깥 공기와 날씨를 보고 창문을 열지 정하자.',
+          evidence: '미세 먼지가 많은 날 창문을 열면 미세 먼지가 들어온다. 미세 먼지가 나쁜 날 창문을 열어 둔 뒤 기침하는 친구가 늘었다. 겨울에 창문을 자주 열면 교실이 차가워지고 난방 에너지가 더 든다.',
+          kinds: ['경험', '예시'],
+          trust: 'mid',
+          why: '미세 먼지가 들어온다는 말은 맞다. 그런데 기침이 늘어난 것이 꼭 창문 때문인지는 알 수 없다. 숫자로 된 자료도 없다.',
+          missing: '공기 청정기는 미세 먼지를 거르지만 이산화 탄소는 줄이지 못한다. 창문을 닫아 두면 이산화 탄소가 쌓인다는 점을 다루지 않았다.'
+        }
+      },
+      mine: '[A에서] 창문을 닫고 수업한 45분 동안 이산화 탄소 값이 수업 시작 때의 두 배를 넘었다고 했다. 사람이 많은 교실에서는 환기가 꼭 필요하다는 말이다. [B에서] 미세 먼지가 많은 날 창문을 열면 미세 먼지가 들어온다는 말도 맞다. 하지만 공기 청정기는 이산화 탄소를 줄이지 못한다. 그래서 나는 미세 먼지가 나쁜 날에도 창문을 아예 닫아 두기보다 짧게 자주 여는 편이 낫다고 생각한다. 우리 반에서도 센서로 직접 재 보고 싶다.'
+    }
+  ];
+
+  // ---------- 상태 ----------
+  const blankText = () => ({ title: '', author: '', body: '' });
+  const blankRow = () => ({ claim: '', evidence: '', kinds: [], trust: '', why: '', missing: '' });
+  const blank = () => ({ v: 1, topic: '', A: blankText(), B: blankText(), rows: { A: blankRow(), B: blankRow() }, mine: '', who: '', done: false, savedAt: '' });
+
+  function normalize(s) {
+    const b = blank();
+    if (!s || typeof s !== 'object') return b;
+    const str = v => (typeof v === 'string' ? v : '');
+    b.topic = str(s.topic);
+    b.mine = str(s.mine);
+    b.who = str(s.who);
+    b.done = !!s.done;
+    b.savedAt = str(s.savedAt);
+    SIDES.forEach(side => {
+      const t = (s[side] && typeof s[side] === 'object') ? s[side] : {};
+      b[side] = { title: str(t.title), author: str(t.author), body: str(t.body) };
+      const r = (s.rows && s.rows[side] && typeof s.rows[side] === 'object') ? s.rows[side] : {};
+      const kinds = Array.isArray(r.kinds) ? r.kinds : [];
+      b.rows[side] = {
+        claim: str(r.claim),
+        evidence: str(r.evidence),
+        kinds: KINDS.filter(k => kinds.includes(k)),
+        trust: TRUST.some(x => x.v === r.trust) ? r.trust : '',
+        why: str(r.why),
+        missing: str(r.missing)
+      };
+    });
+    return b;
+  }
+
+  const stored = store.get(KEY, null);
+  let state = normalize(stored);
+
+  function getPath(k) {
+    return k.split('.').reduce((o, p) => (o == null ? undefined : o[p]), state);
+  }
+  function setPath(k, v) {
+    const ps = k.split('.');
+    let o = state;
+    for (let i = 0; i < ps.length - 1; i++) {
+      if (o[ps[i]] == null || typeof o[ps[i]] !== 'object') return;
+      o = o[ps[i]];
+    }
+    o[ps[ps.length - 1]] = v;
+  }
+
+  function hasTexts() {
+    return !!(state.topic.trim() || SIDES.some(s => state[s].title.trim() || state[s].author.trim() || state[s].body.trim()));
+  }
+  function hasContent() {
+    if (hasTexts() || state.mine.trim()) return true;
+    return SIDES.some(s => {
+      const r = state.rows[s];
+      return r.claim.trim() || r.evidence.trim() || r.kinds.length || r.trust || r.why.trim() || r.missing.trim();
+    });
+  }
+
+  // ---------- 저장 ----------
+  let saveTimer = null;
+  const hm = d => d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+  function saveNow() {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    const ok = store.set(KEY, state);
+    const el = $('#saveState');
+    el.classList.toggle('bad', !ok);
+    el.textContent = ok ? '자동 저장됨 ' + hm(new Date()) : '저장하지 못했어요';
+    return ok;
+  }
+  function saveSoon() {
+    $('#saveState').classList.remove('bad');
+    $('#saveState').textContent = '저장하는 중';
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveNow, 400);
+  }
+  window.addEventListener('pagehide', () => { if (saveTimer) saveNow(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && saveTimer) saveNow(); });
+
+  // ---------- 표 만들기 ----------
+  function cellHtml(r, side) {
+    const id = `r_${side}_${r.k}`;
+    const tag = `<div class="cell-tag tag-${side.toLowerCase()}">글 ${side}</div>`;
+    if (r.k === 'kinds') {
+      return `<div class="cell" data-side="${side}">${tag}<div class="togs" role="group" aria-label="글 ${side} 근거의 종류">${
+        KINDS.map(k => `<button type="button" class="tog" data-kind="${esc(k)}" data-side="${side}" aria-pressed="false">${esc(k)}</button>`).join('')
+      }</div></div>`;
+    }
+    if (r.k === 'trust') {
+      return `<div class="cell" data-side="${side}">${tag}<div class="togs" role="group" aria-label="글 ${side} 믿을 만한 정도">${
+        TRUST.map(t => `<button type="button" class="tog" data-trust="${t.v}" data-side="${side}" aria-pressed="false">${t.t}</button>`).join('')
+      }</div><label class="sr" for="${id}">글 ${side} 믿을 만한 정도의 까닭</label><textarea class="t" id="${id}" data-k="rows.${side}.why" rows="${r.rows}" placeholder="${esc(r.ph)}"></textarea></div>`;
+    }
+    return `<div class="cell" data-side="${side}">${tag}<label class="sr" for="${id}">글 ${side} ${esc(r.name)}</label><textarea class="t" id="${id}" data-k="rows.${side}.${r.k}" rows="${r.rows}" placeholder="${esc(r.ph)}"></textarea></div>`;
+  }
+  function buildTable() {
+    $('#cmp').innerHTML = ROWS.map(r => `
+      <div class="row" data-row="${r.k}">
+        <div class="row-h"><b>${esc(r.name)}</b><span class="row-hint">${esc(r.hint)}</span></div>
+        <div class="row-cells">${SIDES.map(side => cellHtml(r, side)).join('')}</div>
+      </div>`).join('');
+  }
+
+  function buildExamples() {
+    $('#exList').innerHTML = EXAMPLES.map((ex, i) =>
+      `<button type="button" class="btn" data-ex="${i}">${esc(ex.label)}</button>`).join('');
+  }
+
+  // ---------- 화면 채우기 ----------
+  // 표 칸은 적은 만큼 늘어나게
+  function grow(el) {
+    if (!el || !el.matches('.cell textarea')) return;
+    el.style.height = 'auto';
+    el.style.height = (el.scrollHeight + 2) + 'px';
+  }
+  function fillForm() {
+    $$('[data-k]').forEach(el => {
+      const v = getPath(el.dataset.k);
+      el.value = v == null ? '' : v;
+    });
+    $$('.cell textarea').forEach(grow);
+    syncToggles();
+    refresh();
+  }
+  function syncToggles() {
+    $$('.tog[data-kind]').forEach(b => {
+      b.setAttribute('aria-pressed', state.rows[b.dataset.side].kinds.includes(b.dataset.kind) ? 'true' : 'false');
+    });
+    $$('.tog[data-trust]').forEach(b => {
+      b.setAttribute('aria-pressed', state.rows[b.dataset.side].trust === b.dataset.trust ? 'true' : 'false');
+    });
+  }
+  function renderViews() {
+    SIDES.forEach(s => {
+      const v = $('#view_' + s);
+      const body = state[s].body.trim();
+      v.textContent = body || `1단계에서 글 ${s} 본문을 넣으면 여기에 보여요.`;
+      v.classList.toggle('empty', !body);
+    });
+  }
+
+  // 표시 뒤에 내용이 붙은 것만 가져온 곳으로 센다
+  function takes(text) {
+    const res = { A: 0, B: 0 };
+    const t = String(text || '');
+    const ms = [...t.matchAll(MARK)];
+    ms.forEach((m, i) => {
+      const end = i + 1 < ms.length ? ms[i + 1].index : t.length;
+      if (len(t.slice(m.index + m[0].length, end)) >= MIN_TAKE) res[m[1].toUpperCase()] += 1;
+    });
+    return res;
+  }
+  function gateState() {
+    const tk = takes(state.mine);
+    const n = len(state.mine.replace(MARK, ''));
+    return { tk, n, ok: tk.A >= 1 && tk.B >= 1 && n >= MIN_MINE };
+  }
+  function emptyCells() {
+    let n = 0;
+    SIDES.forEach(s => {
+      const r = state.rows[s];
+      if (!r.claim.trim()) n++;
+      if (!r.evidence.trim()) n++;
+      if (!r.kinds.length) n++;
+      if (!r.trust && !r.why.trim()) n++;
+      if (!r.missing.trim()) n++;
+    });
+    return n;
+  }
+  function gateMessage(g) {
+    const need = [];
+    if (g.tk.A < 1) need.push('글 A에서 가져온 곳이 아직 없어요.');
+    if (g.tk.B < 1) need.push('글 B에서 가져온 곳이 아직 없어요.');
+    if (g.n < MIN_MINE) need.push(`내 생각을 ${MIN_MINE - g.n}자 더 써요.`);
+    let msg = need.length ? need.join(' ') + ' 표시 뒤에는 가져온 내용을 이어 적어야 한 군데로 세요.' : '저장하면 표와 내 생각이 한 장으로 정리돼요.';
+    const e = emptyCells();
+    if (e) msg += ` 표에 빈칸이 ${e}개 있어요.`;
+    return msg;
+  }
+
+  function refresh(changedKey) {
+    SIDES.forEach(s => {
+      const n = len(state[s].body);
+      $('#' + s + '_count').textContent = n ? `공백 빼고 ${n}자` : '';
+      const name = state[s].title.trim() || `글 ${s}`;
+      $('#ch_' + s).textContent = name;
+      $('#vt_' + s).textContent = name;
+    });
+    if (!changedKey || /^[AB]\./.test(changedKey)) renderViews();
+
+    const g = gateState();
+    $('#g_A b').textContent = g.tk.A + '군데';
+    $('#g_B b').textContent = g.tk.B + '군데';
+    $('#g_n b').textContent = g.n + '자';
+    $('#g_A').classList.toggle('ok', g.tk.A >= 1);
+    $('#g_B').classList.toggle('ok', g.tk.B >= 1);
+    $('#g_n').classList.toggle('ok', g.n >= MIN_MINE);
+    $('#btnSave').disabled = !g.ok;
+    $('#btnSave').textContent = state.done ? '다시 저장하고 한 장으로 보기' : '저장하고 한 장으로 보기';
+    $('#gateMsg').textContent = gateMessage(g);
+    renderSheet(g);
+  }
+
+  // ---------- 한 장 ----------
+  const nl = s => esc(s).replace(/\n/g, '<br>');
+  function srcHtml(s) {
+    const t = state[s];
+    const title = t.title.trim() || '(제목 없음)';
+    return `${esc(title)}${t.author.trim() ? ` <span class="sh-au">${esc(t.author.trim())}</span>` : ''}`;
+  }
+  function cellView(s, k) {
+    const r = state.rows[s];
+    const empty = '<span class="sh-empty">비어 있음</span>';
+    if (k === 'kinds') return r.kinds.length ? esc(r.kinds.join(', ')) : empty;
+    if (k === 'trust') {
+      const t = TRUST.find(x => x.v === r.trust);
+      const why = r.why.trim();
+      if (!t && !why) return empty;
+      return (t ? `<b>${t.t}</b>` : '') + (t && why ? '<br>' : '') + (why ? nl(why) : '');
+    }
+    const v = r[k].trim();
+    return v ? nl(v) : empty;
+  }
+  function mineHtml(text) {
+    return esc(text.trim())
+      .replace(MARK, (m, s) => `<span class="mk mk-${s.toLowerCase()}">${s.toUpperCase()}에서</span>`)
+      .replace(/\n/g, '<br>');
+  }
+  function dateText(iso) {
+    const d = iso ? new Date(iso) : new Date();
+    const ok = !isNaN(d);
+    const x = ok ? d : new Date();
+    return `${x.getFullYear()}. ${x.getMonth() + 1}. ${x.getDate()}.`;
+  }
+  function sheetHtml() {
+    const who = state.who.trim();
+    return `
+      <div class="sh-head"><h3 class="sh-title">두 글 견주기</h3><div class="sh-meta">${who ? esc(who) + ' · ' : ''}${dateText(state.savedAt)}</div></div>
+      <p class="sh-topic"><b>화제</b> ${esc(state.topic.trim() || '(적지 않음)')}</p>
+      ${SIDES.map(s => `<p class="sh-src"><span class="side-mark side-${s.toLowerCase()}">${s}</span><span>${srcHtml(s)}</span></p>`).join('')}
+      <table class="sh-table">
+        <thead><tr><th scope="col" class="sh-k">견줄 것</th>${SIDES.map(s => `<th scope="col">글 ${s}</th>`).join('')}</tr></thead>
+        <tbody>${ROWS.map(r => `<tr><th scope="row" class="sh-k">${esc(r.name)}</th>${SIDES.map(s => `<td data-side="글 ${s}">${cellView(s, r.k)}</td>`).join('')}</tr>`).join('')}</tbody>
+      </table>
+      <h4 class="sh-sub">두 글을 다 읽은 내 생각</h4>
+      <div class="sh-mine">${mineHtml(state.mine)}</div>`;
+  }
+
+  function cellPlain(s, k) {
+    const r = state.rows[s];
+    const one = v => v.trim().replace(/\s*\n+\s*/g, ' ');
+    if (k === 'kinds') return r.kinds.length ? r.kinds.join(', ') : '(비어 있음)';
+    if (k === 'trust') {
+      const t = TRUST.find(x => x.v === r.trust);
+      const why = one(r.why);
+      if (t && why) return `${t.t}. 까닭: ${why}`;
+      if (t) return t.t;
+      return why ? '까닭: ' + why : '(비어 있음)';
+    }
+    return one(r[k]) || '(비어 있음)';
+  }
+  function plainText() {
+    const src = s => {
+      const t = state[s];
+      return `${t.title.trim() || '(제목 없음)'}${t.author.trim() ? ` (${t.author.trim()})` : ''}`;
+    };
+    const L = ['[두 글 견주기]'];
+    if (state.who.trim()) L.push('학번·이름: ' + state.who.trim());
+    L.push('날짜: ' + dateText(state.savedAt));
+    L.push('화제: ' + (state.topic.trim() || '(적지 않음)'));
+    SIDES.forEach(s => L.push(`글 ${s}: ${src(s)}`));
+    ROWS.forEach(r => {
+      L.push('', '■ ' + r.name);
+      SIDES.forEach(s => L.push(`- 글 ${s}: ${cellPlain(s, r.k)}`));
+    });
+    L.push('', '■ 두 글을 다 읽은 내 생각', state.mine.trim());
+    return L.join('\n');
+  }
+  function aiPrompt() {
+    const body = s => {
+      const t = state[s];
+      return `[글 ${s}] ${t.title.trim() || '(제목 없음)'}${t.author.trim() ? ` (${t.author.trim()})` : ''}\n${t.body.trim() || '(본문을 넣지 않음)'}`;
+    };
+    return [
+      '나는 중학생이고, 같은 화제를 다룬 글 두 편을 견주어 읽었어.',
+      '아래에 두 글과, 내가 직접 채운 견주기 표와 내 생각이 있어.',
+      '',
+      body('A'),
+      '',
+      body('B'),
+      '',
+      plainText(),
+      '',
+      '부탁:',
+      '1. 내 표나 내 생각을 대신 고쳐 쓰거나 정답을 알려 주지 마.',
+      '2. 내가 근거를 믿을 만하다고(또는 믿기 어렵다고) 본 까닭 가운데 더 따져 볼 곳을 짚는 질문을 2개 해 줘.',
+      '3. 두 글이 모두 빼놓은 사람이나 상황을 떠올리게 하는 질문을 1개 해 줘.',
+      '4. 내 생각에서 근거가 약해 보이는 문장을 하나 골라, 어떤 자료가 더 있으면 좋을지 묻는 질문으로 바꿔 줘.',
+      '5. 중학생이 알아듣는 말로, 모두 질문으로만 써 줘. 글에 없는 내용은 지어내지 마.'
+    ].join('\n');
+  }
+
+  function renderSheet(g) {
+    const sheet = $('#sheet');
+    sheet.hidden = !state.done;
+    document.body.classList.toggle('has-sheet', state.done && g.ok);
+    if (!state.done) return;
+    $('#sheetWarn').hidden = g.ok;
+    $('#sheetBody').hidden = !g.ok;
+    $('#aiBox').hidden = !g.ok;
+    $('#btnPrint').disabled = !g.ok;
+    $('#btnCopy').disabled = !g.ok;
+    const d = new Date(state.savedAt);
+    $('#savedInfo').textContent = (state.savedAt && !isNaN(d))
+      ? `${d.getMonth() + 1}월 ${d.getDate()}일 ${hm(d)}에 저장했어요. 그 뒤에 고친 내용도 여기에 바로 반영돼요.`
+      : '고친 내용은 여기에 바로 반영돼요.';
+    if (!g.ok) return;
+    $('#sheetBody').innerHTML = sheetHtml();
+    $('#aiText').value = aiPrompt();
+  }
+
+  // ---------- 넣기 ----------
+  function insertMine(txt, atCaret) {
+    const ta = $('#mine');
+    const v = ta.value;
+    let s = v.length, e = v.length;
+    if (atCaret && typeof ta.selectionStart === 'number') { s = ta.selectionStart; e = ta.selectionEnd; }
+    const before = v.slice(0, s), after = v.slice(e);
+    let pre = '';
+    if (before) {
+      if (atCaret) pre = /\s$/.test(before) ? '' : ' ';
+      else pre = /\n$/.test(before) ? '' : '\n';
+    }
+    ta.value = before + pre + txt + after;
+    const pos = (before + pre + txt).length;
+    ta.focus();
+    try { ta.setSelectionRange(pos, pos); } catch (err) { /* 무시 */ }
+    state.mine = ta.value;
+    saveSoon();
+    refresh('mine');
+  }
+
+  function pickedText(btn) {
+    const side = btn.dataset.take;
+    if (btn.dataset.from === 'ta') {
+      const ta = $('#' + side + '_body');
+      return ta.value.slice(ta.selectionStart || 0, ta.selectionEnd || 0);
+    }
+    const view = $('#view_' + side);
+    const sel = window.getSelection ? window.getSelection() : null;
+    if (sel && !sel.isCollapsed && sel.rangeCount && view.contains(sel.getRangeAt(0).commonAncestorContainer)) return sel.toString();
+    return '';
+  }
+
+  // 단추를 누르는 순간 고른 글이 풀리지 않게, 누르기 시작할 때 먼저 읽어 둔다
+  document.addEventListener('pointerdown', e => {
+    const b = e.target.closest('[data-take]');
+    if (b) b._pick = pickedText(b);
+  }, true);
+  document.addEventListener('mousedown', e => {
+    if (e.target.closest('[data-take]')) e.preventDefault();
+  });
+
+  function takePick(btn) {
+    const side = btn.dataset.take;
+    const raw = btn._pick != null ? btn._pick : pickedText(btn);
+    btn._pick = null;
+    const t = String(raw || '').replace(/\s+/g, ' ').trim();
+    if (len(t) < 2) {
+      toast(`글 ${side} 본문에서 가져올 부분을 먼저 끌어서 골라요.`);
+      return;
+    }
+    if (t.length > MAX_PICK) {
+      toast('너무 길어요. 한두 문장만 골라 주세요.');
+      return;
+    }
+    insertMine(`[${side}에서] "${t}" `, false);
+    toast('내 생각 칸에 넣었어요. 뒤에 내 말을 이어 써요.');
+  }
+
+  // ---------- 예시 ----------
+  function copyExampleTexts(ex) {
+    state.topic = ex.topic;
+    SIDES.forEach(s => { state[s] = { title: ex[s].title, author: ex[s].author, body: ex[s].body }; });
+  }
+  function loadExampleTexts(i) {
+    const ex = EXAMPLES[i];
+    if (!ex) return;
+    if (hasTexts() && !confirm('지금 넣어 둔 화제와 글 A·B를 예시 글로 바꿀까요? 표와 내 생각은 그대로 둬요.')) return;
+    copyExampleTexts(ex);
+    fillForm();
+    saveNow();
+    toast('예시 글을 넣었어요. 두 글을 읽고 2단계 표를 채워 보세요.');
+  }
+  function fillDemo() {
+    if (hasContent() && !confirm('지금 적은 내용을 모두 지우고 예시로 채울까요?')) return;
+    // 예시 글을 이미 골라 두었으면 그 예시의 답으로 채운다
+    const i = EXAMPLES.findIndex(ex => ex.A.body === state.A.body && ex.B.body === state.B.body);
+    const ex = EXAMPLES[i < 0 ? 0 : i];
+    const who = state.who;
+    state = blank();
+    state.who = who;
+    copyExampleTexts(ex);
+    SIDES.forEach(s => {
+      const r = ex.rows[s];
+      state.rows[s] = { claim: r.claim, evidence: r.evidence, kinds: r.kinds.slice(), trust: r.trust, why: r.why, missing: r.missing };
+    });
+    state.mine = ex.mine;
+    fillForm();
+    saveNow();
+    toast('예시로 채웠어요. 표와 내 생각을 살펴보고 저장을 눌러 보세요.', 3600);
+    $('#s2').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function resetAll() {
+    if (!confirm('적은 글과 표, 내 생각을 모두 지우고 처음부터 할까요? 지운 내용은 되돌릴 수 없어요.')) return;
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    state = blank();
+    store.del(KEY);
+    $('#copyFallback').hidden = true;
+    $('#viewBox').open = false;
+    $('#aiBox').open = false;
+    fillForm();
+    $('#saveState').classList.remove('bad');
+    $('#saveState').textContent = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast('처음 상태로 돌렸어요.');
+  }
+
+  // ---------- 이벤트 ----------
+  document.addEventListener('input', e => {
+    const el = e.target.closest('[data-k]');
+    if (!el) return;
+    setPath(el.dataset.k, el.value);
+    grow(el);
+    saveSoon();
+    refresh(el.dataset.k);
+  });
+  let growTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(growTimer);
+    growTimer = setTimeout(() => $$('.cell textarea').forEach(grow), 150);
+  });
+
+  document.addEventListener('click', e => {
+    const kb = e.target.closest('.tog[data-kind]');
+    if (kb) {
+      const r = state.rows[kb.dataset.side];
+      const k = kb.dataset.kind;
+      r.kinds = r.kinds.includes(k) ? r.kinds.filter(x => x !== k) : KINDS.filter(x => x === k || r.kinds.includes(x));
+      syncToggles(); saveSoon(); refresh('rows');
+      return;
+    }
+    const tb = e.target.closest('.tog[data-trust]');
+    if (tb) {
+      const r = state.rows[tb.dataset.side];
+      r.trust = r.trust === tb.dataset.trust ? '' : tb.dataset.trust;
+      syncToggles(); saveSoon(); refresh('rows');
+      return;
+    }
+    const tk = e.target.closest('[data-take]');
+    if (tk) { takePick(tk); return; }
+    const mk = e.target.closest('[data-mark]');
+    if (mk) { insertMine(`[${mk.dataset.mark}에서] `, true); return; }
+    const ex = e.target.closest('[data-ex]');
+    if (ex) { loadExampleTexts(Number(ex.dataset.ex)); return; }
+  });
+
+  $('#btnDemo').addEventListener('click', fillDemo);
+  $('#btnReset').addEventListener('click', resetAll);
+
+  $('#btnSave').addEventListener('click', () => {
+    const g = gateState();
+    if (!g.ok) return;
+    state.done = true;
+    state.savedAt = new Date().toISOString();
+    const ok = saveNow();
+    refresh('save');
+    $('#sheet').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    toast(ok ? '저장했어요. 아래에 한 장으로 정리했어요.' : '이 기기에 저장하지 못했어요. 인쇄하거나 복사해서 남겨 주세요.', 3200);
+  });
+
+  $('#btnPrint').addEventListener('click', () => {
+    if (saveTimer) saveNow();
+    if (!document.body.classList.contains('has-sheet')) return;
+    window.print();
+  });
+
+  $('#btnCopy').addEventListener('click', async () => {
+    const ok = await copyText(plainText(), $('#copyFallback'));
+    toast(ok ? '글로 복사했어요. 제출할 곳에 붙여 넣어요.' : '복사가 막혔어요. 아래 칸의 글을 직접 복사해 주세요.');
+  });
+
+  $('#btnAi').addEventListener('click', async () => {
+    const text = aiPrompt();
+    $('#aiText').value = text;
+    const ok = await copyText(text, $('#aiText'));
+    toast(ok ? '부탁문을 복사했어요.' : '복사가 막혔어요. 아래 칸의 글을 직접 복사해 주세요.');
+  });
+
+  // ---------- 시작 ----------
+  buildTable();
+  buildExamples();
+  fillForm();
+  if (stored && hasContent()) $('#saveState').textContent = '이 기기에 저장된 기록을 불러왔어요';
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => $$('.cell textarea').forEach(grow)).catch(() => {});
+})();
+</script>
+</body>
+</html>

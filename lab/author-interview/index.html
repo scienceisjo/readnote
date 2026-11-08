@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>저자 인터뷰 준비 · 읽기 노트 실험실</title><meta name="description" content="책을 읽고 저자에게 물을 질문을 만든 뒤, AI에게 저자 역할을 맡겨 인터뷰하고 책과 견줘 보는 학생용 노트">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../../rn.css">
+<style>
+  .intro h1 { font-size: 24px; letter-spacing: -.02em; margin: 0 0 6px; }
+  .intro .lead { margin: 0 0 12px; color: var(--ink-2); }
+  .how-h { font-size: 15px !important; margin: 14px 0 4px !important; }
+  .how { margin: 0 0 14px; padding-left: 1.4em; }
+  .how li { margin: 4px 0; }
+  .mt { margin-top: 12px; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+
+  /* 질문 */
+  .q { border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-top: 12px; }
+  .q-head { display: flex; align-items: center; gap: 8px; }
+  .q-n { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 14px; display: grid; place-items: center; flex: none; }
+  .q-lbl { flex: 1; font-weight: 700; }
+  .q .x { min-height: 44px; }
+  .q textarea { margin-top: 8px; }
+  .q-sub { display: block; font-size: 13px; font-weight: 700; color: var(--ink-2); margin: 12px 0 4px; }
+  .q-sub .hint { font-weight: 400; color: var(--muted); margin-left: 4px; }
+  .kinds { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .kind { position: relative; display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 4px 8px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--paper); font-size: 14px; text-align: center; cursor: pointer; }
+  .kind input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+  .kind:hover { border-color: var(--accent); }
+  .kind.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+  .kind:has(input:focus-visible) { outline: 3px solid #8fb3ec; outline-offset: 2px; }
+  .kind-hint { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .q-foot { display: grid; grid-template-columns: 1fr auto; gap: 8px 14px; align-items: end; }
+  .need { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; }
+  .need-q { color: var(--ink-2); }
+  .need-yes { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border: 1px solid var(--line-2); border-radius: 10px; cursor: pointer; font-weight: 700; background: var(--paper); }
+  .need-yes input { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
+  .need-yes.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+  .need-hint { font-size: 13px; color: var(--warn); margin-top: 6px; }
+  .q-status { font-size: 14px; color: var(--ink-2); margin-top: 12px; }
+  .q-status .nudge { display: block; color: var(--warn); margin-top: 2px; }
+
+  /* AI 칸 */
+  .gate { margin-top: 12px; font-size: 14px; color: var(--ink-2); }
+  .gate ul, .gate-notes ul { margin: 4px 0 0; padding-left: 1.2em; }
+  .gate-notes { margin-top: 10px; }
+  #promptText { font-size: 14px; min-height: 280px; background: var(--bg); }
+  .ai-tips { margin: 10px 0 0; padding-left: 1.2em; }
+  .ai-tips li { margin: 2px 0; }
+
+  /* 제출용 기록 */
+  .sheet-head { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; }
+  .sheet-head h2 { margin: 0 !important; }
+  #recordFallback { margin-top: 10px; font-size: 13px; }
+  .sheet { margin-top: 8px; }
+  .sheet h3 { font-size: 16px; margin: 20px 0 6px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .sheet .meta { margin: 8px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; }
+  .sheet .meta dt { color: var(--muted); font-size: 14px; }
+  .sheet .meta dd { margin: 0; font-weight: 600; }
+  .sheet .val { white-space: pre-wrap; }
+  .sheet .empty { color: var(--muted); }
+  .sheet .lbl { font-size: 13px; font-weight: 700; color: var(--ink-2); margin-top: 12px; }
+  .sq { margin: 0; padding-left: 1.4em; }
+  .sq li { margin: 10px 0; }
+  .sq-tag { font-size: 13px; font-weight: 700; color: var(--accent); }
+  .sq-need { font-size: 13px; color: var(--muted); }
+  .sheet-warn { margin-top: 18px; font-size: 14px; font-weight: 700; color: #5c3300; }
+  .name-line { margin: 4px 0 0; font-size: 15px; }
+
+  .basis { font-size: 12px; color: var(--muted); margin-top: 24px; line-height: 1.6; }
+  .print-only { display: none; }
+
+  @media (max-width: 560px) {
+    .two { grid-template-columns: 1fr; }
+    .kinds { grid-template-columns: 1fr 1fr; }
+    .q-foot { grid-template-columns: 1fr; }
+    .q { padding: 12px; }
+  }
+  @media (min-width: 1500px) {
+    body { zoom: 1.3; }
+  }
+  @media print {
+    .print-only { display: block; }
+    .sheet h3 { break-after: avoid; }
+    .sq li, .sheet .val { break-inside: avoid; }
+    .sheet-warn { color: #000; }
+  }
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in"><a class="brand" href="../">읽기 노트 실험실</a><div class="grow who">저자 인터뷰 준비</div><span class="save-state" id="saveState" aria-live="polite"></span></div></header>
+
+<main class="wrap">
+
+  <section class="card intro no-print">
+    <h1>저자 인터뷰 준비</h1>
+    <p class="lead">책을 읽고 저자에게 물을 질문을 만든 뒤, AI에게 저자 역할을 맡겨 인터뷰하고 책과 견줘 보는 노트예요.</p>
+    <h2 class="how-h">이렇게 써요</h2>
+    <ol class="how">
+      <li>책 제목과 기억나는 내용을 적고, 저자에게 묻고 싶은 질문을 세 개 이상 만들어요.</li>
+      <li>질문 세 개가 채워지면 AI 부탁문이 열려요. 복사해서 학교에서 쓰는 AI에 붙여 넣고 인터뷰해요.</li>
+      <li>인터뷰를 마치면 놀라운 답, 책에서 다시 확인한 것, 책과 다른 AI 답을 적고 인쇄하거나 복사해서 내요.</li>
+    </ol>
+    <div class="warn-box"><b>AI가 저자를 흉내 낸 것일 뿐 진짜 저자의 말이 아니에요.</b> AI 답은 책에서 다시 확인해요.</div>
+    <div class="btn-row mt">
+      <button type="button" class="btn" data-act="example">예시로 채워 보기</button>
+      <button type="button" class="btn ghost" data-act="reset">처음부터</button>
+    </div>
+    <p class="note" id="exNote" hidden>지금 보이는 글은 가상의 과학 교양서와 가상의 저자로 만든 예시예요. 「처음부터」를 누르면 지워져요.</p>
+    <p class="note">적은 글은 이 기기에만 자동으로 저장돼요.</p>
+  </section>
+
+  <section class="card no-print">
+    <div class="step-tag">1단계</div>
+    <h2>읽은 책</h2>
+    <p class="sub">AI가 이 책을 잘 모를 수 있어요. 기억나는 내용을 내 말로 적어 두면, AI가 그 안에서만 답하도록 부탁할 수 있어요.</p>
+    <div class="two">
+      <div>
+        <label class="f" for="bkTitle">책 제목</label>
+        <input class="t" id="bkTitle" data-k="book.title" autocomplete="off">
+      </div>
+      <div>
+        <label class="f" for="bkAuthor">저자</label>
+        <input class="t" id="bkAuthor" data-k="book.author" autocomplete="off">
+      </div>
+    </div>
+    <label class="f" for="bkPart">읽은 부분 <span class="hint">예: 1~3장, 전체</span></label>
+    <input class="t" id="bkPart" data-k="book.part" autocomplete="off">
+    <label class="f" for="bkNotes">내가 기억하는 책 내용 <span class="hint">내 말로, 장이나 쪽과 함께</span></label>
+    <textarea class="t ruled" id="bkNotes" rows="6" data-k="book.notes"></textarea>
+  </section>
+
+  <section class="card no-print">
+    <div class="step-tag">2단계</div>
+    <h2>저자에게 묻고 싶은 질문</h2>
+    <p class="sub">세 개 이상 만들어요. 질문마다 갈래를 고르고, 책을 읽어야만 물을 수 있는 질문인지 살펴봐요.</p>
+    <div id="qList"></div>
+    <div class="btn-row mt">
+      <button type="button" class="btn" id="addQ" data-act="add">질문 더하기</button>
+    </div>
+    <div class="q-status" id="qStatus" aria-live="polite"></div>
+  </section>
+
+  <section class="card no-print">
+    <div class="step-tag">3단계</div>
+    <h2>AI 저자 인터뷰</h2>
+    <p class="sub">질문 세 개가 채워지면 학교에서 쓰는 AI에 붙여 넣을 부탁문을 만들 수 있어요.</p>
+    <div class="warn-box"><b>AI가 저자를 흉내 낸 것일 뿐 진짜 저자의 말이 아니에요.</b> 부탁문에는 책에 근거해서만 답하고, 모르면 모른다고 하고, 답하기 전에 내 생각을 먼저 묻게 하는 규칙이 들어 있어요.</div>
+    <div class="gate" id="gate" aria-live="polite"></div>
+    <div class="btn-row mt">
+      <button type="button" class="btn primary" id="makePrompt" data-act="make-prompt" disabled>AI 저자 인터뷰 부탁문 만들기</button>
+    </div>
+    <div id="promptBox" hidden>
+      <label class="f" for="promptText">부탁문 <span class="hint">질문을 고치면 부탁문도 바로 바뀌어요</span></label>
+      <textarea class="t" id="promptText" rows="14" readonly></textarea>
+      <div class="btn-row mt">
+        <button type="button" class="btn primary" data-act="copy-prompt">부탁문 복사하기</button>
+      </div>
+      <ul class="note ai-tips">
+        <li>부탁문에는 이름과 학교가 들어가지 않아요. AI 대화창에도 적지 말아요.</li>
+        <li>AI가 내 생각을 먼저 물어요. 짧게라도 내 생각을 말한 뒤에 답을 들어요.</li>
+        <li>AI 답에서 책과 다른 말이 나오면 4단계에 적어 둬요.</li>
+      </ul>
+    </div>
+    <div class="note gate-notes" id="gateNotes"></div>
+  </section>
+
+  <section class="card no-print">
+    <div class="step-tag">4단계</div>
+    <h2>인터뷰를 마치고</h2>
+    <p class="sub">AI 답을 그대로 믿지 말고 책을 다시 펴서 견줘 봐요. AI가 저자를 흉내 낸 것일 뿐 진짜 저자의 말이 아니에요.</p>
+    <label class="f" for="afSurprise">가장 놀라운 답 <span class="hint">어떤 답이었고 왜 놀랐는지</span></label>
+    <textarea class="t ruled" id="afSurprise" rows="4" data-k="after.surprise"></textarea>
+    <label class="f" for="afRecheck">책에서 다시 확인한 것 <span class="hint">AI 답을 듣고 책에서 찾아본 내용, 장이나 쪽과 함께</span></label>
+    <textarea class="t ruled" id="afRecheck" rows="4" data-k="after.recheck"></textarea>
+    <label class="f" for="afDiffer">AI 답 가운데 책과 다른 것 <span class="hint">찾지 못했다면 어디를 확인했는지 적어요</span></label>
+    <textarea class="t ruled" id="afDiffer" rows="4" data-k="after.differ"></textarea>
+  </section>
+
+  <section class="card" id="sheetCard">
+    <div class="sheet-head">
+      <h2>저자 인터뷰 준비 기록</h2>
+      <div class="btn-row no-print">
+        <button type="button" class="btn" data-act="print">인쇄하기</button>
+        <button type="button" class="btn" data-act="copy-record">글로 복사하기</button>
+      </div>
+    </div>
+    <p class="sub no-print">위에 적은 내용이 여기에 모여요. 인쇄하거나 글로 복사해서 내요.</p>
+    <textarea class="t no-print" id="recordFallback" rows="8" readonly hidden aria-label="복사할 기록"></textarea>
+    <div class="sheet" id="sheet"></div>
+  </section>
+
+  <p class="basis no-print">근거: 학생이 먼저 질문을 만든 뒤 AI를 쓰게 했어요. Kosmyna 외(2025) 연구진이 제안한 「먼저 스스로, 그다음 AI」 순서예요. 고교 「독서 토론과 글쓰기」 [12독토01-01] 질문을 생성하고 주체적으로 해석하며 책을 읽는다.</p>
+</main>
+
+<footer id="app-credit" style="width:100%;box-sizing:border-box;margin:2.5rem 0 0;padding:14px 12px;text-align:center;font-size:12.5px;line-height:1.6;color:#8a8f98;font-family:system-ui,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;border-top:1px solid rgba(128,128,128,.25);">© 2026 조승재(과학이조선생) · 해누리중학교 · All rights reserved<br><span style="font-size:11px;opacity:.85;">최종 업데이트: 2026-11-08</span></footer>
+
+<script src="../../rn.js"></script>
+<script>
+(function () {
+  'use strict';
+  const RN = window.RN;
+  const { esc, $, $$, store, len, toast, copyText } = RN;
+
+  const KEY = 'rnlab_author-interview_v1';
+  const MIN_Q = 3, MAX_Q = 8, Q_MIN_LEN = 6;
+
+  const KINDS = [
+    { k: 'content', name: '책 내용 확인', hint: '책에 나온 말이나 장면을 정확히 알고 싶을 때. 예: ○쪽에서 말한 ~는 무슨 뜻인가요?' },
+    { k: 'thought', name: '저자의 생각', hint: '저자가 왜 그렇게 썼는지 궁금할 때. 예: 왜 이 장면을 책 첫머리에 두었나요?' },
+    { k: 'whatif', name: '만약 ~라면', hint: '조건을 바꿔 보고 싶을 때. 예: 만약 ~가 없었다면 결과가 어떻게 달라졌을까요?' },
+    { k: 'me', name: '나와 잇기', hint: '책 내용을 내 생활이나 경험에 이어 볼 때. 예: 제가 겪은 ~도 같은 원리인가요?' }
+  ];
+  const KIND_NAME = {};
+  KINDS.forEach(k => { KIND_NAME[k.k] = k.name; });
+
+  // 부탁문 규칙 — AI가 저자 역할을 하되 책에 근거하고, 단정하지 않고, 먼저 되묻게
+  const RULES = [
+    '너는 진짜 저자가 아니라 저자를 흉내 내는 AI야. 진짜 저자가 한 말처럼 단정하지 말고, "책 내용으로 보면 저자는 ~라고 생각한 것 같아요"처럼 짐작이라는 것이 드러나게 말해.',
+    '책에 나온 내용에 근거해서만 답해. 답할 때마다 책의 어느 부분(장, 쪽, 장면)을 근거로 했는지 밝혀 줘.',
+    '모르는 것이나 책에서 확인할 수 없는 것은 지어내지 말고 "그건 책에서 확인할 수 없어요"라고 말해. 이 책을 잘 모르면 처음에 솔직히 말하고, 위 [내가 기억하는 책 내용] 안에서만 답해.',
+    '내 질문에 바로 답하지 말고, 먼저 내 생각을 한 번 되물어 줘(예: "그 장면을 읽고 어떻게 생각했어요?"). 내가 생각을 말한 뒤에 답해 줘.',
+    '「만약 ~라면」 질문은 책 내용을 바탕으로 짐작해서 답하고, 짐작이라고 밝혀 줘.',
+    '질문은 한 번에 하나씩 다뤄. 내가 "다음 질문"이라고 하면 넘어가.',
+    '중학생이 알아듣는 말로, 한 번에 다섯 문장 안으로 답해.',
+    '내 이름이나 학교 같은 개인 정보는 묻지 마.'
+  ];
+
+  // 예시 — 실제로 없는 가상의 과학 교양서와 저자
+  const EX = {
+    book: {
+      title: '컵 바깥의 물방울',
+      author: '윤하람(가상의 저자)',
+      part: '머리말~5장 전체',
+      notes: [
+        '- 머리말: 부엌은 작은 지구다. 냄비의 김, 냉장고 성에, 마르는 행주에서 물의 상태 변화를 볼 수 있다.',
+        '- 2장: 얼음물을 담은 컵 겉면에 맺히는 물방울은 공기 중의 수증기가 차가운 컵에 닿아 액화한 것이다. 컵 안의 물에 색소를 타도 겉면 물방울은 색이 없다.',
+        '- 3장: 냄비 위의 김과 구름은 수증기가 아니라 아주 작은 물방울(구름은 얼음 알갱이도)이 모인 것이다. 수증기는 눈에 보이지 않는다.',
+        '- 4장: 증발은 끓는점보다 낮은 온도에서도 액체 표면에서 일어난다. 바람이 불고 습도가 낮을수록 빨리 마른다.',
+        '- 5장: 물이 증발할 때 주변의 열을 흡수하기 때문에 땀이 마르면 시원하다.'
+      ].join('\n')
+    },
+    qs: [
+      { kind: 'content', page: '2장', need: true, text: '컵 안의 물에 색소를 타도 겉면 물방울에는 색이 없다고 하셨는데, 이것이 왜 컵 안의 물이 새어 나온 게 아니라는 증거가 되나요?' },
+      { kind: 'thought', page: '머리말', need: true, text: '물의 상태 변화를 설명할 때 실험실이 아니라 부엌을 고르신 까닭이 궁금해요. 꼭 부엌이어야 했던 이유가 있나요?' },
+      { kind: 'whatif', page: '4장', need: true, text: '만약 습도가 아주 높은 장마철이라면, 4장에서 말한 젖은 행주가 마르는 시간은 어떻게 달라지나요?' },
+      { kind: 'me', page: '5장', need: true, text: '운동장에서 뛰고 나서 바람을 맞으면 더 시원한데, 이것도 5장에서 말한 증발과 열의 관계로 설명할 수 있나요?' }
+    ],
+    after: {
+      surprise: '부엌을 고른 까닭을 묻자 AI가 바로 답하지 않고 내 생각부터 물었다. 내가 "흔한 곳이라서"라고 하자, 머리말에 근거해 "매일 보는 곳에서 상태 변화를 찾게 하려던 것 같아요"라고 짐작이라고 밝히며 답했다. 진짜 저자는 다르게 말할 수도 있겠다는 생각이 들었다.',
+      recheck: '2장을 다시 펴 보니 색소 실험이 실제로 나온다. 책에는 미지근한 물을 담은 컵에는 물방울이 거의 맺히지 않는다는 비교도 있었는데, AI는 이 비교를 말하지 않았다.',
+      differ: 'AI가 냄비 위의 김을 "수증기"라고 불렀다. 3장에는 수증기는 눈에 보이지 않고, 눈에 보이는 김은 아주 작은 물방울이 모인 것이라고 나온다. 이 부분은 AI 말이 책과 달랐다.'
+    }
+  };
+
+  // ---------- 상태 ----------
+  const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3);
+  const blankQ = () => ({ id: uid(), text: '', kind: '', page: '', need: false });
+  const blank = () => ({
+    v: 1,
+    book: { title: '', author: '', part: '', notes: '' },
+    qs: [blankQ(), blankQ(), blankQ()],
+    after: { surprise: '', recheck: '', differ: '' },
+    promptOpen: false,
+    saved: ''
+  });
+  const str = v => (typeof v === 'string' ? v : '');
+  const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
+
+  function normalize(s) {
+    const b = blank();
+    if (!isObj(s)) return b;
+    const book = isObj(s.book) ? s.book : {};
+    const after = isObj(s.after) ? s.after : {};
+    const seen = new Set();
+    const qs = (Array.isArray(s.qs) ? s.qs : []).filter(isObj).slice(0, MAX_Q).map(q => {
+      let id = str(q.id);
+      if (!id || seen.has(id)) id = uid();
+      seen.add(id);
+      return { id, text: str(q.text), kind: KIND_NAME[q.kind] ? q.kind : '', page: str(q.page), need: !!q.need };
+    });
+    while (qs.length < MIN_Q) qs.push(blankQ());
+    return {
+      v: 1,
+      book: { title: str(book.title), author: str(book.author), part: str(book.part), notes: str(book.notes) },
+      qs,
+      after: { surprise: str(after.surprise), recheck: str(after.recheck), differ: str(after.differ) },
+      promptOpen: !!s.promptOpen,
+      saved: str(s.saved)
+    };
+  }
+
+  function exampleState() {
+    return normalize({
+      book: Object.assign({}, EX.book),
+      qs: EX.qs.map(q => Object.assign({}, q)),
+      after: Object.assign({}, EX.after),
+      promptOpen: true
+    });
+  }
+
+  function hasContent(s) {
+    const b = s.book, a = s.after;
+    if (len(b.title) || len(b.author) || len(b.part) || len(b.notes)) return true;
+    if (len(a.surprise) || len(a.recheck) || len(a.differ)) return true;
+    return s.qs.some(q => len(q.text) || len(q.page) || q.kind || q.need);
+  }
+
+  let state = normalize(store.get(KEY, null));
+
+  // ---------- 저장 ----------
+  let saveTimer = null;
+  function setSaveState(t, bad) {
+    const el = $('#saveState');
+    el.textContent = t;
+    el.classList.toggle('bad', !!bad);
+  }
+  function saveNow() {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    state.saved = new Date().toISOString();
+    if (store.set(KEY, state)) setSaveState('저장됨 · ' + RN.fmtTime(state.saved));
+    else setSaveState('이 기기에 저장되지 않아요', true);
+  }
+  function scheduleSave() {
+    setSaveState('저장하는 중');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveNow, 400);
+  }
+  function flush() { if (saveTimer) saveNow(); }
+  window.addEventListener('pagehide', flush);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
+
+  // ---------- 계산 ----------
+  const oneLine = s => String(s || '').replace(/\s*\n+\s*/g, ' ').trim();
+  const isLongEnough = q => len(q.text) >= Q_MIN_LEN;
+  const filledQs = () => state.qs.filter(q => isLongEnough(q) && q.kind);
+
+  function gateInfo() {
+    const f = filledQs().length;
+    const miss = [];
+    if (!len(state.book.title)) miss.push('1단계에 책 제목을 적어요.');
+    if (f < MIN_Q) {
+      miss.push(`갈래까지 고른 질문이 ${MIN_Q}개 있어야 해요. 지금 ${f}개예요.`);
+      const noKind = state.qs.filter(q => isLongEnough(q) && !q.kind).length;
+      const short = state.qs.filter(q => len(q.text) > 0 && !isLongEnough(q)).length;
+      if (noKind) miss.push(`갈래를 고르지 않은 질문이 ${noKind}개 있어요.`);
+      if (short) miss.push(`너무 짧은 질문이 ${short}개 있어요. 무엇을 묻는지 알 수 있게 조금 더 써요.`);
+    }
+    return { ok: miss.length === 0, miss, f };
+  }
+
+  function qTag(q, emptyKind) {
+    return [q.kind ? KIND_NAME[q.kind] : emptyKind, q.page.trim()].filter(Boolean).join(' · ');
+  }
+
+  function buildPrompt() {
+    const b = state.book;
+    const title = b.title.trim(), author = b.author.trim(), part = b.part.trim();
+    const L = [];
+    L.push('지금부터 너는 아래 책을 쓴 저자 역할을 맡아 나와 인터뷰를 해 줘. 나는 이 책을 읽은 중학생이야.');
+    L.push('');
+    L.push('[책]');
+    L.push(`- 제목: 『${title}』`);
+    L.push(`- 저자: ${author || '(적지 않음)'}`);
+    if (part) L.push(`- 내가 읽은 부분: ${part}`);
+    L.push('');
+    L.push('[내가 기억하는 책 내용 — 내 말로 쓴 것]');
+    L.push(b.notes.trim() || '(적지 않음)');
+    L.push('');
+    L.push('[꼭 지킬 규칙]');
+    RULES.forEach((r, i) => L.push(`${i + 1}. ${r}`));
+    L.push('');
+    L.push('[내 질문] 앞에 질문 갈래와 질문이 생긴 곳을 적었어.');
+    filledQs().forEach((q, i) => L.push(`${i + 1}. [${qTag(q, '')}] ${oneLine(q.text)}`));
+    L.push('');
+    L.push('시작: 저자 역할로 짧게 인사한 뒤 1번 질문을 읽고, 답하기 전에 내 생각을 먼저 물어봐 줘.');
+    return L.join('\n');
+  }
+
+  function recordText() {
+    const b = state.book, a = state.after;
+    const v = s => s.trim() || '(비어 있음)';
+    const L = [];
+    L.push('[저자 인터뷰 준비 기록]');
+    L.push(`책: ${b.title.trim() ? '『' + b.title.trim() + '』' : '(비어 있음)'}`);
+    L.push(`저자: ${v(b.author)}`);
+    L.push(`읽은 부분: ${v(b.part)}`);
+    L.push('');
+    L.push('[내가 기억하는 책 내용]');
+    L.push(v(b.notes));
+    L.push('');
+    L.push('[저자에게 묻고 싶은 질문]');
+    const qs = state.qs.filter(q => len(q.text));
+    if (!qs.length) L.push('(비어 있음)');
+    qs.forEach((q, i) => {
+      L.push(`${i + 1}. [${qTag(q, '갈래 안 고름')}] ${oneLine(q.text)}`);
+      L.push(`   책을 읽어야만 물을 수 있나요? ${q.need ? '네' : '표시 안 함'}`);
+    });
+    L.push('');
+    L.push('[인터뷰를 마치고]');
+    L.push('가장 놀라운 답: ' + v(a.surprise));
+    L.push('책에서 다시 확인한 것: ' + v(a.recheck));
+    L.push('AI 답 가운데 책과 다른 것: ' + v(a.differ));
+    L.push('');
+    L.push('※ AI가 저자를 흉내 낸 것일 뿐 진짜 저자의 말이 아니에요.');
+    return L.join('\n');
+  }
+
+  // ---------- 그리기 ----------
+  function renderQs() {
+    const removable = state.qs.length > MIN_Q;
+    $('#qList').innerHTML = state.qs.map((q, i) => `
+      <div class="q" data-id="${esc(q.id)}">
+        <div class="q-head">
+          <span class="q-n" aria-hidden="true">${i + 1}</span>
+          <label class="q-lbl" for="qt-${esc(q.id)}">질문 ${i + 1}</label>
+          ${removable ? `<button type="button" class="btn small ghost x" data-act="remove" data-id="${esc(q.id)}">빼기</button>` : ''}
+        </div>
+        <textarea class="t" id="qt-${esc(q.id)}" rows="2" data-f="text" placeholder="저자에게 묻고 싶은 것을 한두 문장으로 적어요">${esc(q.text)}</textarea>
+        <span class="q-sub" id="qk-${esc(q.id)}">갈래</span>
+        <div class="kinds" role="radiogroup" aria-labelledby="qk-${esc(q.id)}">
+          ${KINDS.map(k => `<label class="kind"><input type="radio" name="kind-${esc(q.id)}" value="${k.k}" data-f="kind"${q.kind === k.k ? ' checked' : ''}><span>${esc(k.name)}</span></label>`).join('')}
+        </div>
+        <div class="kind-hint"></div>
+        <div class="q-foot">
+          <div>
+            <label class="q-sub" for="qp-${esc(q.id)}">생긴 곳 <span class="hint">쪽이나 장면, 적지 않아도 돼요</span></label>
+            <input class="t" id="qp-${esc(q.id)}" data-f="page" value="${esc(q.page)}" placeholder="예: 2장, 34쪽" autocomplete="off">
+          </div>
+          <div class="need">
+            <span class="need-q">이 질문은 책을 읽어야만 물을 수 있나요?</span>
+            <label class="need-yes"><input type="checkbox" data-f="need"${q.need ? ' checked' : ''}> 네</label>
+          </div>
+        </div>
+        <div class="need-hint" hidden>책을 읽지 않아도 물을 수 있는 질문이라면, 책의 장면이나 쪽을 넣어 다시 써 봐요.</div>
+      </div>`).join('');
+    $$('#qList .q').forEach(el => {
+      const q = state.qs.find(x => x.id === el.dataset.id);
+      if (q) paintQ(el, q);
+    });
+  }
+
+  function paintQ(el, q) {
+    $$('.kind', el).forEach(lab => {
+      const inp = $('input', lab);
+      lab.classList.toggle('on', inp.value === q.kind);
+    });
+    const kind = KINDS.find(k => k.k === q.kind);
+    $('.kind-hint', el).textContent = kind ? kind.hint : '네 갈래 가운데 하나를 골라요.';
+    $('.need-yes', el).classList.toggle('on', q.need);
+    $('.need-hint', el).hidden = !(isLongEnough(q) && !q.need);
+  }
+
+  function renderSheet() {
+    const b = state.book, a = state.after;
+    const val = s => s.trim() ? `<div class="val">${esc(s.trim())}</div>` : '<div class="val empty">비어 있음</div>';
+    const dd = s => s.trim() ? esc(s.trim()) : '<span class="empty">비어 있음</span>';
+    const qs = state.qs.filter(q => len(q.text));
+    const qHtml = qs.length
+      ? '<ol class="sq">' + qs.map(q => `<li>
+          <div class="sq-tag">${esc(qTag(q, '갈래 안 고름'))}</div>
+          <div class="val">${esc(q.text.trim())}</div>
+          <div class="sq-need">책을 읽어야만 물을 수 있나요? ${q.need ? '네' : '표시 안 함'}</div>
+        </li>`).join('') + '</ol>'
+      : '<div class="val empty">비어 있음</div>';
+    $('#sheet').innerHTML = `
+      <p class="print-only name-line">학번 ____________ 이름 ____________</p>
+      <dl class="meta">
+        <dt>책</dt><dd>${b.title.trim() ? '『' + esc(b.title.trim()) + '』' : '<span class="empty">비어 있음</span>'}</dd>
+        <dt>저자</dt><dd>${dd(b.author)}</dd>
+        <dt>읽은 부분</dt><dd>${dd(b.part)}</dd>
+      </dl>
+      <h3>내가 기억하는 책 내용</h3>${val(b.notes)}
+      <h3>저자에게 묻고 싶은 질문</h3>${qHtml}
+      <h3>인터뷰를 마치고</h3>
+      <div class="lbl">가장 놀라운 답</div>${val(a.surprise)}
+      <div class="lbl">책에서 다시 확인한 것</div>${val(a.recheck)}
+      <div class="lbl">AI 답 가운데 책과 다른 것</div>${val(a.differ)}
+      <p class="sheet-warn">AI가 저자를 흉내 낸 것일 뿐 진짜 저자의 말이 아니에요.</p>`;
+  }
+
+  function refresh() {
+    const g = gateInfo();
+    const filled = filledQs();
+
+    // 2단계 상태줄
+    const needN = filled.filter(q => q.need).length;
+    let status = `갈래까지 고른 질문 ${filled.length}개 · 책을 읽어야만 물을 수 있는 질문 ${needN}개`;
+    const kindsUsed = new Set(filled.map(q => q.kind));
+    if (filled.length >= MIN_Q && kindsUsed.size === 1) {
+      status = esc(status) + `<span class="nudge">질문이 모두 「${esc(KIND_NAME[filled[0].kind])}」 갈래예요. 다른 갈래 질문도 하나 넣어 봐요.</span>`;
+    } else status = esc(status);
+    $('#qStatus').innerHTML = status;
+    $('#addQ').disabled = state.qs.length >= MAX_Q;
+
+    // 3단계 문
+    const gate = $('#gate');
+    if (g.ok) { gate.hidden = true; gate.innerHTML = ''; }
+    else {
+      gate.hidden = false;
+      gate.innerHTML = '<b>아직 열리지 않았어요.</b><ul>' + g.miss.map(m => `<li>${esc(m)}</li>`).join('') + '</ul>';
+    }
+    const open = g.ok && state.promptOpen;
+    const btn = $('#makePrompt');
+    btn.disabled = !g.ok;
+    btn.hidden = open;
+    $('#promptBox').hidden = !open;
+    if (open) $('#promptText').value = buildPrompt();
+
+    const notes = [];
+    if (g.ok) {
+      const left = state.qs.filter(q => len(q.text) && !(isLongEnough(q) && q.kind)).length;
+      if (left) notes.push(`채우다 만 질문이나 갈래를 고르지 않은 질문 ${left}개는 부탁문에 들어가지 않아요.`);
+      if (!len(state.book.notes)) notes.push('1단계에 기억나는 책 내용을 적어 두면, AI가 그 안에서만 답하도록 부탁할 수 있어요.');
+      const noNeed = filled.filter(q => !q.need).length;
+      if (noNeed) notes.push(`「책을 읽어야만 물을 수 있나요?」에 표시하지 않은 질문이 ${noNeed}개 있어요. 그대로 써도 되지만 한 번 더 살펴봐요.`);
+    }
+    $('#gateNotes').innerHTML = notes.length ? '<ul>' + notes.map(n => `<li>${esc(n)}</li>`).join('') + '</ul>' : '';
+
+    renderSheet();
+    $('#exNote').hidden = state.book.title.trim() !== EX.book.title;
+  }
+
+  function renderAll() {
+    $$('[data-k]').forEach(el => {
+      const [a, b] = el.dataset.k.split('.');
+      el.value = state[a][b];
+    });
+    renderQs();
+    refresh();
+    $('#recordFallback').hidden = true;
+    if (state.saved) setSaveState('저장됨 · ' + RN.fmtTime(state.saved));
+    else setSaveState('');
+  }
+
+  function changed() {
+    scheduleSave();
+    refresh();
+  }
+
+  // ---------- 입력 ----------
+  function onEdit(e) {
+    const el = e.target;
+    if (!el || !el.dataset) return;
+    if (el.dataset.k) {
+      const [a, b] = el.dataset.k.split('.');
+      if (!state[a] || !(b in state[a])) return;
+      if (state[a][b] === el.value) return;
+      state[a][b] = el.value;
+      changed();
+      return;
+    }
+    const f = el.dataset.f;
+    if (!f) return;
+    const qEl = el.closest('.q');
+    if (!qEl) return;
+    const q = state.qs.find(x => x.id === qEl.dataset.id);
+    if (!q) return;
+    if (f === 'text' || f === 'page') {
+      if (q[f] === el.value) return;
+      q[f] = el.value;
+    } else if (f === 'kind') {
+      if (!el.checked || q.kind === el.value) return;
+      q.kind = el.value;
+    } else if (f === 'need') {
+      if (q.need === el.checked) return;
+      q.need = el.checked;
+    } else return;
+    paintQ(qEl, q);
+    changed();
+  }
+  document.addEventListener('input', onEdit);
+  document.addEventListener('change', onEdit);
+
+  // ---------- 단추 ----------
+  const ACTS = {
+    example() {
+      if (hasContent(state) && !confirm('지금 적은 내용 대신 예시 글을 채울까요? 지금 적은 내용은 지워져요.')) return;
+      state = exampleState();
+      saveNow();
+      renderAll();
+      toast('예시를 채웠어요. 가상의 책과 저자예요.');
+    },
+    reset() {
+      if (!confirm('적은 내용을 모두 지우고 처음부터 할까요? 지운 내용은 되돌릴 수 없어요.')) return;
+      clearTimeout(saveTimer);
+      saveTimer = null;
+      store.del(KEY);
+      state = blank();
+      renderAll();
+      window.scrollTo(0, 0);
+      toast('처음 상태로 돌렸어요.');
+    },
+    add() {
+      if (state.qs.length >= MAX_Q) return;
+      const q = blankQ();
+      state.qs.push(q);
+      renderQs();
+      changed();
+      const ta = document.getElementById('qt-' + q.id);
+      if (ta) ta.focus();
+    },
+    remove(btn) {
+      const id = btn.dataset.id;
+      const q = state.qs.find(x => x.id === id);
+      if (!q || state.qs.length <= MIN_Q) return;
+      if (len(q.text) && !confirm('이 질문을 뺄까요?')) return;
+      state.qs = state.qs.filter(x => x.id !== id);
+      renderQs();
+      changed();
+    },
+    'make-prompt'() {
+      if (!gateInfo().ok) return;
+      state.promptOpen = true;
+      changed();
+      const box = $('#promptBox');
+      if (box.scrollIntoView) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    },
+    async 'copy-prompt'() {
+      if (!gateInfo().ok) return;
+      const ta = $('#promptText');
+      const text = buildPrompt();
+      ta.value = text;
+      const ok = await copyText(text, ta);
+      toast(ok ? '부탁문을 복사했어요. AI 대화창에 붙여 넣어요.' : '자동 복사가 막혔어요. 선택된 글을 Ctrl+C로 복사해요.');
+    },
+    print() {
+      flush();
+      refresh();
+      window.print();
+    },
+    async 'copy-record'() {
+      flush();
+      const fb = $('#recordFallback');
+      const ok = await copyText(recordText(), fb);
+      toast(ok ? '기록을 글로 복사했어요.' : '자동 복사가 막혔어요. 선택된 글을 Ctrl+C로 복사해요.');
+    }
+  };
+
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('[data-act]');
+    if (!btn || btn.disabled) return;
+    const fn = ACTS[btn.dataset.act];
+    if (fn) fn(btn);
+  });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>

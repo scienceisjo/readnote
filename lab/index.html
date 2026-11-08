@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>읽기 노트 실험실</title>
+<meta name="description" content="독서교육에 쓸 작은 웹 도구 프로토타입 모음. 책 고르기부터 질문하며 읽기, 요약, 구조 파악, 견주어 읽기까지.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../rn.css">
+<style>
+  .intro h1 { font-size: 28px; letter-spacing: -.03em; margin: 28px 0 6px; }
+  .intro p { color: var(--ink-2); margin: 0 0 6px; max-width: 46em; }
+  .group { margin-top: 30px; }
+  .group h2 { font-size: 15px; color: var(--accent); margin: 0 0 4px; }
+  .group .gsub { color: var(--muted); font-size: 14px; margin: 0 0 10px; }
+  .tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .tool { display: flex; flex-direction: column; gap: 6px; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; color: var(--ink); text-decoration: none; min-height: 150px; }
+  .tool:hover { border-color: var(--accent); }
+  .tool b { font-size: 18px; letter-spacing: -.02em; }
+  .tool .who { font-size: 12px; color: var(--muted); }
+  .tool p { margin: 0; color: var(--ink-2); font-size: 15px; flex: 1; }
+  .tool .go { color: var(--accent); font-size: 14px; font-weight: 600; }
+  .fine { margin-top: 30px; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="../">읽기 노트</a>
+    <div class="grow who">실험실</div>
+  </div>
+</header>
+
+<main class="wrap wide">
+  <section class="intro">
+    <h1>읽기 노트 실험실</h1>
+    <p>독서 수업에 쓸 작은 도구들을 먼저 만들어 본 곳입니다. 모두 학생이 먼저 생각하고 쓰게 만들었고, 서버 없이 그 기기에만 저장됩니다.</p>
+    <p>수업에 맞게 고쳐 쓰실 수 있도록 하나하나를 파일 한 장으로 만들었습니다.</p>
+  </section>
+
+  <section class="group">
+    <h2>책 고르기</h2>
+    <p class="gsub">읽기 전에, 나한테 맞는 책인지 스스로 가늠해 봅니다.</p>
+    <div class="tools">
+      <a class="tool" href="fit-check/"><span class="who">학생</span><b>이 책, 나한테 맞을까?</b><p>아무 쪽이나 펴서 한 쪽을 읽으며 모르는 낱말을 세고, 내 말로 한 줄 써 본 뒤 도전할 책인지 가늠합니다.</p><span class="go">열기 →</span></a>
+    </div>
+  </section>
+
+  <section class="group">
+    <h2>읽는 동안</h2>
+    <p class="gsub">질문하고, 낱말을 짐작하고, 글의 짜임을 그려 봅니다.</p>
+    <div class="tools">
+      <a class="tool" href="question-ladder/"><span class="who">학생</span><b>질문 사다리</b><p>첫 질문을 뜻·까닭·만약·견주기·내 삶으로 한 칸씩 키우고, 질문 바구니를 골라 봅니다.</p><span class="go">열기 →</span></a>
+      <a class="tool" href="word-guess/"><span class="who">학생</span><b>낱말 추측 노트</b><p>모르는 낱말의 뜻을 앞뒤 문장으로 먼저 짐작하고, 사전으로 확인한 뒤 내 문장을 만듭니다.</p><span class="go">열기 →</span></a>
+      <a class="tool" href="para-map/"><span class="who">학생</span><b>문단 지도</b><p>문단마다 역할과 중심 내용, 앞 문단과의 관계를 골라 글의 짜임을 흐름도로 그립니다.</p><span class="go">열기 →</span></a>
+      <a class="tool" href="fact-opinion/"><span class="who">학생</span><b>사실·의견 가르기</b><p>문장마다 사실인지 의견인지 먼저 고르고, 단서와 견줘 보며 확인할 사실을 찾습니다.</p><span class="go">열기 →</span></a>
+      <a class="tool" href="concept-lens/"><span class="who">학생</span><b>개념 렌즈 노트</b><p>핵심 개념 하나를 렌즈로 관계맺기·탐색하기·적용하기·전이하기의 네 걸음을 기록합니다.</p><span class="go">열기 →</span></a>
+    </div>
+  </section>
+
+  <section class="group">
+    <h2>읽은 뒤</h2>
+    <p class="gsub">줄여 쓰고, 견주어 읽고, 저자에게 물을 질문을 만듭니다.</p>
+    <div class="tools">
+      <a class="tool" href="shrink/"><span class="who">학생</span><b>줄이고 또 줄이기</b><p>같은 글을 100자, 50자, 한 줄로 세 번 줄여 요약하고, 무엇을 버렸는지 돌아봅니다.</p><span class="go">열기 →</span></a>
+      <a class="tool" href="two-texts/"><span class="who">학생</span><b>두 글 견주기</b><p>같은 화제의 두 글에서 주장·근거·믿을 만한 정도를 견주고, 두 글을 모두 써서 내 생각을 세웁니다.</p><span class="go">열기 →</span></a>
+      <a class="tool" href="author-interview/"><span class="who">학생</span><b>저자 인터뷰 준비</b><p>책을 읽어야만 물을 수 있는 질문을 먼저 만들고, 그다음에 AI 저자 인터뷰 부탁문을 엽니다.</p><span class="go">열기 →</span></a>
+    </div>
+  </section>
+
+  <section class="group">
+    <h2>선생님 도구</h2>
+    <p class="gsub">칠판에 띄워 함께 이야기할 때 씁니다.</p>
+    <div class="tools">
+      <a class="tool" href="genre-cards/"><span class="who">선생님</span><b>장르별 질문 카드</b><p>소설·시·에세이·교양서·학술서·그림책마다 함께 이야기할 질문을 카드로 크게 띄웁니다.</p><span class="go">열기 →</span></a>
+      <a class="tool" href="../"><span class="who">학생 · 선생님</span><b>읽기 노트</b><p>읽기 전 질문, 부분마다 내 말 요약과 질문, 읽은 뒤 답을 남기고 선생님이 모아 봅니다.</p><span class="go">열기 →</span></a>
+    </div>
+  </section>
+
+  <p class="note fine">여기 있는 도구는 프로토타입입니다. 기록은 그 기기의 브라우저에만 남고, 다른 기기나 선생님께 저절로 보내지지 않습니다. 결과는 각 도구의 인쇄하기나 복사하기로 제출할 수 있습니다.</p>
+</main>
+
+<footer id="app-credit" style="width:100%;box-sizing:border-box;margin:2.5rem 0 0;padding:14px 12px;text-align:center;font-size:12.5px;line-height:1.6;color:#8a8f98;font-family:system-ui,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;border-top:1px solid rgba(128,128,128,.25);">© 2026 조승재(과학이조선생) · 해누리중학교 · All rights reserved<br><span style="font-size:11px;opacity:.85;">최종 업데이트: 2026-11-08</span></footer>
+
+</body>
+</html>

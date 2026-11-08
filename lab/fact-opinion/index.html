@@ -1,0 +1,844 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>사실·의견 가르기 · 읽기 노트 실험실</title>
+<meta name="description" content="글을 문장으로 나눠 문장마다 사실인지 의견인지 내가 먼저 고르고, 단서와 견줘 본 뒤 확인해 볼 사실을 적는 도구">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../../rn.css">
+<style>
+/* 발표 크기 */
+@media (min-width:1000px){html{zoom:1.35}}
+@media (min-width:1000px) and (max-height:860px){html{zoom:1.1}}
+
+.intro h1 { font-size: 24px; margin: 0 0 6px; letter-spacing: -.02em; }
+.intro p { margin: 0; }
+.how-t { font-size: 16px !important; margin: 16px 0 4px !important; }
+.how { margin: 0; padding-left: 1.4em; }
+.how li { margin: 3px 0; }
+.def { margin: 8px 0 0; padding-left: 1.2em; font-size: 15px; }
+.def li { margin: 4px 0; }
+.btn.small { min-height: 44px; }
+.sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.card, .sent, #clueHead { scroll-margin-top: 72px; }
+
+/* 문장 목록 */
+.progress { font-weight: 700; color: var(--ink-2); margin: 10px 0 0; }
+.sents { list-style: none; margin: 4px 0 0; padding: 0; }
+.sent { border-top: 1px solid var(--line); padding: 16px 0; }
+.sent:first-child { border-top: none; }
+.s-head { display: flex; gap: 10px; align-items: flex-start; }
+.s-no {
+  flex: 0 0 auto; min-width: 30px; height: 30px; border-radius: 50%;
+  background: var(--bg); color: var(--ink-2); font-weight: 700; font-size: 14px;
+  display: inline-flex; align-items: center; justify-content: center; margin-top: 1px;
+}
+.s-text { margin: 0; font-size: 17px; line-height: 1.75; min-width: 0; }
+.picks { border: 0; margin: 10px 0 0; padding: 0; min-width: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.pick { position: relative; display: block; }
+.pick input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.pick span {
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  min-height: 44px; padding: 4px 6px; border: 1px solid var(--line-2); border-radius: 10px;
+  background: var(--paper); font-weight: 600; font-size: 15px; line-height: 1.3;
+}
+.pick input:hover + span { border-color: var(--ink-2); }
+.pick input:focus-visible + span { outline: 3px solid #8fb3ec; outline-offset: 2px; }
+.pick input:checked + span { color: #fff; }
+.p-fact input:checked + span { background: var(--accent); border-color: var(--accent); }
+.p-opinion input:checked + span { background: var(--warn); border-color: var(--warn); }
+.p-mixed input:checked + span { background: var(--ink-2); border-color: var(--ink-2); }
+.p-unsure input:checked + span { background: var(--bg); color: var(--ink); border: 2px dashed var(--ink-2); }
+.why { margin-top: 8px; font-size: 15px; }
+.s-tools { margin-top: 4px; }
+.sent.need .s-no { background: var(--warn-soft); color: var(--warn); }
+.sent.need .pick span { border-color: var(--warn); }
+
+/* 단서 */
+mark.cf { background: var(--accent-soft); color: inherit; border-bottom: 2px solid var(--accent); border-radius: 2px; padding: 0 1px; }
+mark.co { background: var(--warn-soft); color: inherit; border-bottom: 2px solid var(--warn); border-radius: 2px; padding: 0 1px; }
+mark.cq { background: transparent; color: inherit; border-bottom: 2px dotted var(--ink-2); }
+.clue { margin-top: 10px; background: var(--bg); border-radius: 10px; padding: 10px 12px; font-size: 15px; }
+.clue p { margin: 0; }
+.clue p + p { margin-top: 6px; }
+.clue-row b { margin-right: 2px; }
+.k-f { color: var(--accent); }
+.k-o { color: var(--warn); }
+.clue-q { font-weight: 600; }
+.clue-chg { color: var(--muted); }
+.clue-head { margin-top: 14px; border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.clue-head h3 { margin: 0 0 6px; font-size: 17px; }
+.clue-head p { margin: 6px 0 0; }
+.legend { margin: 10px 0 0; padding: 0; list-style: none; font-size: 14px; }
+.legend li { margin: 4px 0; }
+.legend mark { margin-right: 6px; }
+.reveal-row { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 14px; }
+
+.take { margin: 0 0 8px; }
+.take .chip { min-height: 44px; padding: 0 14px; font-size: 14px; }
+
+/* 제출용 */
+.pv-title { font-size: 15px; margin: 20px 0 6px; color: var(--ink-2); }
+.sheet { border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.sheet h3 { margin: 0 0 6px; font-size: 18px; }
+.sheet .meta { margin: 0; color: var(--ink-2); font-size: 14px; }
+.r-list { padding-left: 1.5em; margin: 12px 0 0; }
+.r-list li { margin: 8px 0; }
+.r-pick { font-weight: 700; margin-right: 4px; }
+.r-sub { display: block; color: var(--ink-2); font-size: 14px; }
+.r-blk { margin-top: 14px; }
+.r-blk b { display: block; }
+.r-blk p { margin: 2px 0 0; white-space: pre-wrap; }
+.basis { font-size: 12px; color: var(--muted); margin: 24px 0 0; line-height: 1.6; }
+
+@media (max-width: 480px) {
+  .picks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .intro h1 { font-size: 22px; }
+}
+@media print {
+  main > .card:not(.print-keep), .basis { display: none !important; }
+  .sheet { border: none; padding: 0; }
+  body { font-size: 11pt; }
+  .r-list li { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in"><a class="brand" href="../">읽기 노트 실험실</a><div class="grow who">사실·의견 가르기</div><span class="save-state" id="saveState" aria-live="polite"></span></div></header>
+
+<main class="wrap">
+  <section class="card intro">
+    <h1>사실·의견 가르기</h1>
+    <p>기사나 글을 문장으로 나눠, 문장마다 사실인지 의견인지 내가 먼저 고르고 단서와 견줘 보는 도구예요.</p>
+    <h2 class="how-t">이렇게 써요</h2>
+    <ol class="how">
+      <li>읽을 글을 붙여 넣고 「문장으로 나누기」를 눌러요.</li>
+      <li>문장마다 사실·의견·섞여 있음·모르겠음 가운데 하나를 고르고, 그렇게 본 까닭을 짧게 적어요. 다 고르면 「단서 보기」를 눌러 내 판단과 견줘 봐요.</li>
+      <li>이 글에서 확인해 봐야 할 사실 하나와 어디서 확인할지 적은 뒤, 인쇄하거나 글로 복사해서 내요.</li>
+    </ol>
+    <details class="more">
+      <summary>사실과 의견은 어떻게 가를까요?</summary>
+      <ul class="def">
+        <li><b>사실</b>: 맞는지 틀린지 기록·자료·측정으로 확인할 수 있는 내용이에요. 확인해 보면 틀린 것으로 드러날 수도 있어요.</li>
+        <li><b>의견</b>: 어떤 사람의 생각·느낌·평가·주장이라서 사람마다 다르게 말할 수 있는 내용이에요.</li>
+        <li><b>섞여 있음</b>: 한 문장 안에 사실인 부분과 의견인 부분이 같이 있어요.</li>
+        <li><b>모르겠음</b>: 지금은 가르기 어려운 문장에 골라요.</li>
+      </ul>
+    </details>
+    <div class="btn-row" style="margin-top:14px">
+      <button class="btn" id="btnExample" type="button">예시로 채워 보기</button>
+      <button class="btn ghost" id="btnReset" type="button">처음부터</button>
+    </div>
+    <p class="note" style="margin-top:8px">적은 내용은 이 기기의 브라우저에만 저장돼요. 다른 기기에서는 보이지 않아요.</p>
+  </section>
+
+  <section class="card" id="cardText">
+    <div class="step-tag">1단계</div>
+    <h2>글 붙여 넣기</h2>
+    <p class="sub">짧은 기사나 글이 좋아요. 문장 40개까지 나눌 수 있어요.</p>
+    <label class="f" for="fTitle">글 제목 <span class="hint">선택</span></label>
+    <input class="t" id="fTitle" maxlength="120" autocomplete="off">
+    <label class="f" for="fSource">어디에 실린 글인가요? <span class="hint">선택, 신문 이름·누리집·책 제목 같은 것</span></label>
+    <input class="t" id="fSource" maxlength="120" autocomplete="off">
+    <label class="f" for="fText">글 본문</label>
+    <textarea class="t ruled" id="fText" rows="8" maxlength="6000" placeholder="여기에 글을 붙여 넣어요."></textarea>
+    <div class="count" id="textCount">0자</div>
+    <div class="warn-box" id="staleBox" hidden>글을 고쳤어요. 「문장으로 다시 나누기」를 누르면 문장 목록에 반영돼요. 글이 그대로인 문장은 고른 것과 까닭이 남아요.</div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn primary" id="btnSplit" type="button">문장으로 나누기</button>
+    </div>
+    <p class="err" id="splitErr" role="alert"></p>
+  </section>
+
+  <section class="card" id="cardPick" hidden>
+    <div class="step-tag">2단계</div>
+    <h2>문장마다 고르기</h2>
+    <p class="sub">문장을 읽고 하나를 골라요. 까닭은 쓰고 싶을 때 써요.<span id="mergeHint"> 문장이 잘못 나뉘었으면 「앞 문장과 합치기」를 눌러요.</span></p>
+
+    <div class="clue-head" id="clueHead" hidden>
+      <h3>단서와 견줘 보기</h3>
+      <p id="sumCounts"></p>
+      <div id="sumMis"></div>
+      <ul class="legend">
+        <li><mark class="cf">파란 바탕</mark>숫자·날짜·출처처럼 확인해 볼 거리가 있다는 단서</li>
+        <li><mark class="co">주황 바탕</mark>가장·~해야 한다·생각한다처럼 생각이나 평가가 담겼다는 단서</li>
+        <li><mark class="cq">점선 밑줄</mark>누군가의 말을 옮겼다는 표시</li>
+      </ul>
+      <p class="note">단서는 낱말 모양만 보고 찾은 것이라 정답이 아니에요. 숫자가 있어도 의견일 수 있고, 단서가 없어도 사실일 수 있어요. 사실로 보이는 문장도 확인해 보면 틀릴 수 있어요.</p>
+    </div>
+
+    <p class="progress" id="progress" aria-live="polite"></p>
+    <ol class="sents" id="sentList"></ol>
+    <div class="reveal-row">
+      <button class="btn primary" id="btnReveal" type="button">단서 보기</button>
+      <p class="note" id="revealedNote" hidden>단서를 본 뒤에도 고른 것을 바꿀 수 있어요. 처음 고른 것은 따로 남아요.</p>
+      <p class="err" id="revealErr" role="alert"></p>
+    </div>
+  </section>
+
+  <section class="card" id="cardCheck" hidden>
+    <div class="step-tag">3단계</div>
+    <h2>확인해 볼 사실 적기</h2>
+    <p class="sub">이 글을 믿기 전에 먼저 확인하고 싶은 사실 하나를 고르고, 어디서 확인할지 적어요.</p>
+    <label class="f" for="fCheck">이 글에서 확인해 봐야 할 사실 하나</label>
+    <div class="take" id="takeBox"></div>
+    <textarea class="t ruled" id="fCheck" rows="3" maxlength="600"></textarea>
+    <label class="f" for="fWhere">어디서 확인할 수 있을까요? <span class="hint">누구에게 묻거나, 무엇을 찾아보거나, 직접 해 볼 수 있는지</span></label>
+    <textarea class="t ruled" id="fWhere" rows="3" maxlength="600"></textarea>
+    <details class="more">
+      <summary>막힐 때 스스로 물어볼 것</summary>
+      <ul class="def">
+        <li>이 숫자나 내용을 처음 낸 사람이나 기관은 누구일까요?</li>
+        <li>그 사람이나 기관이 남긴 기록은 어디에 있을까요?</li>
+        <li>내가 직접 재 보거나 세어 볼 수 있는 것인가요?</li>
+        <li>같은 일을 다룬 다른 글에서는 뭐라고 했을까요?</li>
+      </ul>
+    </details>
+    <details class="more" id="aiBox">
+      <summary>AI에게 내 판단을 되물어 달라고 하기</summary>
+      <p class="note" id="aiLock">확인해 볼 사실과 확인할 곳을 먼저 적으면 열려요.</p>
+      <div id="aiOpen" hidden>
+        <p class="note">AI가 정답을 말하지 않고, 내가 다시 생각해 볼 질문을 하도록 부탁하는 글이에요. 복사해서 AI 대화창에 붙여 넣으세요. AI가 한 말도 맞는지 확인해 봐야 해요.</p>
+        <div class="btn-row" style="margin-top:8px"><button class="btn" id="btnAI" type="button">부탁문 복사하기</button></div>
+      </div>
+    </details>
+  </section>
+
+  <section class="card print-keep" id="cardOut" hidden>
+    <div class="no-print">
+      <h2>제출하기</h2>
+      <p class="sub">아래 내용을 인쇄하거나 글로 복사해서 내요.</p>
+      <label class="f" for="fName">학번·이름 <span class="hint">선택, 인쇄하거나 복사할 때 함께 나와요</span></label>
+      <input class="t" id="fName" maxlength="40" autocomplete="off">
+      <div class="btn-row" style="margin-top:14px">
+        <button class="btn primary" id="btnPrint" type="button">인쇄하기</button>
+        <button class="btn" id="btnCopy" type="button">글로 복사하기</button>
+      </div>
+      <textarea class="t" id="copyFallback" rows="6" readonly hidden aria-label="복사할 글" style="margin-top:10px"></textarea>
+      <h3 class="pv-title">제출할 내용 미리 보기</h3>
+    </div>
+    <div class="sheet" id="sheet"></div>
+  </section>
+
+  <p class="basis no-print">근거: PISA 2018 읽기에서 사실과 의견을 가르는 한 문항의 정답률은 한국 학생 25.6%, OECD 평균 47.4%였어요(OECD, 21st-Century Readers, 2021). 2022 개정 국어 [9국02-04] 자료의 내용 타당성과 신뢰성을 평가하며 읽는다.</p>
+</main>
+
+<footer id="app-credit" style="width:100%;box-sizing:border-box;margin:2.5rem 0 0;padding:14px 12px;text-align:center;font-size:12.5px;line-height:1.6;color:#8a8f98;font-family:system-ui,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;border-top:1px solid rgba(128,128,128,.25);">© 2026 조승재(과학이조선생) · 해누리중학교 · All rights reserved<br><span style="font-size:11px;opacity:.85;">최종 업데이트: 2026-11-08</span></footer>
+
+<script src="../../rn.js"></script>
+<script>
+(function () {
+  'use strict';
+  const RN = window.RN;
+  const { esc, $, store, len, toast, copyText } = RN;
+  const KEY = 'rnlab_fact-opinion_v1';
+  const MAX = 40;
+
+  const PICKS = [
+    { k: 'fact', t: '사실' },
+    { k: 'opinion', t: '의견' },
+    { k: 'mixed', t: '섞여 있음' },
+    { k: 'unsure', t: '모르겠음' }
+  ];
+  const NAME = {};
+  PICKS.forEach(p => { NAME[p.k] = p.t; });
+  const isPick = v => typeof v === 'string' && Object.prototype.hasOwnProperty.call(NAME, v);
+  const str = (v, max) => (typeof v === 'string' ? v : '').slice(0, max);
+
+  // ---------- 예시 글 (연습용으로 지어낸 학교 신문 기사) ----------
+  const EXAMPLE = {
+    title: '과학 동아리, 교실 공기를 재다',
+    source: '학교 신문 11월호, 연습용으로 지어낸 기사',
+    text: [
+      '지난 10월 12일부터 16일까지 닷새 동안 우리 학교 과학 동아리 학생 8명이 2학년 교실 네 곳의 이산화 탄소 농도를 쟀다. 측정에는 과학실에 있는 이산화 탄소 센서를 썼다.',
+      '동아리가 정리한 기록에 따르면, 창문을 닫고 수업한 교실은 수업이 끝날 무렵 1,500ppm을 넘었다. ppm은 공기를 이루는 입자 100만 개 가운데 이산화 탄소 입자가 몇 개인지를 나타내는 단위다. 쉬는 시간마다 창문을 10분씩 연 교실은 같은 때에 800ppm 안팎이었다. 1,500ppm을 넘은 교실은 공기가 너무 답답해서 수업에 집중하기 어려웠다.',
+      '우리가 내쉬는 숨에는 들이쉰 공기보다 이산화 탄소가 훨씬 많이 들어 있어서, 환기를 하지 않으면 교실 안의 이산화 탄소 농도가 점점 높아진다. 동아리 회장은 "숫자가 이렇게 크게 차이 날 줄은 몰랐다"고 말했다.',
+      '겨울에도 쉬는 시간마다 창문을 여는 것이 가장 좋은 방법이다. 모든 반이 이 방법을 따라 해야 한다. 아마 다른 학년 교실도 결과가 비슷할 것이다. 동아리는 다음 달에 교실 수를 늘려 다시 잴 계획이다. 작은 동아리가 해낸 이번 측정은 정말 뜻깊은 일이라고 생각한다.'
+    ].join('\n\n')
+  };
+
+  // ---------- 저장 ----------
+  function blank() {
+    return { v: 1, title: '', source: '', text: '', splitText: '', sents: [], revealed: false, checkFact: '', checkWhere: '', name: '', savedAt: '' };
+  }
+  function load() {
+    const d = store.get(KEY, null);
+    const b = blank();
+    if (!d || typeof d !== 'object' || Array.isArray(d)) return b;
+    b.title = str(d.title, 120);
+    b.source = str(d.source, 120);
+    b.text = str(d.text, 6000);
+    b.splitText = str(d.splitText, 6000);
+    b.sents = (Array.isArray(d.sents) ? d.sents : []).slice(0, MAX).map(s => {
+      const o = (s && typeof s === 'object') ? s : {};
+      return { t: str(o.t, 3000), pick: isPick(o.pick) ? o.pick : '', why: str(o.why, 200), first: isPick(o.first) ? o.first : '' };
+    }).filter(s => s.t.trim());
+    b.revealed = !!d.revealed && b.sents.length > 0;
+    b.checkFact = str(d.checkFact, 600);
+    b.checkWhere = str(d.checkWhere, 600);
+    b.name = str(d.name, 40);
+    b.savedAt = str(d.savedAt, 40);
+    return b;
+  }
+
+  let S = load();
+  let saveTimer = 0, pending = false;
+
+  function setSaveState(ok, iso) {
+    const el = $('#saveState');
+    el.classList.toggle('bad', !ok);
+    el.textContent = ok ? (iso ? '저장됨 ' + RN.fmtTime(iso).replace(/^오늘 /, '') : '') : '저장 안 됨';
+    el.title = ok ? '적은 내용은 이 기기에 저장돼요' : '이 기기에 저장하지 못했어요';
+  }
+  function flush() {
+    if (!pending) return;
+    pending = false;
+    clearTimeout(saveTimer);
+    S.savedAt = new Date().toISOString();
+    setSaveState(store.set(KEY, S), S.savedAt);
+  }
+  function save(now) {
+    pending = true;
+    clearTimeout(saveTimer);
+    if (now) flush(); else saveTimer = setTimeout(flush, 300);
+  }
+  window.addEventListener('pagehide', flush);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
+
+  // ---------- 문장 나누기 ----------
+  const END = '.?!。…';
+  const CLOSE = '"\'”’」』)]';
+  function splitLine(line, quoteAware) {
+    const out = [];
+    let start = 0, dq = false, depth = 0;
+    const n = line.length;
+    for (let i = 0; i < n; i++) {
+      const c = line[i];
+      if (quoteAware) {
+        if (c === '"') dq = !dq;
+        else if (c === '“' || c === '「' || c === '『') depth++;
+        else if (c === '”' || c === '」' || c === '』') depth = Math.max(0, depth - 1);
+      }
+      if (END.indexOf(c) < 0) continue;
+      let j = i;
+      while (j + 1 < n && END.indexOf(line[j + 1]) >= 0) j++;
+      while (j + 1 < n && CLOSE.indexOf(line[j + 1]) >= 0) {
+        j++;
+        if (quoteAware) {
+          const q = line[j];
+          if (q === '"') dq = !dq;
+          else if (q === '”' || q === '」' || q === '』') depth = Math.max(0, depth - 1);
+        }
+      }
+      const atEnd = j + 1 >= n || /\s/.test(line[j + 1]);
+      if (atEnd && !(quoteAware && (dq || depth > 0))) {
+        const piece = line.slice(start, j + 1).trim();
+        if (piece) out.push(piece);
+        start = j + 1;
+      }
+      i = j;
+    }
+    const rest = line.slice(start).trim();
+    if (rest) out.push(rest);
+    return { out, open: quoteAware && (dq || depth > 0) };
+  }
+  function splitSentences(text) {
+    const res = [];
+    String(text || '').replace(/\r/g, '').split(/\n+/).forEach(raw => {
+      const line = raw.replace(/\s+/g, ' ').trim();
+      if (!line) return;
+      let r = splitLine(line, true);
+      if (r.open) r = splitLine(line, false); // 따옴표 짝이 안 맞으면 따옴표를 무시하고 다시
+      r.out.forEach(p => res.push(p));
+    });
+    // "1." "가." 같은 번호 조각은 다음 문장 앞에 붙인다
+    const merged = [];
+    for (let i = 0; i < res.length; i++) {
+      if (/^(?:\d{1,2}|[가나다라마바사아자차카타파하]|[①-⑳])[.)]$/.test(res[i]) && i + 1 < res.length) {
+        res[i + 1] = res[i] + ' ' + res[i + 1];
+        continue;
+      }
+      merged.push(res[i]);
+    }
+    return merged;
+  }
+
+  // ---------- 단서 찾기 (낱말 모양만 본다, 정답 판정 아님) ----------
+  const KNUM = '(?:한|두|세|네|다섯|여섯|일곱|여덟|아홉|열|스무)';
+  const RULES = [
+    { side: 'f', label: '날짜·때', re: /\d{1,4}\s?(?:년|월|일)(?:\s?\d{1,2}\s?(?:월|일))*(?:\s?\(?[월화수목금토일]\)?(?:요일)?(?![가-힣]))?|\d{1,2}\s?시(?!간)(?:\s?\d{1,2}\s?분)?|지난\s?(?:해|달|주|번)|지난달|지난해|올해|작년|어제|그제|내일|다음\s?(?:달|주|해)|이번\s?(?:주|달|학기)|[월화수목금토일]요일|오전|오후/g },
+    { side: 'f', label: '숫자', re: /\d[\d,]*(?:\.\d+)?(?:\s?(?:만|천|억))?\s?(?:%|퍼센트|ppm|℃|°C|cm|mm|km|kg|mg|mL|m|g|L|명|개|곳|번|원|도|분|초|시간|배|가지|차례|층|권|쪽|점)?/g },
+    { side: 'f', label: '숫자', re: new RegExp('(^|[^가-힣])(' + KNUM + '\\s?(?:명|개|곳|번|가지|차례|시간|달|권))', 'g'), grp: 2 },
+    { side: 'f', label: '출처·기록', re: /에\s?따르면|에\s?의하면|조사(?:에서|한|했|결과|해)|발표|밝혔|기록|자료|통계|측정|보고서|연구(?:에서|결과|팀|진)/g },
+    { side: 'o', label: '~해야 한다', re: /[가-힣]야\s?(?:한다|합니다|해요|해|할|하겠|겠|하지|된다|돼|지)|필요가\s?있|바람직|마땅|(?:하|보|지키|아끼|줄이|열|나누)자(?=[.!]*$)|합시다|봅시다/g },
+    { side: 'o', label: '가장·최고', re: /가장|최고(?!\s?(?:기온|온도|속도|기록|높이|점|값))|최악|최선|제일|으뜸|무엇보다/g },
+    { side: 'o', label: '힘주어 말함', re: /정말|너무|매우|아주|엄청|굉장히|몹시|반드시|틀림없이|당연히|분명/g },
+    { side: 'o', label: '평가하는 말', re: /좋[은다았고게아]|나쁜|나쁘|훌륭|멋진|멋지|대단|놀라[운웠]|끔찍|아름다|뛰어나|소중|중요하|중요한|답답|즐거|즐겁|재미있|재밌|지루|아쉽|아쉬|뜻깊|자랑스러|부끄러|성공적|의미\s?있/g },
+    { side: 'o', label: '생각·짐작', re: /생각(?:한다|해|합니다|된다|이다|해요|하는)|느낀다|느껴진|것\s?같|듯하|듯싶|처럼\s?보인|것으로\s?보인|아마|짐작|추측|믿는다|바란다|기대된다|겠(?:다|어요|습니다|지)/g },
+    { side: 'q', label: '누군가의 말', re: /(?:이라|라)?고\s?(?:말했|밝혔|전했|덧붙였|답했|강조했|설명했|주장했)|에게\s?물었/g }
+  ];
+  // "~ㄹ 것이다" (비슷할 것이다, 될 것이다)
+  function willClues(s) {
+    const out = [];
+    const re = /([가-힣])\s?것(?:이다|입니다|이에요|이야|이라)/g;
+    let m;
+    while ((m = re.exec(s))) {
+      const code = m[1].charCodeAt(0) - 0xAC00;
+      if (code >= 0 && code % 28 === 8) out.push({ s: m.index, e: m.index + m[0].length, side: 'o', label: '생각·짐작', pr: 99 });
+    }
+    return out;
+  }
+  function findClues(s) {
+    const hits = [];
+    RULES.forEach((r, ri) => {
+      r.re.lastIndex = 0;
+      let m;
+      while ((m = r.re.exec(s))) {
+        if (m[0] === '') { r.re.lastIndex++; continue; }
+        let st = m.index, w = m[0];
+        if (r.grp) { st = m.index + m[1].length; w = m[r.grp]; }
+        w = w.replace(/[\s,]+$/, '');
+        if (w) hits.push({ s: st, e: st + w.length, side: r.side, label: r.label, pr: ri });
+      }
+    });
+    willClues(s).forEach(h => hits.push(h));
+    hits.sort((a, b) => a.s - b.s || (b.e - b.s) - (a.e - a.s) || a.pr - b.pr);
+    const keep = [];
+    let end = -1;
+    hits.forEach(h => {
+      if (h.s >= end) { h.w = s.slice(h.s, h.e); keep.push(h); end = h.e; }
+    });
+    return keep;
+  }
+  function leanOf(hits) {
+    const f = hits.some(h => h.side === 'f'), o = hits.some(h => h.side === 'o');
+    return f && o ? 'both' : f ? 'fact' : o ? 'opinion' : 'none';
+  }
+  const hasQuote = (s, hits) => /["“”「」『』]/.test(s) || hits.some(h => h.side === 'q');
+  const isMismatch = (pick, lean) =>
+    (pick === 'fact' && (lean === 'opinion' || lean === 'both')) ||
+    (pick === 'opinion' && (lean === 'fact' || lean === 'both'));
+
+  const ASK = {
+    fact: {
+      fact: '숫자·날짜·출처 같은 단서가 보여요. 이 내용은 어디서, 어떻게 확인할 수 있을까요?',
+      opinion: '의견 쪽 단서가 보여요. 이 문장에서 사람마다 다르게 말할 수 있는 낱말이 있나요?',
+      both: '사실 쪽과 의견 쪽 단서가 함께 보여요. 문장 전체를 확인할 수 있는지, 일부만 그런지 다시 볼까요?',
+      none: '눈에 띄는 단서는 없어요. 단서가 될 말이 없어도 확인할 수 있는 문장이 있어요. 무엇으로 확인할 수 있을까요?'
+    },
+    opinion: {
+      fact: '숫자·날짜·출처 같은 단서가 보여요. 이 문장 안에 확인할 수 있는 부분이 있는지 볼까요?',
+      opinion: '의견 쪽 단서가 보여요. 누구의 생각인지 문장에서 찾을 수 있나요?',
+      both: '두 쪽 단서가 함께 보여요. 확인할 수 있는 부분과 생각·평가인 부분을 나눠 볼 수 있을까요?',
+      none: '눈에 띄는 단서는 없어요. 어느 낱말을 보고 생각이나 평가라고 느꼈나요?'
+    },
+    mixed: {
+      fact: '사실 쪽 단서만 보여요. 의견이라고 본 부분은 어느 낱말인가요?',
+      opinion: '의견 쪽 단서만 보여요. 사실이라고 본 부분은 무엇으로 확인할 수 있나요?',
+      both: '두 쪽 단서가 함께 보여요. 어디까지가 사실이고 어디부터 의견인지 선을 그어 볼까요?',
+      none: '눈에 띄는 단서는 없어요. 문장을 두 부분으로 나눈다면 어디서 나눌까요?'
+    },
+    unsure: {
+      fact: '숫자·날짜·출처 같은 단서가 있어요. 이 내용을 확인할 방법이 있을지 생각해 볼까요?',
+      opinion: '의견 쪽 단서가 있어요. 이 말을 다른 사람은 다르게 말할 수 있을까요?',
+      both: '두 쪽 단서가 다 있어요. 문장을 둘로 나눠 보면 가르기가 조금 쉬워질 수 있어요.',
+      none: '단서가 될 말이 없어요. "이 말이 맞는지 어떻게 알 수 있지?" 하고 스스로 물어보세요.'
+    }
+  };
+  const QUOTE_ASK = '누군가의 말을 옮긴 문장이에요. 그 사람이 이렇게 말했다는 것과, 그 말의 내용이 맞는지는 따로 볼 수 있어요.';
+
+  function marked(s, hits) {
+    let out = '', pos = 0;
+    hits.forEach(h => {
+      out += esc(s.slice(pos, h.s)) + '<mark class="c' + h.side + '">' + esc(s.slice(h.s, h.e)) + '</mark>';
+      pos = h.e;
+    });
+    return out + esc(s.slice(pos));
+  }
+  function clueHTML(s, hits) {
+    const lean = leanOf(hits);
+    const words = side => {
+      const seen = new Set();
+      return hits.filter(h => h.side === side).map(h => h.label + ' 「' + esc(h.w) + '」').filter(x => {
+        if (seen.has(x)) return false;
+        seen.add(x);
+        return true;
+      });
+    };
+    const f = words('f'), o = words('o');
+    let html = '';
+    if (f.length) html += '<p class="clue-row"><b class="k-f">사실 쪽 단서</b> ' + f.join(', ') + '</p>';
+    if (o.length) html += '<p class="clue-row"><b class="k-o">의견 쪽 단서</b> ' + o.join(', ') + '</p>';
+    html += '<p class="clue-q">' + esc(s.pick ? ASK[s.pick][lean] : '아직 고르지 않았어요. 하나를 골라 보세요.') + '</p>';
+    if (hasQuote(s.t, hits)) html += '<p class="clue-q">' + esc(QUOTE_ASK) + '</p>';
+    if (s.first && s.first !== s.pick) html += '<p class="clue-chg">단서를 보기 전에는 「' + NAME[s.first] + '」을 골랐어요.</p>';
+    return html;
+  }
+
+  // ---------- 그리기 ----------
+  function itemHTML(s, i) {
+    const n = i + 1;
+    const hits = S.revealed ? findClues(s.t) : null;
+    const picks = PICKS.map(p =>
+      '<label class="pick p-' + p.k + '"><input type="radio" name="pk' + i + '" value="' + p.k + '"' + (s.pick === p.k ? ' checked' : '') + '><span>' + p.t + '</span></label>'
+    ).join('');
+    return '<li class="sent" id="s' + i + '" data-i="' + i + '">' +
+      '<div class="s-head"><span class="s-no" aria-hidden="true">' + n + '</span><p class="s-text">' + (hits ? marked(s.t, hits) : esc(s.t)) + '</p></div>' +
+      '<fieldset class="picks"><legend class="sr">' + n + '번 문장은</legend>' + picks + '</fieldset>' +
+      '<input class="t why" type="text" maxlength="200" data-i="' + i + '" value="' + esc(s.why) + '" placeholder="그렇게 본 까닭 (안 써도 돼요)" aria-label="' + n + '번 문장을 그렇게 본 까닭">' +
+      '<div class="clue"' + (hits ? '' : ' hidden') + '>' + (hits ? clueHTML(s, hits) : '') + '</div>' +
+      (!S.revealed && i > 0 ? '<div class="s-tools"><button type="button" class="btn ghost small merge" data-i="' + i + '">앞 문장과 합치기</button></div>' : '') +
+      '</li>';
+  }
+
+  function renderText() {
+    $('#textCount').textContent = len(S.text) + '자';
+    $('#staleBox').hidden = !(S.sents.length && S.text.trim() !== S.splitText.trim());
+    $('#btnSplit').textContent = S.sents.length ? '문장으로 다시 나누기' : '문장으로 나누기';
+  }
+  function renderProgress() {
+    const total = S.sents.length, done = S.sents.filter(s => s.pick).length;
+    $('#progress').textContent = total ? total + '문장 가운데 ' + done + '개 골랐어요.' : '';
+    $('#btnReveal').hidden = S.revealed;
+    $('#revealedNote').hidden = !S.revealed;
+    $('#mergeHint').hidden = S.revealed;
+    if (done === total) $('#revealErr').textContent = '';
+  }
+  function renderSummary() {
+    const box = $('#clueHead');
+    box.hidden = !S.revealed;
+    if (!S.revealed) return;
+    const c = { fact: 0, opinion: 0, mixed: 0, unsure: 0 };
+    let changed = 0;
+    const mis = [];
+    S.sents.forEach((s, i) => {
+      if (s.pick) c[s.pick]++;
+      if (s.first && s.first !== s.pick) changed++;
+      if (isMismatch(s.pick, leanOf(findClues(s.t)))) mis.push(i);
+    });
+    $('#sumCounts').textContent = '내가 고른 것: 사실 ' + c.fact + '개, 의견 ' + c.opinion + '개, 섞여 있음 ' + c.mixed + '개, 모르겠음 ' + c.unsure + '개' +
+      (changed ? '. 단서를 보고 바꾼 문장은 ' + changed + '개예요.' : '.');
+    $('#sumMis').innerHTML = mis.length
+      ? '<p>단서와 내 판단이 엇갈려 보이는 문장이에요. 엇갈린다고 틀린 것은 아니니, 다시 읽고 까닭을 견줘 보세요.</p><div class="btn-row" style="margin-top:6px">' +
+        mis.map(i => '<button type="button" class="btn small jump" data-i="' + i + '">' + (i + 1) + '번 문장</button>').join('') + '</div>'
+      : '<p>단서와 크게 엇갈려 보이는 문장은 없어요. 「섞여 있음」이나 「모르겠음」을 고른 문장은 단서를 보며 한 번 더 읽어 보세요.</p>';
+  }
+  function renderTake() {
+    const box = $('#takeBox');
+    const idx = [];
+    S.sents.forEach((s, i) => { if (s.pick === 'fact' || s.pick === 'mixed') idx.push(i); });
+    box.innerHTML = idx.length
+      ? '<p class="note" style="margin:0 0 4px">사실이나 섞여 있음으로 고른 문장에서 가져올 수 있어요. 가져온 뒤 고쳐 써도 돼요.</p><div class="chips">' +
+        idx.map(i => '<button type="button" class="chip take-one" data-i="' + i + '" title="' + esc(S.sents[i].t) + '">' + (i + 1) + '번 문장</button>').join('') + '</div>'
+      : '<p class="note" style="margin:0 0 4px">사실이나 섞여 있음으로 고른 문장이 없어요. 글에서 확인해 볼 만한 내용을 직접 적어 보세요.</p>';
+  }
+  function renderList() {
+    $('#sentList').innerHTML = S.sents.map(itemHTML).join('');
+    renderProgress();
+    renderSummary();
+    renderTake();
+  }
+  function renderStage() {
+    const has = S.sents.length > 0;
+    $('#cardPick').hidden = !has;
+    $('#cardCheck').hidden = !S.revealed;
+    $('#cardOut').hidden = !has;
+  }
+  const aiReady = () => S.revealed && len(S.checkFact) >= 5 && len(S.checkWhere) >= 2;
+  function renderAI() {
+    const ok = aiReady();
+    $('#aiLock').hidden = ok;
+    $('#aiOpen').hidden = !ok;
+  }
+
+  // ---------- 제출용 글 ----------
+  const today = () => new Date().toLocaleDateString('ko-KR');
+  function counts() {
+    const c = { fact: 0, opinion: 0, mixed: 0, unsure: 0, none: 0 };
+    S.sents.forEach(s => { c[s.pick || 'none']++; });
+    return c;
+  }
+  function countLine() {
+    const c = counts();
+    return '사실 ' + c.fact + ', 의견 ' + c.opinion + ', 섞여 있음 ' + c.mixed + ', 모르겠음 ' + c.unsure + (c.none ? ', 안 고름 ' + c.none : '');
+  }
+  function resultText() {
+    const L = ['[사실·의견 가르기]'];
+    if (S.name.trim()) L.push('학번·이름: ' + S.name.trim());
+    if (S.title.trim() || S.source.trim()) L.push('글: ' + (S.title.trim() || '(제목 없음)') + (S.source.trim() ? ' (' + S.source.trim() + ')' : ''));
+    L.push('기록한 날: ' + today());
+    L.push('');
+    L.push('내가 고른 것: ' + countLine());
+    L.push('');
+    S.sents.forEach((s, i) => {
+      L.push((i + 1) + '. [' + (s.pick ? NAME[s.pick] : '안 고름') + '] ' + s.t);
+      if (s.why.trim()) L.push('   까닭: ' + s.why.trim());
+      if (s.first && s.first !== s.pick) L.push('   단서를 보기 전에는 「' + NAME[s.first] + '」을 골랐음');
+    });
+    if (S.checkFact.trim() || S.checkWhere.trim()) {
+      L.push('');
+      L.push('확인해 봐야 할 사실: ' + (S.checkFact.trim() || '(아직 안 씀)'));
+      L.push('어디서 확인할까: ' + (S.checkWhere.trim() || '(아직 안 씀)'));
+    }
+    return L.join('\n');
+  }
+  function renderResult() {
+    const meta = [];
+    if (S.name.trim()) meta.push('학번·이름: ' + esc(S.name.trim()));
+    meta.push('기록한 날: ' + esc(today()));
+    let h = '<h3>사실·의견 가르기</h3><p class="meta">' + meta.join(' · ') + '</p>';
+    if (S.title.trim() || S.source.trim()) {
+      h += '<p class="meta">글: ' + esc(S.title.trim() || '(제목 없음)') + (S.source.trim() ? ' (' + esc(S.source.trim()) + ')' : '') + '</p>';
+    }
+    h += '<p class="meta">내가 고른 것: ' + esc(countLine()) + '</p>';
+    h += '<ol class="r-list">' + S.sents.map(s =>
+      '<li><span class="r-pick">[' + (s.pick ? NAME[s.pick] : '안 고름') + ']</span>' + esc(s.t) +
+      (s.why.trim() ? '<span class="r-sub">까닭: ' + esc(s.why.trim()) + '</span>' : '') +
+      (s.first && s.first !== s.pick ? '<span class="r-sub">단서를 보기 전에는 「' + NAME[s.first] + '」을 골랐어요.</span>' : '') +
+      '</li>').join('') + '</ol>';
+    if (S.checkFact.trim() || S.checkWhere.trim()) {
+      h += '<div class="r-blk"><b>확인해 봐야 할 사실</b><p>' + esc(S.checkFact.trim() || '(아직 안 씀)') + '</p></div>';
+      h += '<div class="r-blk"><b>어디서 확인할까</b><p>' + esc(S.checkWhere.trim() || '(아직 안 씀)') + '</p></div>';
+    }
+    $('#sheet').innerHTML = h;
+  }
+  let resTimer = 0;
+  function scheduleResult() { clearTimeout(resTimer); resTimer = setTimeout(renderResult, 250); }
+
+  function aiPrompt() {
+    const L = ['나는 중학생이고, 아래 글을 문장마다 사실인지 의견인지 내가 먼저 골라 봤어.'];
+    if (S.title.trim()) L.push('글 제목: ' + S.title.trim());
+    L.push('', '[내가 고른 것]');
+    S.sents.forEach((s, i) => {
+      L.push((i + 1) + '. (' + (s.pick ? NAME[s.pick] : '안 고름') + ') ' + s.t);
+      if (s.why.trim()) L.push('   내가 본 까닭: ' + s.why.trim());
+    });
+    L.push('',
+      '[내가 확인해 보려는 사실] ' + S.checkFact.trim(),
+      '[어디서 확인할지] ' + S.checkWhere.trim(),
+      '',
+      '부탁:',
+      '1. 어느 문장이 사실이고 어느 문장이 의견인지 정답을 알려 주지 마.',
+      '2. 내 판단 가운데 다시 생각해 볼 만한 문장 2개를 골라, 내가 스스로 다시 가를 수 있게 돕는 질문을 하나씩 해 줘.',
+      '3. 내가 고른 확인할 곳이 믿을 만한지 따져 볼 수 있는 질문을 하나 해 줘.',
+      '4. 이 글에 나온 일을 네가 정확히 모르면 지어내지 말고 "직접 확인해 봐"라고 해 줘.',
+      '5. 중학생이 알아듣는 말로 짧게 해 줘.');
+    return L.join('\n');
+  }
+
+  function renderAll() {
+    Object.keys(FIELDS).forEach(k => {
+      const el = $(FIELDS[k]);
+      if (el.value !== S[k]) el.value = S[k];
+    });
+    $('#splitErr').textContent = '';
+    $('#revealErr').textContent = '';
+    const fb = $('#copyFallback');
+    fb.hidden = true; fb.value = '';
+    renderText();
+    renderList();
+    renderStage();
+    renderAI();
+    renderResult();
+  }
+
+  function jump(i) {
+    const li = $('#s' + i);
+    if (!li) return;
+    li.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const r = li.querySelector('input:checked') || li.querySelector('input[type=radio]');
+    if (r) { try { r.focus({ preventScroll: true }); } catch (e) { r.focus(); } }
+  }
+
+  // ---------- 동작 ----------
+  function doSplit(ask) {
+    const err = $('#splitErr');
+    err.textContent = '';
+    if (!S.text.trim()) { err.textContent = '글을 먼저 붙여 넣어 주세요.'; $('#fText').focus(); return false; }
+    const parts = splitSentences(S.text);
+    if (!parts.length) { err.textContent = '문장을 찾지 못했어요. 글을 다시 확인해 주세요.'; return false; }
+    if (parts.length > MAX) {
+      err.textContent = '문장이 ' + parts.length + '개예요. ' + MAX + '개까지만 나눌 수 있으니 글을 줄여서 넣어 주세요.';
+      return false;
+    }
+    if (ask && S.sents.length && (S.revealed || S.sents.some(s => s.pick || s.why.trim()))) {
+      if (!confirm('문장을 다시 나눌까요? 글이 그대로인 문장은 고른 것과 까닭이 남고, 단서 보기는 닫혀요.')) return false;
+    }
+    const old = new Map();
+    S.sents.forEach(s => {
+      if (!old.has(s.t)) old.set(s.t, []);
+      old.get(s.t).push(s);
+    });
+    S.sents = parts.map(t => {
+      const q = old.get(t);
+      const o = q && q.length ? q.shift() : null;
+      return { t: t, pick: o ? o.pick : '', why: o ? o.why : '', first: '' };
+    });
+    S.revealed = false;
+    S.splitText = S.text;
+    save(true);
+    renderText();
+    renderList();
+    renderStage();
+    renderAI();
+    renderResult();
+    return true;
+  }
+
+  function merge(i) {
+    if (S.revealed || i <= 0 || i >= S.sents.length) return;
+    const a = S.sents[i - 1], b = S.sents[i];
+    a.t = (a.t + ' ' + b.t).trim();
+    a.pick = '';
+    a.first = '';
+    a.why = [a.why, b.why].filter(x => x && x.trim()).join(' / ').slice(0, 200);
+    S.sents.splice(i, 1);
+    save(true);
+    renderList();
+    renderResult();
+    jump(i - 1);
+    toast(i + '번과 ' + (i + 1) + '번 문장을 합쳤어요. 다시 골라 주세요.');
+  }
+
+  const FIELDS = { title: '#fTitle', source: '#fSource', text: '#fText', name: '#fName', checkFact: '#fCheck', checkWhere: '#fWhere' };
+  Object.keys(FIELDS).forEach(k => {
+    $(FIELDS[k]).addEventListener('input', e => {
+      S[k] = e.target.value;
+      save();
+      if (k === 'text') renderText();
+      if (k === 'checkFact' || k === 'checkWhere') renderAI();
+      scheduleResult();
+    });
+  });
+
+  $('#btnSplit').addEventListener('click', () => {
+    if (doSplit(true)) {
+      $('#cardPick').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      toast(S.sents.length + '문장으로 나눴어요.');
+    }
+  });
+
+  const list = $('#sentList');
+  list.addEventListener('change', e => {
+    const t = e.target;
+    if (!t.matches('input[type=radio]')) return;
+    const li = t.closest('.sent');
+    const i = +li.dataset.i;
+    const s = S.sents[i];
+    if (!s || !isPick(t.value)) return;
+    s.pick = t.value;
+    li.classList.remove('need');
+    if (S.revealed) li.querySelector('.clue').innerHTML = clueHTML(s, findClues(s.t));
+    save();
+    renderProgress();
+    renderSummary();
+    renderTake();
+    scheduleResult();
+  });
+  list.addEventListener('input', e => {
+    const t = e.target;
+    if (!t.classList.contains('why')) return;
+    const s = S.sents[+t.dataset.i];
+    if (!s) return;
+    s.why = t.value;
+    save();
+    scheduleResult();
+  });
+  list.addEventListener('click', e => {
+    const b = e.target.closest('.merge');
+    if (b) merge(+b.dataset.i);
+  });
+
+  $('#btnReveal').addEventListener('click', () => {
+    const left = [];
+    S.sents.forEach((s, i) => { if (!s.pick) left.push(i); });
+    if (left.length) {
+      $('#revealErr').textContent = '아직 안 고른 문장이 있어요: ' + left.map(i => (i + 1) + '번').join(', ') + '. 가르기 어려우면 「모르겠음」을 골라도 돼요.';
+      left.forEach(i => { const li = $('#s' + i); if (li) li.classList.add('need'); });
+      jump(left[0]);
+      return;
+    }
+    S.revealed = true;
+    S.sents.forEach(s => { s.first = s.pick; });
+    save(true);
+    renderList();
+    renderStage();
+    renderAI();
+    renderResult();
+    $('#clueHead').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    toast('단서를 열었어요. 내 판단과 견줘 보세요.');
+  });
+
+  $('#clueHead').addEventListener('click', e => {
+    const b = e.target.closest('.jump');
+    if (b) jump(+b.dataset.i);
+  });
+
+  $('#takeBox').addEventListener('click', e => {
+    const b = e.target.closest('.take-one');
+    if (!b) return;
+    const s = S.sents[+b.dataset.i];
+    if (!s) return;
+    const el = $('#fCheck');
+    if (el.value.trim() && el.value.trim() !== s.t && !confirm('지금 쓴 글을 ' + (+b.dataset.i + 1) + '번 문장으로 바꿀까요?')) return;
+    el.value = s.t;
+    S.checkFact = s.t;
+    save();
+    renderAI();
+    scheduleResult();
+    el.focus();
+  });
+
+  $('#btnAI').addEventListener('click', () => {
+    if (!aiReady()) { renderAI(); return; }
+    copyText(aiPrompt(), $('#copyFallback')).then(ok => {
+      toast(ok ? '부탁문을 복사했어요. AI 대화창에 붙여 넣으세요.' : '자동 복사가 안 돼요. 제출하기 칸에 나온 글을 직접 복사해 주세요.');
+    });
+  });
+
+  $('#btnPrint').addEventListener('click', () => {
+    flush();
+    renderResult();
+    window.print();
+  });
+  $('#btnCopy').addEventListener('click', () => {
+    flush();
+    copyText(resultText(), $('#copyFallback')).then(ok => {
+      toast(ok ? '글로 복사했어요. 제출할 곳에 붙여 넣으세요.' : '자동 복사가 안 돼요. 아래 칸의 글을 직접 복사해 주세요.');
+    });
+  });
+
+  $('#btnExample').addEventListener('click', () => {
+    const hasWork = S.text.trim() || S.sents.length || S.checkFact.trim() || S.checkWhere.trim();
+    if (hasWork && !confirm('지금 적은 내용을 지우고 예시 글로 바꿀까요?')) return;
+    const name = S.name;
+    S = blank();
+    S.name = name;
+    S.title = EXAMPLE.title;
+    S.source = EXAMPLE.source;
+    S.text = EXAMPLE.text;
+    renderAll();
+    doSplit(false);
+    $('#cardPick').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    toast('예시 글을 넣고 문장으로 나눴어요. 문장마다 하나씩 골라 보세요.');
+  });
+
+  $('#btnReset').addEventListener('click', () => {
+    if (!confirm('적은 내용을 모두 지우고 처음부터 할까요? 지운 내용은 되돌릴 수 없어요.')) return;
+    clearTimeout(saveTimer);
+    pending = false;
+    store.del(KEY);
+    S = blank();
+    renderAll();
+    setSaveState(true, '');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast('처음 상태로 돌렸어요.');
+  });
+
+  // ---------- 시작 ----------
+  renderAll();
+  setSaveState(true, S.savedAt);
+})();
+</script>
+</body>
+</html>

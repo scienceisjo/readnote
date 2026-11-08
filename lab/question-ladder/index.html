@@ -1,0 +1,799 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>질문 사다리 · 읽기 노트 실험실</title><meta name="description" content="읽은 글에 대한 첫 질문을 사다리 여섯 칸을 따라 한 칸씩 키우고, 질문마다 바구니를 골라 담는 학생용 도구">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../../rn.css">
+<style>
+  /* 맨 위 카드 */
+  .intro h1 { font-size: 26px; letter-spacing: -.03em; margin: 0 0 6px; }
+  .intro .lead { margin: 0 0 12px; color: var(--ink-2); }
+  .how { background: var(--bg); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  .how b { font-size: 15px; }
+  .how ol { margin: 6px 0 0; padding-left: 22px; }
+  .how li { margin: 2px 0; }
+  .intro .note { margin: 10px 0 0; }
+  .btn.small { min-height: 44px; }
+
+  /* 두 칸 배치: 왼쪽 글, 오른쪽 질문 */
+  @media (min-width: 980px) {
+    .layout { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 16px; align-items: stretch; }
+    .read { position: sticky; top: 64px; max-height: calc(100vh - 80px); overflow: auto; }
+  }
+  .read-ttl { font-size: 19px; margin: 6px 0 10px; letter-spacing: -.01em; }
+  .read-body p { margin: 0 0 12px; line-height: 1.85; font-size: 16.5px; }
+  .long-hint { font-size: 13px; color: var(--warn); margin-top: 4px; }
+
+  /* 사다리 */
+  .ladder { margin-top: 14px; }
+  .rung { position: relative; padding: 0 0 22px 52px; }
+  .rung::before { content: ''; position: absolute; left: 17px; top: 36px; bottom: 0; width: 2px; background: var(--line-2); }
+  .rung:last-child { padding-bottom: 0; }
+  .rung:last-child::before { display: none; }
+  .rung-n {
+    position: absolute; left: 0; top: 0; width: 36px; height: 36px; border-radius: 50%;
+    border: 2px solid var(--line-2); background: var(--paper);
+    display: grid; place-items: center; font-weight: 800; color: var(--muted);
+  }
+  .rung.open .rung-n { border-color: var(--accent); color: var(--accent); }
+  .rung.on .rung-n { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .rung.on::before { background: var(--accent); }
+  .rung-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; min-height: 36px; padding-top: 5px; }
+  .rung-h b { font-size: 17px; }
+  .rung-h span { color: var(--muted); font-size: 14px; }
+  .rung.shut .rung-h b { color: var(--muted); font-weight: 600; }
+  .rung-d { margin: 2px 0 0; font-size: 14px; color: var(--ink-2); }
+  .rung.shut .rung-d { display: none; }
+  .rung-lock { margin: 2px 0 0; font-size: 13.5px; color: var(--muted); }
+  .prev { margin: 10px 0 0; font-size: 14px; color: var(--ink-2); background: var(--bg); border-radius: 8px; padding: 8px 10px; }
+  .prev span { display: block; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+  .rung .chips .chip { min-height: 44px; padding: 8px 14px; font-size: 14px; text-align: left; line-height: 1.35; }
+  .rung textarea.q { margin-top: 8px; }
+  .stub { font-size: 13px; color: var(--warn); margin-top: 4px; }
+  .rung .btn-row { margin-top: 10px; }
+  .done-note { margin-top: 16px; }
+
+  /* 바구니 */
+  .bk-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 4px 0 0; }
+  .bk-legend div { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .bk-legend dt { font-weight: 700; font-size: 15px; }
+  .bk-legend dd { margin: 2px 0 0; font-size: 13.5px; color: var(--ink-2); }
+  .qrow { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-top: 10px; }
+  .qrow.starred { border-color: var(--accent); border-left-width: 4px; }
+  .qrow-h { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+  .qlab { font-size: 13px; font-weight: 700; color: var(--accent); }
+  .qtext { margin: 4px 0 10px; font-size: 16px; }
+  .bk { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .bk-b {
+    min-height: 44px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--paper);
+    cursor: pointer; font-size: 14px; line-height: 1.3; padding: 6px 8px;
+  }
+  .bk-b:hover { border-color: var(--accent); }
+  .bk-b[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+  .star-btn {
+    display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px;
+    border: 1px solid var(--line-2); border-radius: 999px; background: var(--paper);
+    cursor: pointer; font-size: 14px; font-weight: 600; color: var(--muted); flex: none;
+  }
+  .star-btn:hover { border-color: var(--accent); }
+  .star-btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .star {
+    display: inline-block; width: 16px; height: 16px; flex: none; background: var(--line-2);
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .star.on, .star-btn[aria-pressed="true"] .star { background: var(--accent); }
+  .star-box { margin-top: 16px; border-top: 1px dashed var(--line-2); padding-top: 12px; }
+  .star-q { display: flex; gap: 8px; align-items: flex-start; font-weight: 700; font-size: 16px; }
+  .star-q .star { margin-top: 4px; }
+
+  /* 모아 보기 */
+  .sh-meta { font-size: 14px; color: var(--ink-2); margin-bottom: 8px; }
+  .sh-row { border-left: 3px solid var(--line-2); padding: 4px 0 4px 12px; margin: 10px 0; }
+  .sh-row.star-row { border-left-color: var(--accent); }
+  .sh-lab { font-size: 13px; font-weight: 700; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .sh-row.star-row .sh-lab { color: var(--accent); }
+  .sh-q { font-size: 16px; }
+  .sh-bk { font-size: 13px; color: var(--ink-2); }
+  .sh-bk.none { color: var(--warn); }
+  .tally { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
+  .tally div { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+  .tally span { display: block; font-size: 13px; color: var(--ink-2); line-height: 1.35; }
+  .tally b { font-size: 22px; }
+  .sh-h { font-size: 15px; margin: 18px 0 4px; }
+  .sh-star { margin-top: 16px; border: 1px solid var(--accent); border-radius: 10px; padding: 12px 14px; }
+  .sh-star .lab { font-size: 13px; font-weight: 700; color: var(--muted); margin-top: 8px; }
+  .sh-star .lab:first-child { margin-top: 0; }
+  .sh-star p { margin: 2px 0 0; }
+  .print-only { display: none; }
+  .sh-text { margin-top: 18px; font-size: 13px; color: var(--ink-2); white-space: pre-wrap; border-top: 1px solid var(--line); padding-top: 10px; }
+  .gate { list-style: none; padding: 0; margin: 8px 0; font-size: 14px; }
+  .gate li { padding: 2px 0; color: var(--muted); }
+  .gate li.ok { color: var(--accent); font-weight: 600; }
+  #copyFallback { margin-top: 10px; font-size: 14px; }
+  #aiPrompt { font-size: 13.5px; margin-top: 8px; }
+  .basis { font-size: 12px; color: var(--muted); margin: 20px 4px 0; line-height: 1.6; }
+
+  @media (max-width: 640px) {
+    .bk, .tally { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 520px) {
+    .bk-legend { grid-template-columns: 1fr; }
+    .rung { padding-left: 46px; }
+    .intro h1 { font-size: 23px; }
+  }
+  /* 전자칠판 같은 큰 화면 */
+  @media (min-width: 1800px) {
+    body { zoom: 1.2; }
+    .read { max-height: calc((100vh - 96px) / 1.2); }
+  }
+  @media print {
+    .print-only { display: block; }
+    body { font-size: 11pt; }
+    .sheet h2 { font-size: 18pt; }
+    .sh-row, .sh-star, .tally div { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<header class="top wide"><div class="top-in"><a class="brand" href="../">읽기 노트 실험실</a><div class="grow who">질문 사다리</div><span class="save-state" id="saveState" aria-live="polite"></span></div></header>
+
+<main class="wrap wide">
+
+  <section class="card intro no-print">
+    <h1>질문 사다리</h1>
+    <p class="lead">글을 읽고 떠오른 첫 질문을 사다리 여섯 칸을 따라 한 칸씩 키워 보는 도구예요.</p>
+    <div class="how">
+      <b>이렇게 써요</b>
+      <ol>
+        <li>글을 읽고 처음 떠오른 질문을 그대로 써요.</li>
+        <li>사다리 칸을 하나씩 열며 말머리를 골라 질문을 고쳐 써요.</li>
+        <li>질문마다 바구니를 고르고, 가장 마음에 드는 질문에 별표해요.</li>
+      </ol>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="fillAll" type="button">예시로 채워 보기</button>
+      <button class="btn ghost" id="resetAll" type="button">처음부터</button>
+    </div>
+    <p class="note">적은 글은 이 기기에만 자동 저장돼요. 다 쓰면 맨 아래에서 인쇄하거나 글로 복사해서 내요.</p>
+  </section>
+
+  <div class="layout">
+    <div class="col-read no-print">
+      <section class="card read" id="readCard">
+        <h2>읽을 글</h2>
+        <div id="readEdit">
+          <p class="sub">제목을 적고 본문을 붙여 넣어요. 종이로 읽었다면 제목만 적어도 돼요.</p>
+          <label class="f" for="title">글 제목</label>
+          <input class="t" id="title" maxlength="80" autocomplete="off" placeholder="예: 물은 왜 위에서부터 얼까">
+          <label class="f" for="text">본문 <span class="hint">짧은 글이 좋아요</span></label>
+          <textarea class="t ruled" id="text" rows="10" placeholder="읽은 글을 여기에 붙여 넣어요"></textarea>
+          <div class="count" id="textCount"></div>
+          <div class="long-hint" id="longHint" hidden>글이 길어요. 질문을 만들 한 부분만 골라 붙여 넣으면 더 쉬워요.</div>
+          <div class="btn-row" style="margin-top:10px">
+            <button class="btn primary small" id="lockBtn" type="button">다 넣었어요</button>
+            <button class="btn small" id="sampleText" type="button">예시 글만 넣기</button>
+          </div>
+        </div>
+        <div id="readView" hidden>
+          <h3 class="read-ttl" id="readTitle"></h3>
+          <div class="read-body" id="readBody"></div>
+          <div class="btn-row" style="margin-top:12px">
+            <button class="btn ghost small" id="editBtn" type="button">글 고치기</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="col-work">
+      <section class="card no-print" id="firstCard">
+        <div class="step-tag">1단계</div>
+        <h2>첫 질문</h2>
+        <p class="sub">읽으면서 처음 떠오른 질문을 그대로 써요. 서툴러도 괜찮아요. 다음 단계에서 키워요.</p>
+        <label class="f" for="q0">내 첫 질문</label>
+        <textarea class="t" id="q0" rows="2" placeholder="떠오른 궁금증을 물음표로 끝나게 써요"></textarea>
+      </section>
+
+      <section class="card no-print" id="ladderCard">
+        <div class="step-tag">2단계</div>
+        <h2>질문 사다리</h2>
+        <p class="sub">한 칸에 질문 하나씩 써요. 말머리를 누르면 틀이 들어가요. 「」 안을 채우고 내 말로 고쳐 써요. 아래 칸으로 갈수록 질문이 넓어져요.</p>
+        <p class="note box" id="ladderGate">첫 질문을 쓰면 사다리가 열려요.</p>
+        <div class="ladder" id="ladder" hidden></div>
+        <p class="note box done-note" id="doneNote" hidden>여섯 칸을 다 열었어요. 3단계에서 질문마다 바구니를 골라요.</p>
+      </section>
+
+      <section class="card no-print" id="sortCard">
+        <div class="step-tag">3단계</div>
+        <h2>바구니 고르고 별표하기</h2>
+        <p class="sub">질문마다 답을 얻는 방법에 맞는 바구니를 하나씩 골라요.</p>
+        <dl class="bk-legend">
+          <div><dt>찾아보면 아는 질문</dt><dd>글이나 책, 자료에서 찾으면 답이 나와요.</dd></div>
+          <div><dt>설명이 필요한 질문</dt><dd>까닭을 차례대로 풀어 설명해야 답이 돼요.</dd></div>
+          <div><dt>해 봐야 아는 질문</dt><dd>관찰이나 실험, 조사를 직접 해 봐야 답을 얻어요.</dd></div>
+          <div><dt>아직 아무도 모르는 질문</dt><dd>지금은 누구도 확실한 답을 몰라요. 더 연구하거나 오래 따져 봐야 해요.</dd></div>
+        </dl>
+        <p class="note box">바구니는 등급이 아니에요. 어느 바구니에든 좋은 질문이 담겨요. 고르는 기준은 내가 답을 아는지가 아니라 답을 어떻게 얻는지예요.</p>
+        <div id="sortList"></div>
+        <div class="star-box" id="starBox" hidden>
+          <div class="star-q"><span class="star on" aria-hidden="true"></span><span id="starQ"></span></div>
+          <label class="f" for="why">이 질문을 고른 까닭</label>
+          <textarea class="t" id="why" rows="2" placeholder="이 질문이 왜 마음에 드는지 한두 문장으로 써요"></textarea>
+          <label class="f" for="next">답을 얻으려면 먼저 해 볼 일</label>
+          <textarea class="t" id="next" rows="2" placeholder="찾아볼 곳, 물어볼 사람, 해 볼 실험 같은 것을 써요"></textarea>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <section class="card sheet" id="sheet">
+    <h2>내 질문 사다리</h2>
+    <p class="sub no-print">위에서 쓴 것이 여기에 모여요. 인쇄하거나 글로 복사해서 내요.</p>
+    <div class="note box" id="sheetEmpty">아직 쓴 질문이 없어요.</div>
+    <div id="sheetBody" hidden></div>
+    <div class="no-print">
+      <label class="f" for="name">학번과 이름 <span class="hint">적지 않아도 돼요. 인쇄·복사할 때 함께 들어가요</span></label>
+      <input class="t" id="name" maxlength="30" autocomplete="off" placeholder="예: 20103 홍길동">
+      <div class="btn-row" style="margin-top:12px">
+        <button class="btn primary" id="printBtn" type="button">인쇄하기</button>
+        <button class="btn" id="copyBtn" type="button">글로 복사하기</button>
+      </div>
+      <textarea class="t" id="copyFallback" rows="8" readonly hidden aria-label="복사할 글"></textarea>
+
+      <details class="more" id="aiBox">
+        <summary>AI 에게 되물어 달라고 부탁하기</summary>
+        <p class="note">AI 가 답을 주는 대신, 내 질문을 다듬도록 되묻게 하는 부탁문이에요. 첫 질문, 사다리 세 칸 이상, 별표를 마치면 열려요.</p>
+        <ul class="gate" id="aiGate"></ul>
+        <div id="aiReady" hidden>
+          <textarea class="t" id="aiPrompt" rows="12" readonly aria-label="AI 부탁문"></textarea>
+          <div class="btn-row" style="margin-top:8px">
+            <button class="btn" id="aiCopy" type="button">부탁문 복사하기</button>
+          </div>
+          <p class="note">선생님이 허락한 AI 에 붙여 넣어요. AI 가 답을 말해 버리면 그 부분은 넘기고 다시 부탁해요.</p>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <p class="basis no-print">근거: 질문을 만들게 가르치면 처음 보는 글의 이해력이 오른다는 메타분석이 있어요(Rosenshine·Meister·Chapman, 1996, 효과크기 중앙값 0.36·0.86). 질문 바구니는 과학 질문 분류(Chin &amp; Kayalvizhi, 2002)를 바탕으로 수업용으로 나눈 네 갈래예요.</p>
+</main>
+
+<footer id="app-credit" style="width:100%;box-sizing:border-box;margin:2.5rem 0 0;padding:14px 12px;text-align:center;font-size:12.5px;line-height:1.6;color:#8a8f98;font-family:system-ui,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;border-top:1px solid rgba(128,128,128,.25);">© 2026 조승재(과학이조선생) · 해누리중학교 · All rights reserved<br><span style="font-size:11px;opacity:.85;">최종 업데이트: 2026-11-08</span></footer>
+
+<script src="../../rn.js"></script>
+<script>
+(function () {
+  'use strict';
+  const { esc, $, store, len, toast, copyText } = window.RN;
+  const KEY = 'rnlab_question-ladder_v1';
+
+  // 사다리 여섯 칸. c = 말머리(「」 안을 학생이 채운다)
+  const RUNGS = [
+    { k: '사실 확인', s: '무엇·누가·언제', d: '글에 나온 사실을 확인하는 질문이에요.',
+      c: ['「」은(는) 무엇일까?', '「」은(는) 언제 그럴까?', '누가 「」했을까?', '글에서 「」은(는) 어떻다고 했을까?'] },
+    { k: '뜻 묻기', s: '이 말은 무슨 뜻', d: '낯선 낱말이나 문장의 뜻을 묻는 질문이에요.',
+      c: ['「」은(는) 무슨 뜻일까?', '여기서 「」라는 말은 어떤 뜻으로 썼을까?', '「」을(를) 쉬운 말로 바꾸면 무엇일까?'] },
+    { k: '까닭 묻기', s: '왜·어떻게', d: '그렇게 되는 이유나 과정을 묻는 질문이에요.',
+      c: ['왜 「」일까?', '「」은(는) 어떻게 일어날까?', '「」은(는) 무엇 때문일까?'] },
+    { k: '바꿔 보기', s: '만약 ~라면', d: '조건 하나를 바꾸면 어떻게 될지 묻는 질문이에요.',
+      c: ['만약 「」라면 어떻게 될까?', '「」이(가) 없다면 무엇이 달라질까?', '「」을(를) 바꾸면 결과도 바뀔까?'] },
+    { k: '견주기', s: '~와 무엇이 다를까', d: '다른 것과 나란히 놓고 같은 점과 다른 점을 묻는 질문이에요.',
+      c: ['「」와(과) 「」은(는) 무엇이 다를까?', '「」와(과) 「」은(는) 무엇이 같을까?', '「」일 때와 「」일 때를 견주면 어떻게 다를까?'] },
+    { k: '내 삶과 잇기', s: '우리 생활에서는', d: '글의 내용을 내 생활이나 우리 주변과 잇는 질문이에요.',
+      c: ['우리 생활에서 「」을(를) 볼 수 있는 곳은 어디일까?', '내가 「」을(를) 겪는다면 어떻게 할까?', '「」을(를) 알면 생활에서 무엇이 달라질까?'] }
+  ];
+  const ALL_TPL = new Set(RUNGS.flatMap(r => r.c));
+
+  const BASKETS = [
+    { v: 'find', t: '찾아보면 아는 질문', s: '찾아보면 아는' },
+    { v: 'explain', t: '설명이 필요한 질문', s: '설명이 필요한' },
+    { v: 'try', t: '해 봐야 아는 질문', s: '해 봐야 아는' },
+    { v: 'unknown', t: '아직 아무도 모르는 질문', s: '아직 아무도 모르는' }
+  ];
+  const BK_V = BASKETS.map(b => b.v);
+  const bkName = v => (BASKETS.find(b => b.v === v) || {}).t || '';
+
+  // 예시 글(직접 쓴 글)
+  const SAMPLE = {
+    title: '그림자 길이는 왜 하루 동안 바뀔까',
+    text: [
+      '맑은 날 운동장에 막대 하나를 똑바로 세워 두고, 한 시간마다 그림자를 재어 보자. 아침에는 그림자가 서쪽으로 길게 뻗어 있다. 시간이 지날수록 그림자는 짧아지고, 낮 12시 30분 무렵에 가장 짧아진다. 이때 그림자는 북쪽을 향한다. 오후에는 그림자가 다시 길어지면서 동쪽으로 뻗는다.',
+      '그림자가 생기는 까닭은 빛이 곧게 나아가기 때문이다. 막대가 햇빛을 가로막으면 막대 뒤쪽에 빛이 닿지 않는 곳이 생기는데, 이곳이 그림자다. 그래서 그림자는 언제나 태양의 반대쪽에 생긴다.',
+      '막대 높이가 같다면 그림자 길이를 정하는 것은 태양 고도다. 태양 고도는 태양이 지평선과 이루는 각으로, 태양이 높이 떠 있을수록 커진다. 지구는 서쪽에서 동쪽으로 자전한다. 그래서 땅 위에 있는 우리에게는 태양이 동쪽 하늘에서 떠올라 남쪽 하늘을 지나 서쪽 하늘로 지는 것처럼 보인다.',
+      '아침에는 태양 고도가 낮아 햇빛이 비스듬히 들어오므로 그림자가 길다. 태양이 정남쪽에 오는 낮 12시 30분 무렵에는 태양 고도가 가장 높아 그림자가 가장 짧다. 태양 고도가 45°일 때는 그림자 길이가 막대 높이와 같다.',
+      '같은 시각이라도 계절에 따라 그림자 길이가 다르다. 여름에는 한낮의 태양 고도가 높아 그림자가 짧고, 겨울에는 태양 고도가 낮아 그림자가 길다. 한편 하루 가운데 기온이 가장 높은 때는 태양 고도가 가장 높은 때보다 두 시간쯤 늦은 오후 2시 30분 무렵이다.'
+    ].join('\n\n')
+  };
+
+  function fresh() {
+    return {
+      title: '', text: '', locked: false,
+      qs: Array.from({ length: 7 }, () => ({ q: '', b: '' })), // 0 = 첫 질문, 1~6 = 사다리 칸
+      reach: 1, star: -1, why: '', next: '', name: '', t: 0
+    };
+  }
+
+  function example() {
+    const f = fresh();
+    f.title = SAMPLE.title;
+    f.text = SAMPLE.text;
+    f.locked = true;
+    f.qs = [
+      ['그림자는 왜 아침에 더 길까?', 'explain'],
+      ['글에서 그림자가 가장 짧아지는 때는 언제라고 했을까?', 'find'],
+      ['「태양 고도」는 무슨 뜻일까?', 'find'],
+      ['왜 태양 고도가 높으면 그림자가 짧아질까?', 'explain'],
+      ['만약 막대를 비스듬히 기울여 세운다면 그림자 길이는 어떻게 될까?', 'try'],
+      ['여름 한낮의 그림자와 겨울 한낮의 그림자는 길이가 얼마나 다를까?', 'try'],
+      ['겨울에 교실 안쪽까지 햇빛이 깊이 들어오는 것도 태양 고도 때문일까?', 'explain']
+    ].map(([q, b]) => ({ q, b }));
+    f.reach = 6;
+    f.star = 4;
+    f.why = '막대를 해 쪽으로 기울일 때와 반대쪽으로 기울일 때 답이 다를 것 같아서 궁금해요.';
+    f.next = '맑은 날 같은 시각에 막대를 똑바로 세울 때, 해 쪽으로 기울일 때, 반대쪽으로 기울일 때 그림자 길이를 재어 본다.';
+    return f;
+  }
+
+  const str = v => (typeof v === 'string' ? v : '');
+  function load() {
+    const d = store.get(KEY, null);
+    const f = fresh();
+    if (!d || typeof d !== 'object') return f;
+    f.title = str(d.title);
+    f.text = str(d.text);
+    f.locked = !!d.locked;
+    f.why = str(d.why);
+    f.next = str(d.next);
+    f.name = str(d.name);
+    if (Array.isArray(d.qs)) {
+      for (let i = 0; i < 7; i++) {
+        const x = d.qs[i] && typeof d.qs[i] === 'object' ? d.qs[i] : {};
+        f.qs[i] = { q: str(x.q), b: BK_V.includes(x.b) ? x.b : '' };
+      }
+    }
+    const r = parseInt(d.reach, 10);
+    f.reach = r >= 1 && r <= 6 ? r : 1;
+    f.star = Number.isInteger(d.star) && d.star >= 0 && d.star <= 6 ? d.star : -1;
+    f.t = typeof d.t === 'number' ? d.t : 0;
+    return f;
+  }
+
+  let S = load();
+
+  // 「」를 비워 둔 말머리는 아직 질문이 아니다
+  const isQ = s => len(s) >= 4 && !/「\s*」/.test(String(s));
+  const hasStub = s => /「\s*」/.test(String(s));
+  const qOf = i => S.qs[i].q.trim();
+  const filledIdx = () => [0, 1, 2, 3, 4, 5, 6].filter(i => isQ(S.qs[i].q));
+  const rungsFilled = () => [1, 2, 3, 4, 5, 6].filter(i => isQ(S.qs[i].q)).length;
+  const starOk = () => S.star >= 0 && isQ(S.qs[S.star].q);
+  const labelOf = i => (i === 0 ? '첫 질문' : i + '칸 ' + RUNGS[i - 1].k);
+
+  // ---------- 저장 ----------
+  let saveTimer = null;
+  function setSave(msg, bad) {
+    const el = $('#saveState');
+    el.textContent = msg;
+    el.classList.toggle('bad', !!bad);
+  }
+  function hm(t) {
+    return new Date(t).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+  }
+  function doSave() {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    S.t = Date.now();
+    if (store.set(KEY, S)) setSave('저장됨 ' + hm(S.t));
+    else setSave('저장 안 됨', true);
+  }
+  function save() {
+    clearTimeout(saveTimer);
+    setSave('저장하는 중');
+    saveTimer = setTimeout(doSave, 350);
+  }
+  function flush() { if (saveTimer) doSave(); }
+  window.addEventListener('pagehide', flush);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
+
+  function hasAny() {
+    return !!(S.title.trim() || S.text.trim() || S.qs.some(x => x.q.trim()) || S.why.trim() || S.next.trim() || S.name.trim());
+  }
+
+  // ---------- 읽을 글 ----------
+  function renderText() {
+    $('#readEdit').hidden = S.locked;
+    $('#readView').hidden = !S.locked;
+    $('#textCount').textContent = len(S.text) ? len(S.text) + '자' : '';
+    $('#longHint').hidden = len(S.text) <= 1500;
+    if (S.locked) {
+      $('#readTitle').textContent = S.title.trim() || '제목 없는 글';
+      const paras = S.text.trim() ? S.text.trim().split(/\n\s*\n/) : [];
+      $('#readBody').innerHTML = paras.length
+        ? paras.map(p => '<p>' + esc(p.trim()).replace(/\n/g, '<br>') + '</p>').join('')
+        : '<p class="note">본문 없이 제목만 적었어요. 종이에 있는 글을 보며 질문을 써요.</p>';
+    }
+  }
+
+  $('#title').addEventListener('input', e => { S.title = e.target.value; save(); renderSheet(); updateAI(); });
+  $('#text').addEventListener('input', e => {
+    S.text = e.target.value;
+    save();
+    $('#textCount').textContent = len(S.text) ? len(S.text) + '자' : '';
+    $('#longHint').hidden = len(S.text) <= 1500;
+    renderSheet();
+  });
+  $('#lockBtn').addEventListener('click', () => {
+    if (!S.title.trim() && !S.text.trim()) { toast('제목이나 본문을 먼저 넣어 주세요.'); $('#title').focus(); return; }
+    S.locked = true;
+    save();
+    renderText();
+  });
+  $('#editBtn').addEventListener('click', () => {
+    S.locked = false;
+    save();
+    renderText();
+    $('#text').focus();
+  });
+  $('#sampleText').addEventListener('click', () => {
+    if ((S.title.trim() || S.text.trim()) && !confirm('지금 넣은 글을 예시 글로 바꿀까요?')) return;
+    S.title = SAMPLE.title;
+    S.text = SAMPLE.text;
+    S.locked = true;
+    $('#title').value = S.title;
+    $('#text').value = S.text;
+    save();
+    renderText();
+    renderSheet();
+    updateAI();
+    toast('예시 글을 넣었어요. 읽고 첫 질문을 써 보세요.');
+  });
+
+  // ---------- 첫 질문 ----------
+  $('#q0').addEventListener('input', e => { S.qs[0].q = e.target.value; save(); refresh(); });
+
+  // ---------- 사다리 ----------
+  function renderLadder() {
+    const box = $('#ladder');
+    let h = '';
+    for (let i = 1; i <= 6; i++) {
+      const r = RUNGS[i - 1];
+      const open = i <= S.reach;
+      h += '<div class="rung ' + (open ? 'open' : 'shut') + '" data-i="' + i + '">'
+        + '<div class="rung-n" aria-hidden="true">' + i + '</div>'
+        + '<div class="rung-h"><b>' + esc(r.k) + '</b><span>' + esc(r.s) + '</span></div>'
+        + '<p class="rung-d">' + esc(r.d) + '</p>';
+      if (open) {
+        h += '<p class="prev" data-prev></p>'
+          + '<div class="chips" role="group" aria-label="' + esc(r.k) + ' 말머리">'
+          + r.c.map((t, ci) => '<button type="button" class="chip" data-c="' + ci + '">' + esc(t) + '</button>').join('')
+          + '</div>'
+          + '<textarea class="t q" rows="2" data-i="' + i + '" aria-label="' + i + '칸 ' + esc(r.k) + ' 질문" placeholder="말머리를 누르거나 직접 써요"></textarea>'
+          + '<div class="stub" data-stub hidden>「」 안을 채워야 질문이 돼요.</div>';
+        if (i === S.reach && i < 6) {
+          h += '<div class="btn-row">'
+            + '<button type="button" class="btn primary small" data-act="next">다음 칸으로</button>'
+            + '<button type="button" class="btn ghost small" data-act="skip">이 칸 건너뛰기</button>'
+            + '</div>';
+        }
+      } else {
+        h += '<p class="rung-lock">앞 칸을 마치면 열려요.</p>';
+      }
+      h += '</div>';
+    }
+    box.innerHTML = h;
+    box.querySelectorAll('textarea.q').forEach(ta => { ta.value = S.qs[+ta.dataset.i].q; });
+    refreshLadder();
+  }
+
+  function refreshLadder() {
+    for (let i = 1; i <= 6; i++) {
+      const el = document.querySelector('.rung[data-i="' + i + '"]');
+      if (!el) continue;
+      const done = isQ(S.qs[i].q);
+      el.classList.toggle('on', done);
+      if (i > S.reach) continue;
+      // 바로 앞에서 쓴 질문을 보여 줘서 그걸 키우게 한다
+      let j = i - 1;
+      while (j > 0 && !isQ(S.qs[j].q)) j--;
+      const prev = el.querySelector('[data-prev]');
+      if (prev) {
+        if (isQ(S.qs[j].q)) {
+          prev.hidden = false;
+          prev.innerHTML = '<span>앞에서 쓴 질문 (' + esc(labelOf(j)) + ')</span>' + esc(qOf(j));
+        } else prev.hidden = true;
+      }
+      const stub = el.querySelector('[data-stub]');
+      if (stub) stub.hidden = !hasStub(S.qs[i].q);
+      const nx = el.querySelector('[data-act="next"]');
+      if (nx) nx.disabled = !done;
+    }
+    $('#doneNote').hidden = !(S.reach >= 6 && rungsFilled() > 0);
+  }
+
+  function ladderOpen() {
+    return isQ(S.qs[0].q) || S.reach > 1 || S.qs.slice(1).some(x => x.q.trim());
+  }
+  function updateGate() {
+    const open = ladderOpen();
+    $('#ladder').hidden = !open;
+    $('#ladderGate').hidden = open;
+    if (!open) $('#doneNote').hidden = true;
+  }
+
+  function goNext(i) {
+    if (i !== S.reach || S.reach >= 6) return;
+    S.reach = i + 1;
+    save();
+    renderLadder();
+    const ta = document.querySelector('textarea.q[data-i="' + S.reach + '"]');
+    if (ta) {
+      ta.closest('.rung').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      ta.focus({ preventScroll: true });
+    }
+  }
+
+  function applyChip(i, tpl) {
+    const ta = document.querySelector('textarea.q[data-i="' + i + '"]');
+    if (!ta) return;
+    const cur = ta.value.trim();
+    if (cur && !ALL_TPL.has(cur) && !confirm('지금 쓴 질문을 이 말머리로 바꿀까요?')) return;
+    ta.value = tpl;
+    S.qs[i].q = tpl;
+    save();
+    refresh();
+    ta.focus();
+    const pos = tpl.indexOf('「');
+    if (pos >= 0) ta.setSelectionRange(pos + 1, pos + 1);
+  }
+
+  $('#ladder').addEventListener('input', e => {
+    const ta = e.target.closest('textarea.q');
+    if (!ta) return;
+    S.qs[+ta.dataset.i].q = ta.value;
+    save();
+    refresh();
+  });
+  $('#ladder').addEventListener('click', e => {
+    const rung = e.target.closest('.rung');
+    if (!rung) return;
+    const i = +rung.dataset.i;
+    const chip = e.target.closest('.chip');
+    if (chip) { applyChip(i, RUNGS[i - 1].c[+chip.dataset.c]); return; }
+    const act = e.target.closest('[data-act]');
+    if (!act || act.disabled) return;
+    goNext(i);
+  });
+
+  // ---------- 바구니·별표 ----------
+  function renderSort(focusSel) {
+    const list = $('#sortList');
+    const idx = filledIdx();
+    if (!idx.length) {
+      list.innerHTML = '<p class="note box">질문을 쓰면 여기에 나와요.</p>';
+    } else {
+      list.innerHTML = idx.map(i => {
+        const x = S.qs[i];
+        const st = S.star === i;
+        return '<div class="qrow' + (st ? ' starred' : '') + '" data-i="' + i + '">'
+          + '<div class="qrow-h"><span class="qlab">' + esc(labelOf(i)) + '</span>'
+          + '<button type="button" class="star-btn" aria-pressed="' + st + '" aria-label="' + esc(labelOf(i)) + '에 별표">'
+          + '<span class="star" aria-hidden="true"></span>' + (st ? '별표함' : '별표') + '</button></div>'
+          + '<p class="qtext">' + esc(x.q.trim()) + '</p>'
+          + '<div class="bk" role="group" aria-label="' + esc(labelOf(i)) + ' 바구니 고르기">'
+          + BASKETS.map(b => '<button type="button" class="bk-b" data-v="' + b.v + '" aria-pressed="' + (x.b === b.v) + '">' + esc(b.s) + '</button>').join('')
+          + '</div></div>';
+      }).join('');
+    }
+    const ok = starOk();
+    $('#starBox').hidden = !ok;
+    if (ok) $('#starQ').textContent = qOf(S.star);
+    if (focusSel) {
+      const f = list.querySelector(focusSel);
+      if (f) f.focus();
+    }
+  }
+
+  $('#sortList').addEventListener('click', e => {
+    const row = e.target.closest('.qrow');
+    if (!row) return;
+    const i = +row.dataset.i;
+    const bk = e.target.closest('.bk-b');
+    if (bk) {
+      const v = bk.dataset.v;
+      S.qs[i].b = S.qs[i].b === v ? '' : v;
+      save();
+      renderSort('.qrow[data-i="' + i + '"] .bk-b[data-v="' + v + '"]');
+      renderSheet();
+      updateAI();
+      return;
+    }
+    if (e.target.closest('.star-btn')) {
+      S.star = S.star === i ? -1 : i;
+      save();
+      renderSort('.qrow[data-i="' + i + '"] .star-btn');
+      renderSheet();
+      updateAI();
+    }
+  });
+
+  $('#why').addEventListener('input', e => { S.why = e.target.value; save(); renderSheet(); updateAI(); });
+  $('#next').addEventListener('input', e => { S.next = e.target.value; save(); renderSheet(); });
+  $('#name').addEventListener('input', e => { S.name = e.target.value; save(); renderSheet(); });
+
+  // ---------- 모아 보기 ----------
+  function today() { return new Date().toLocaleDateString('ko-KR'); }
+
+  function counts() {
+    const c = { find: 0, explain: 0, try: 0, unknown: 0, none: 0 };
+    filledIdx().forEach(i => { c[S.qs[i].b || 'none']++; });
+    return c;
+  }
+
+  function renderSheet() {
+    const idx = filledIdx();
+    $('#sheetEmpty').hidden = idx.length > 0;
+    const body = $('#sheetBody');
+    body.hidden = idx.length === 0;
+    if (!idx.length) { body.innerHTML = ''; return; }
+    const meta = ['읽은 글 <b>' + esc(S.title.trim() || '제목 없는 글') + '</b>'];
+    if (S.name.trim()) meta.push(esc(S.name.trim()));
+    meta.push(esc(today()));
+    let h = '<div class="sh-meta">' + meta.join(' · ') + '</div>';
+    h += idx.map(i => {
+      const x = S.qs[i];
+      const st = S.star === i;
+      return '<div class="sh-row' + (st ? ' star-row' : '') + '">'
+        + '<div class="sh-lab">' + (st ? '<span class="star on" aria-hidden="true"></span>' : '') + esc(labelOf(i)) + (st ? ' (별표)' : '') + '</div>'
+        + '<div class="sh-q">' + esc(x.q.trim()) + '</div>'
+        + (x.b ? '<div class="sh-bk">' + esc(bkName(x.b)) + '</div>' : '<div class="sh-bk none">바구니를 아직 안 골랐어요</div>')
+        + '</div>';
+    }).join('');
+    const skipped = [1, 2, 3, 4, 5, 6].filter(i => i <= S.reach && !isQ(S.qs[i].q)).map(labelOf);
+    if (skipped.length) h += '<p class="note">쓰지 않은 칸: ' + esc(skipped.join(', ')) + '</p>';
+    const c = counts();
+    h += '<h3 class="sh-h">바구니별 질문 수</h3><div class="tally">'
+      + BASKETS.map(b => '<div><span>' + esc(b.t) + '</span><b>' + c[b.v] + '</b></div>').join('')
+      + '</div>';
+    if (c.none) h += '<p class="note">바구니를 아직 안 고른 질문 ' + c.none + '개</p>';
+    if (starOk()) {
+      h += '<div class="sh-star"><div class="lab">가장 마음에 드는 질문</div><p><b>' + esc(qOf(S.star)) + '</b></p>'
+        + (S.why.trim() ? '<div class="lab">고른 까닭</div><p>' + esc(S.why.trim()) + '</p>' : '')
+        + (S.next.trim() ? '<div class="lab">답을 얻으려면 먼저 해 볼 일</div><p>' + esc(S.next.trim()) + '</p>' : '')
+        + '</div>';
+    }
+    if (S.text.trim()) {
+      const t = S.text.trim();
+      h += '<div class="print-only sh-text"><b>읽은 글</b>\n' + esc(t.length > 1200 ? t.slice(0, 300) + ' …(줄임)' : t) + '</div>';
+    }
+    body.innerHTML = h;
+  }
+
+  function buildText() {
+    const L = ['질문 사다리'];
+    L.push('읽은 글: ' + (S.title.trim() || '제목 없는 글'));
+    if (S.name.trim()) L.push('이름: ' + S.name.trim());
+    L.push('날짜: ' + today());
+    L.push('');
+    filledIdx().forEach(i => {
+      const x = S.qs[i];
+      L.push((S.star === i ? '★ ' : '') + labelOf(i) + ': ' + x.q.trim() + ' [' + (x.b ? bkName(x.b) : '바구니 안 고름') + ']');
+    });
+    if (starOk()) {
+      L.push('');
+      L.push('가장 마음에 드는 질문: ' + qOf(S.star));
+      if (S.why.trim()) L.push('고른 까닭: ' + S.why.trim());
+      if (S.next.trim()) L.push('답을 얻으려면 먼저 해 볼 일: ' + S.next.trim());
+    }
+    const c = counts();
+    L.push('');
+    L.push('바구니별 질문 수: ' + BASKETS.map(b => b.t + ' ' + c[b.v]).join(', '));
+    return L.join('\n');
+  }
+
+  $('#printBtn').addEventListener('click', () => {
+    if (!filledIdx().length) { toast('아직 쓴 질문이 없어요.'); return; }
+    flush();
+    window.print();
+  });
+  $('#copyBtn').addEventListener('click', () => {
+    if (!filledIdx().length) { toast('아직 쓴 질문이 없어요.'); return; }
+    const fb = $('#copyFallback');
+    copyText(buildText(), fb).then(ok => {
+      toast(ok ? '글로 복사했어요. 제출할 곳에 붙여 넣어요.' : '아래 칸의 글을 직접 복사해 주세요.');
+    });
+  });
+
+  // ---------- AI 부탁문 (학생이 다 쓴 뒤에만) ----------
+  function buildPrompt() {
+    const L = [
+      '나는 중학생이야. 글을 읽고 질문을 만들었어.',
+      '읽은 글 제목: 「' + (S.title.trim() || '제목 없음') + '」',
+      '아래 질문은 모두 내가 직접 쓴 거야.',
+      '',
+      '[내 질문]'
+    ];
+    filledIdx().forEach(i => {
+      const x = S.qs[i];
+      L.push('- ' + labelOf(i) + ': ' + x.q.trim() + (x.b ? ' (내가 고른 바구니: ' + bkName(x.b) + ')' : ''));
+    });
+    L.push('', '[가장 마음에 드는 질문]', qOf(S.star));
+    if (S.why.trim()) L.push('고른 까닭: ' + S.why.trim());
+    L.push(
+      '',
+      '부탁:',
+      '1. 질문의 답이나 설명을 대신 써 주지 마.',
+      '2. 내가 별표한 질문을 더 또렷하게 다듬을 수 있게, 나에게 되묻는 질문을 2개만 해 줘.',
+      '3. 이 질문의 답을 얻으려면 무엇부터 해 보면 좋을지, 답 대신 실마리 하나만 줘.',
+      '4. 글 내용을 정확히 모르면 지어내지 말고 "글에서 다시 확인해 봐"라고 해 줘.',
+      '5. 중학생이 알아듣는 말로 짧게 말해 줘.'
+    );
+    return L.join('\n');
+  }
+
+  function updateAI() {
+    const n = rungsFilled();
+    const conds = [
+      ['첫 질문 쓰기', isQ(S.qs[0].q)],
+      ['사다리 세 칸 이상 쓰기 (지금 ' + n + '칸)', n >= 3],
+      ['가장 마음에 드는 질문에 별표하기', starOk()]
+    ];
+    $('#aiGate').innerHTML = conds.map(([t, ok]) => '<li class="' + (ok ? 'ok' : '') + '">' + (ok ? '마침' : '아직') + ' · ' + esc(t) + '</li>').join('');
+    const ready = conds.every(c => c[1]);
+    $('#aiReady').hidden = !ready;
+    $('#aiPrompt').value = ready ? buildPrompt() : '';
+  }
+  $('#aiCopy').addEventListener('click', () => {
+    const ta = $('#aiPrompt');
+    if (!ta.value) return;
+    copyText(ta.value, ta).then(ok => toast(ok ? '부탁문을 복사했어요.' : '칸 안의 글을 직접 복사해 주세요.'));
+  });
+
+  // ---------- 예시·처음부터 ----------
+  $('#fillAll').addEventListener('click', () => {
+    if (hasAny() && !confirm('지금 적은 내용을 지우고 예시로 채울까요?')) return;
+    S = example();
+    doSave();
+    renderAll();
+    toast('예시를 채웠어요. 칸을 고쳐 보며 살펴보세요.');
+  });
+  $('#resetAll').addEventListener('click', () => {
+    if (!confirm('적은 내용을 모두 지우고 처음부터 할까요? 지운 내용은 되돌릴 수 없어요.')) return;
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    store.del(KEY);
+    S = fresh();
+    renderAll();
+    setSave('');
+    window.scrollTo(0, 0);
+    toast('처음 상태로 돌렸어요.');
+  });
+
+  // ---------- 전체 그리기 ----------
+  function refresh() {
+    refreshLadder();
+    updateGate();
+    renderSort();
+    renderSheet();
+    updateAI();
+  }
+
+  function renderAll() {
+    $('#title').value = S.title;
+    $('#text').value = S.text;
+    $('#q0').value = S.qs[0].q;
+    $('#why').value = S.why;
+    $('#next').value = S.next;
+    $('#name').value = S.name;
+    $('#copyFallback').hidden = true;
+    renderText();
+    renderLadder();
+    refresh();
+  }
+
+  renderAll();
+  setSave(S.t ? '저장됨 ' + hm(S.t) : '자동 저장');
+})();
+</script>
+</body>
+</html>

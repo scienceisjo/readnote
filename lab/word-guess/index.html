@@ -1,0 +1,933 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>낱말 추측 노트 · 읽기 노트 실험실</title><meta name="description" content="읽다가 모르는 낱말을 만나면 사전을 보기 전에 앞뒤 문장으로 뜻을 먼저 짐작하고, 내 말 뜻과 내 문장으로 정리해 카드로 복습하는 학생용 노트">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../../rn.css">
+<style>
+  /* 발표 크기(전자칠판) */
+  @media (min-width:1000px){html{zoom:1.35}}
+  @media (min-width:1000px) and (max-height:860px){html{zoom:1.1}}
+
+  .card { scroll-margin-top: 72px; }
+  main .btn.small { min-height: 44px; }
+
+  .intro h1 { font-size: 24px; letter-spacing: -.02em; margin: 0 0 6px; }
+  .intro .lead { margin: 0; color: var(--ink-2); }
+  .how-h { font-weight: 700; margin: 14px 0 4px; }
+  .how { margin: 0; padding-left: 1.4em; }
+  .how li { margin: 3px 0; }
+  .intro .btn-row { margin-top: 14px; }
+
+  /* 화면 고르기 */
+  .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 16px; padding: 4px; background: var(--line); border-radius: 999px; }
+  .tabs button { min-height: 44px; border: 0; border-radius: 999px; background: transparent; font-weight: 700; color: var(--ink-2); cursor: pointer; }
+  .tabs button[aria-selected="true"] { background: var(--paper); color: var(--accent); }
+  .tabs .n { font-weight: 600; color: var(--muted); margin-left: 4px; }
+
+  /* 잠긴 칸 */
+  .card.locked { background: var(--bg); border-style: dashed; }
+  .card.locked h2 { color: var(--muted); }
+  .lock { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+
+  .quote-lbl { font-size: 13px; color: var(--muted); font-weight: 700; margin: 10px 0 4px; }
+  .quote { background: var(--bg); border-radius: 10px; padding: 10px 14px; color: var(--ink-2); white-space: pre-wrap; }
+  mark { background: var(--accent-soft); color: var(--accent); font-weight: 700; padding: 0 2px; border-radius: 3px; }
+
+  .fixed-note { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin-top: 8px; }
+  .fixed-note p { margin: 0; flex: 1 1 240px; }
+  textarea[readonly] { background: var(--bg); color: var(--ink-2); }
+
+  .tips { margin: 8px 0 0; padding-left: 1.3em; font-size: 14px; color: var(--ink-2); }
+  .tips li { margin: 4px 0; }
+
+  .dict-row { margin-top: 6px; }
+  .nudge { margin-top: 6px; font-size: 13px; color: var(--warn); }
+
+  /* 짐작과 견주기 */
+  .cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+  .cmp > div { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+  .cmp .lbl { font-size: 12px; color: var(--muted); font-weight: 700; }
+  .cmp .txt { white-space: pre-wrap; font-size: 15px; }
+  .cmp .txt.empty { color: var(--muted); }
+  .marks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+  .mk { min-height: 48px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--paper); font-weight: 700; cursor: pointer; }
+  .mk:hover { border-color: var(--accent); }
+  .mk[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+
+  .ai { margin-top: 10px; }
+  .ai textarea { font-size: 13px; margin-top: 8px; }
+
+  .save-row { margin-top: 16px; }
+  .editing-note { margin: 16px 0 0; font-size: 14px; color: var(--accent); font-weight: 600; }
+
+  /* 모은 낱말 */
+  .tally { margin: 0; color: var(--ink-2); font-size: 14px; }
+  .wl { list-style: none; margin: 10px 0 0; padding: 0; }
+  .wl li { display: flex; gap: 10px; align-items: flex-start; padding: 12px 8px; border-top: 1px solid var(--line); border-radius: 8px; }
+  .wl li.editing { background: var(--accent-soft); }
+  .wl-main { flex: 1; min-width: 0; }
+  .wl-h { display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: baseline; }
+  .wl-h b { font-size: 17px; }
+  .wl-mark { font-size: 13px; color: var(--muted); }
+  .wl-mean { font-size: 14px; color: var(--ink-2); }
+  .wl-act { display: flex; gap: 4px; flex: none; }
+  .list-empty { color: var(--muted); font-size: 14px; margin: 10px 0 0; }
+  .out-row { margin-top: 14px; }
+  #copyFallback { margin-top: 10px; font-size: 13px; }
+
+  /* 카드 복습 */
+  .rv-filter { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .rv-filter .chip { min-height: 44px; padding: 0 14px; font-size: 14px; }
+  .rv-filter .chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+  .rv-count { margin: 14px 0 0; font-size: 14px; color: var(--muted); }
+  .flip { perspective: 1400px; margin-top: 8px; cursor: pointer; border-radius: var(--radius); }
+  .flip:focus-visible { outline: 3px solid #8fb3ec; outline-offset: 3px; }
+  .flip-in { display: grid; transition: transform .45s ease; transform-style: preserve-3d; }
+  .flip.on .flip-in { transform: rotateY(180deg); }
+  .flip.instant .flip-in { transition: none; }
+  .face {
+    grid-area: 1 / 1; -webkit-backface-visibility: hidden; backface-visibility: hidden;
+    border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--paper);
+    padding: 26px 22px; min-height: 280px; display: flex; flex-direction: column; justify-content: center; gap: 10px;
+  }
+  .face.back { transform: rotateY(180deg); background: var(--accent-soft); }
+  .fc-side { font-size: 13px; font-weight: 700; color: var(--muted); }
+  .fc-word { font-size: clamp(30px, 7vw, 48px); font-weight: 800; letter-spacing: -.02em; line-height: 1.2; }
+  .fc-sent { font-size: 17px; color: var(--ink-2); white-space: pre-wrap; }
+  .fc-lbl { font-size: 13px; font-weight: 700; color: var(--accent); margin-top: 4px; }
+  .fc-text { font-size: 19px; white-space: pre-wrap; }
+  .fc-hint { font-size: 13px; color: var(--muted); }
+  .rv-nav { display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 8px; margin-top: 12px; }
+  .rv-judge { margin-top: 12px; }
+  .rv-judge .note { margin: 0 0 6px; }
+  .rv-empty { color: var(--muted); margin: 14px 0 0; }
+
+  .basis { margin-top: 24px; font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+  #printOut { display: none; }
+
+  @media (max-width: 480px) {
+    .cmp { grid-template-columns: 1fr; }
+    .wl li { flex-wrap: wrap; }
+    .wl-act { width: 100%; }
+    .face { min-height: 240px; padding: 22px 18px; }
+    .rv-nav { grid-template-columns: 1fr 1fr 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .flip-in { transition: none; }
+  }
+  @media print {
+    html { zoom: 1 !important; }
+    #printOut { display: block; }
+    #printOut h1 { font-size: 20px; margin: 0 0 4px; }
+    .p-meta { margin: 0 0 2px; font-size: 13px; color: var(--ink-2); }
+    .p-blank { display: inline-block; width: 9em; border-bottom: 1px solid var(--ink); }
+    .p-item { break-inside: avoid; border-top: 1px solid var(--line-2); padding: 8px 0 6px; margin-top: 8px; }
+    .p-item h2 { font-size: 16px; margin: 0 0 4px; }
+    .p-item dl { display: grid; grid-template-columns: 6.5em 1fr; gap: 3px 10px; margin: 0; font-size: 13px; }
+    .p-item dt { font-weight: 700; color: var(--ink-2); }
+    .p-item dd { margin: 0; white-space: pre-wrap; }
+    mark { background: none; color: inherit; text-decoration: underline; padding: 0; }
+  }
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in"><a class="brand" href="../">읽기 노트 실험실</a><div class="grow who">낱말 추측 노트</div><span class="save-state" id="saveState">이 기기에만 저장돼요</span></div></header>
+
+<main class="wrap">
+  <section class="card intro no-print">
+    <h1>낱말 추측 노트</h1>
+    <p class="lead">읽다가 모르는 낱말이 나오면, 사전을 펴기 전에 앞뒤 문장으로 뜻을 먼저 짐작해 보는 노트예요.</p>
+    <p class="how-h">이렇게 써요</p>
+    <ol class="how">
+      <li>모르는 낱말과, 그 낱말이 나온 문장을 옮겨 적어요.</li>
+      <li>앞뒤 문장을 보고 뜻을 짐작해 써요. 그다음 사전에서 찾아 견주어 봐요.</li>
+      <li>사전 뜻을 내 말로 다시 쓰고, 그 낱말로 내 문장을 하나 만들어요.</li>
+    </ol>
+    <p class="note">모은 낱말은 「카드로 복습」에서 뒤집어 가며 다시 떠올려요. 적은 내용은 이 기기에만 남아요.</p>
+    <div class="btn-row">
+      <button class="btn" type="button" id="btnExample">예시로 채워 보기</button>
+      <button class="btn ghost" type="button" id="btnReset">처음부터</button>
+    </div>
+    <label class="f" for="f-title">읽는 책이나 글<span class="hint">안 써도 돼요</span></label>
+    <input class="t" id="f-title" type="text" maxlength="80" autocomplete="off" placeholder="예: 과학 읽기 자료 3쪽">
+  </section>
+
+  <div class="tabs no-print" role="tablist" aria-label="화면 고르기">
+    <button type="button" role="tab" id="tabWrite" aria-controls="viewWrite" aria-selected="true">낱말 적기</button>
+    <button type="button" role="tab" id="tabReview" aria-controls="viewReview" aria-selected="false">카드로 복습<span class="n" id="tabReviewN"></span></button>
+  </div>
+
+  <!-- 낱말 적기 -->
+  <div id="viewWrite" class="no-print" role="tabpanel" aria-labelledby="tabWrite">
+    <p class="editing-note" id="editingNote" hidden></p>
+
+    <section class="card" id="s1">
+      <div class="step-tag">1단계</div>
+      <h2>모르는 낱말 적기</h2>
+      <label class="f" for="f-word">낱말</label>
+      <input class="t" id="f-word" type="text" maxlength="30" autocomplete="off" placeholder="예: 응결">
+      <label class="f" for="f-sent">낱말이 나온 문장<span class="hint">책에 있는 그대로</span></label>
+      <textarea class="t ruled" id="f-sent" rows="3" maxlength="400" placeholder="앞뒤 문장도 함께 적으면 짐작하기 쉬워요."></textarea>
+    </section>
+
+    <section class="card" id="s2">
+      <div class="step-tag">2단계</div>
+      <h2>사전 보기 전에 뜻 짐작하기</h2>
+      <p class="lock" id="s2-lock">낱말과 문장을 먼저 적으면 열려요.</p>
+      <div id="s2-body" hidden>
+        <p class="sub">틀려도 괜찮아요. 짐작을 먼저 써 두고 사전을 봐요.</p>
+        <p class="quote-lbl" id="s2-quote-lbl">낱말 앞뒤를 다시 읽어 봐요</p>
+        <div class="quote" id="s2-quote"></div>
+        <label class="f" for="f-guess">앞뒤 문장으로 짐작한 뜻<span class="hint">무엇을 보고 짐작했는지도</span></label>
+        <textarea class="t ruled" id="f-guess" rows="3" maxlength="300" placeholder="예: 차가워져서 물방울이 생기는 것 같아요. '물방울이 맺혔다'를 보고 짐작했어요."></textarea>
+        <div class="fixed-note" id="guessFixed" hidden>
+          <p class="note">사전을 본 뒤라 처음 짐작은 그대로 둬요. 달라진 생각은 3단계에 써요.</p>
+          <button class="btn small ghost" type="button" id="btnUnfix">짐작 고치기</button>
+        </div>
+        <details class="more">
+          <summary>짐작이 막히면</summary>
+          <ul class="tips">
+            <li>앞뒤 문장에 그 낱말을 풀어 쓴 말이나 예가 있는지 봐요.</li>
+            <li>「예를 들어」「즉」「~와 달리」「그래서」 뒤에 실마리가 자주 있어요.</li>
+            <li>낱말 안에 아는 글자가 있는지 봐요. '무색'의 '무'는 '무료'의 '무'처럼 '없다'는 뜻이에요.</li>
+            <li>그 자리에 내가 아는 낱말을 넣어 읽어 보고, 문장이 말이 되는지 봐요.</li>
+          </ul>
+        </details>
+      </div>
+    </section>
+
+    <section class="card" id="s3">
+      <div class="step-tag">3단계</div>
+      <h2>사전에서 확인하고 내 말로 쓰기</h2>
+      <p class="lock" id="s3-lock">짐작한 뜻을 먼저 써야 열려요.</p>
+      <div id="s3-body" hidden>
+        <div class="btn-row dict-row">
+          <a class="btn primary" id="dictLink" href="#" target="_blank" rel="noopener">「<span id="dictWord"></span>」 사전에서 찾기</a>
+        </div>
+        <p class="note">표준국어대사전이 새 탭으로 열려요. 뜻이 여러 개 나오면, 내가 적은 문장에 맞는 뜻을 골라요.</p>
+        <label class="f" for="f-mean">사전 뜻을 내 말로 다시 쓰기<span class="hint">베끼지 말고 친구에게 설명하듯</span></label>
+        <textarea class="t ruled" id="f-mean" rows="3" maxlength="300"></textarea>
+        <p class="nudge" id="meanNudge" hidden></p>
+
+        <label class="f" id="markLbl">사전 뜻과 견주면, 처음 짐작은 어땠나요?</label>
+        <div class="cmp">
+          <div><div class="lbl">처음 짐작</div><div class="txt" id="cmpGuess"></div></div>
+          <div><div class="lbl">내 말로 쓴 뜻</div><div class="txt" id="cmpMean"></div></div>
+        </div>
+        <div class="marks" role="group" aria-labelledby="markLbl">
+          <button class="mk" type="button" data-mark="맞았다" aria-pressed="false">맞았다</button>
+          <button class="mk" type="button" data-mark="비슷했다" aria-pressed="false">비슷했다</button>
+          <button class="mk" type="button" data-mark="달랐다" aria-pressed="false">달랐다</button>
+        </div>
+        <div id="whyWrap" hidden>
+          <label class="f" for="f-why">어디서 빗나갔나요?<span class="hint">안 써도 돼요</span></label>
+          <textarea class="t" id="f-why" rows="2" maxlength="300" placeholder="예: '기온이 내려가자'만 보고 얼음이 되는 줄 알았어요."></textarea>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="s4">
+      <div class="step-tag">4단계</div>
+      <h2>그 낱말로 내 문장 만들기</h2>
+      <p class="lock" id="s4-lock">사전 뜻을 내 말로 쓰면 열려요.</p>
+      <div id="s4-body" hidden>
+        <p class="sub">책 문장을 바꿔 쓰지 말고, 내 생활이나 다른 수업 장면에서 만들어요.</p>
+        <label class="f" for="f-mine">내 문장</label>
+        <textarea class="t ruled" id="f-mine" rows="3" maxlength="300"></textarea>
+        <p class="nudge" id="mineNudge" hidden></p>
+
+        <details class="more ai">
+          <summary>AI에게 내 문장 점검 부탁하기</summary>
+          <p class="note" id="aiGate">4단계까지 다 쓰고 짐작이 어땠는지 고르면 부탁문이 나와요.</p>
+          <div id="aiBody" hidden>
+            <p class="note">AI가 답을 주지 않고 질문을 하도록 부탁하는 글이에요. 복사해서 선생님이 허락한 AI에 붙여 넣어요.</p>
+            <textarea class="t" id="aiText" rows="8" readonly></textarea>
+            <div class="btn-row" style="margin-top:8px"><button class="btn small" type="button" id="btnAiCopy">부탁문 복사하기</button></div>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <div class="btn-row save-row">
+      <button class="btn primary" type="button" id="btnSave">낱말장에 넣기</button>
+      <button class="btn ghost" type="button" id="btnClear">쓰던 칸 비우기</button>
+    </div>
+    <p class="err" id="saveErr" role="alert"></p>
+
+    <section class="card" id="listCard">
+      <h2>모은 낱말 <span id="listCount"></span></h2>
+      <p class="tally" id="tally"></p>
+      <ul class="wl" id="wordList"></ul>
+      <p class="list-empty" id="listEmpty">아직 모은 낱말이 없어요. 위에서 하나씩 적어 낱말장에 넣어요.</p>
+      <div class="btn-row out-row">
+        <button class="btn" type="button" id="btnCopy">글로 복사하기</button>
+        <button class="btn" type="button" id="btnPrint">인쇄하기</button>
+      </div>
+      <textarea class="t" id="copyFallback" rows="6" readonly hidden></textarea>
+    </section>
+  </div>
+
+  <!-- 카드로 복습 -->
+  <div id="viewReview" class="no-print" role="tabpanel" aria-labelledby="tabReview" hidden>
+    <section class="card">
+      <h2>카드로 복습</h2>
+      <p class="sub">앞면을 보고 뜻과 쓰임을 먼저 떠올려 말해 본 다음 뒤집어요.</p>
+      <div class="rv-filter" role="group" aria-label="볼 카드 고르기">
+        <button class="chip" type="button" data-f="all" aria-pressed="true">모든 낱말 <span id="rvAllN"></span></button>
+        <button class="chip" type="button" data-f="again" aria-pressed="false">다시 볼 낱말 <span id="rvAgainN"></span></button>
+        <button class="btn small ghost" type="button" id="rvShuffle">섞기</button>
+      </div>
+      <p class="rv-empty" id="rvEmpty" hidden></p>
+      <div id="rvBox">
+        <p class="rv-count" id="rvCount"></p>
+        <div class="flip" id="flipCard" role="button" tabindex="0" aria-label="카드 뒤집기">
+          <div class="flip-in">
+            <div class="face front" id="faceFront">
+              <div class="fc-side">앞면 · 낱말과 나온 문장</div>
+              <div class="fc-word" id="fcWord"></div>
+              <div class="fc-sent" id="fcSent"></div>
+              <div class="fc-hint">누르면 뒤집혀요</div>
+            </div>
+            <div class="face back" id="faceBack" aria-hidden="true">
+              <div class="fc-side">뒷면 · <span id="fcWordBack"></span></div>
+              <div class="fc-lbl">내 말로 쓴 뜻</div>
+              <div class="fc-text" id="fcMean"></div>
+              <div class="fc-lbl">내 문장</div>
+              <div class="fc-text" id="fcMine"></div>
+            </div>
+          </div>
+        </div>
+        <div class="rv-nav">
+          <button class="btn" type="button" id="rvPrev">이전</button>
+          <button class="btn primary" type="button" id="rvFlip">뒤집기</button>
+          <button class="btn" type="button" id="rvNext">다음</button>
+        </div>
+        <div class="rv-judge" id="rvJudge" hidden>
+          <p class="note">뒤집기 전에 떠올린 뜻과 견주어 봐요.</p>
+          <div class="btn-row">
+            <button class="btn" type="button" id="rvGot">떠올랐어요</button>
+            <button class="btn" type="button" id="rvAgain">다시 볼래요</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="printOut"></div>
+
+  <p class="basis no-print">근거: 문맥으로 뜻을 짐작하고 스스로 다시 써 보는 처리는 기억을 도와요(처리 수준 이론 Craik &amp; Lockhart, 1972 · 생성 효과 Slamecka &amp; Graf, 1978). 어려운 책을 여러 번 읽으면 낱말이 익숙해져 다음 책이 쉬워진다는 나민애 교수 특강의 뜻을 바탕으로 만들었어요.</p>
+</main>
+
+<footer id="app-credit" style="width:100%;box-sizing:border-box;margin:2.5rem 0 0;padding:14px 12px;text-align:center;font-size:12.5px;line-height:1.6;color:#8a8f98;font-family:system-ui,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;border-top:1px solid rgba(128,128,128,.25);">© 2026 조승재(과학이조선생) · 해누리중학교 · All rights reserved<br><span style="font-size:11px;opacity:.85;">최종 업데이트: 2026-11-08</span></footer>
+
+<script src="../../rn.js"></script>
+<script>
+(function () {
+  'use strict';
+  const { esc, $, $$, store, len, toast, copyText } = window.RN;
+
+  const KEY = 'rnlab_word-guess_v1';
+  const DICT = 'https://stdict.korean.go.kr/search/searchResult.do?searchKeyword=';
+  const MARKS = ['맞았다', '비슷했다', '달랐다'];
+  const FIELDS = ['word', 'sent', 'guess', 'mean', 'why', 'mine'];
+
+  // ---------- 데이터 ----------
+  const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const blankDraft = () => ({ id: null, word: '', sent: '', guess: '', mean: '', why: '', mine: '', mark: '', fixed: false });
+  const fresh = () => ({ v: 1, title: '', words: [], draft: blankDraft(), view: 'write' });
+
+  function clean(o) {
+    const r = {};
+    FIELDS.forEach(k => { r[k] = typeof o[k] === 'string' ? o[k] : ''; });
+    r.mark = MARKS.includes(o.mark) ? o.mark : '';
+    return r;
+  }
+
+  function load() {
+    const s = store.get(KEY, null);
+    const st = fresh();
+    if (!s || typeof s !== 'object') return st;
+    st.title = typeof s.title === 'string' ? s.title : '';
+    st.words = (Array.isArray(s.words) ? s.words : [])
+      .filter(w => w && typeof w === 'object' && typeof w.word === 'string' && w.word.trim())
+      .map(w => Object.assign(clean(w), {
+        id: typeof w.id === 'string' && w.id ? w.id : newId(),
+        again: !!w.again,
+        at: typeof w.at === 'string' ? w.at : ''
+      }));
+    const d = s.draft && typeof s.draft === 'object' ? s.draft : {};
+    st.draft = Object.assign(blankDraft(), clean(d), { id: typeof d.id === 'string' ? d.id : null, fixed: !!d.fixed });
+    if (st.draft.id && !st.words.some(w => w.id === st.draft.id)) st.draft.id = null;
+    st.view = s.view === 'review' ? 'review' : 'write';
+    return st;
+  }
+
+  let state = load();
+
+  function save() {
+    const ok = store.set(KEY, state);
+    const el = $('#saveState');
+    if (ok) {
+      el.textContent = '저장했어요 ' + new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+      el.classList.remove('bad');
+    } else {
+      el.textContent = '저장 안 됨';
+      el.classList.add('bad');
+    }
+  }
+
+  // ---------- 작은 도구 ----------
+  function josa(w, a, b) {
+    const s = String(w || '').trim();
+    if (!s) return a;
+    const c = s.charCodeAt(s.length - 1);
+    if (c >= 0xAC00 && c <= 0xD7A3) return (c - 0xAC00) % 28 ? a : b;
+    return a + '(' + b + ')';
+  }
+  // 「무색하다」→「무색」처럼 끝을 떼어 문장 속 모양이 바뀐 낱말도 찾는다
+  function stemOf(w) {
+    if (w.length < 3) return w;
+    const m = w.replace(/(하다|되다|시키다|스럽다|롭다|답다|다)$/, '');
+    return m.length >= 2 ? m : w;
+  }
+  function findKey(text, w) {
+    text = String(text || ''); w = String(w || '').trim();
+    if (!w) return '';
+    if (text.includes(w)) return w;
+    const s = stemOf(w);
+    return s !== w && text.includes(s) ? s : '';
+  }
+  function hl(text, w) {
+    text = String(text || '');
+    const k = findKey(text, w);
+    if (!k) return esc(text);
+    return text.split(k).map(esc).join('<mark>' + esc(k) + '</mark>');
+  }
+  // 두 글이 얼마나 비슷한지(글자 두 개씩 묶어 견줌, 0~1)
+  function bigrams(s) {
+    const t = String(s || '').replace(/[\s.,!?'"“”‘’·…()\[\]「」~\-]/g, '');
+    const m = new Map();
+    for (let i = 0; i < t.length - 1; i++) { const b = t.slice(i, i + 2); m.set(b, (m.get(b) || 0) + 1); }
+    return [m, Math.max(t.length - 1, 0)];
+  }
+  function similar(a, b) {
+    const [ma, na] = bigrams(a), [mb, nb] = bigrams(b);
+    if (!na || !nb) return 0;
+    let hit = 0;
+    ma.forEach((c, k) => { hit += Math.min(c, mb.get(k) || 0); });
+    return (2 * hit) / (na + nb);
+  }
+  const oneLine = s => String(s || '').trim().replace(/\s*\n\s*/g, ' ');
+  const byId = id => state.words.find(w => w.id === id);
+  const isEditing = () => !!state.draft.id && !!byId(state.draft.id);
+  const draftHasText = () => FIELDS.some(k => len(state.draft[k]) > 0) || !!state.draft.mark;
+
+  function gates(d) {
+    const o2 = len(d.word) >= 1 && len(d.sent) >= 2;
+    const o3 = o2 && len(d.guess) >= 2;
+    const o4 = o3 && len(d.mean) >= 2;
+    return { o2, o3, o4 };
+  }
+  function missing(d) {
+    const m = [];
+    if (!len(d.word)) m.push('낱말');
+    if (len(d.sent) < 2) m.push('낱말이 나온 문장');
+    if (len(d.guess) < 2) m.push('짐작한 뜻');
+    if (len(d.mean) < 2) m.push('내 말로 쓴 뜻');
+    if (!d.mark) m.push('짐작이 어땠는지 고르기');
+    if (len(d.mine) < 4) m.push('내 문장');
+    return m;
+  }
+  function counts() {
+    const c = { '맞았다': 0, '비슷했다': 0, '달랐다': 0 };
+    state.words.forEach(w => { if (c[w.mark] != null) c[w.mark]++; });
+    return c;
+  }
+  const tallyText = () => { const c = counts(); return MARKS.map(m => `${m} ${c[m]}`).join(' · '); };
+
+  function aiPrompt(d) {
+    const w = d.word.trim();
+    return [
+      `나는 중학생이고, 글을 읽다가 「${w}」${josa(w, '이라는', '라는')} 낱말을 처음 만났어.`,
+      '사전을 보기 전에 뜻을 짐작해 보고, 사전을 찾아본 다음 내 말로 다시 썼어.',
+      '',
+      '[낱말이 나온 문장]', d.sent.trim(), '',
+      '[사전을 보기 전 내 짐작]', d.guess.trim(), '',
+      '[사전을 보고 내 말로 다시 쓴 뜻]', d.mean.trim(), '',
+      '[이 낱말로 만든 내 문장]', d.mine.trim(), '',
+      '부탁:',
+      '1. 뜻을 대신 설명하거나 내 문장을 고쳐 써 주지 마.',
+      '2. 내가 쓴 뜻과 내 문장에서 이 낱말을 알맞게 썼는지 스스로 따져 볼 수 있게, 질문을 2개만 해 줘. 중학생이 알아듣는 말로.',
+      '3. 이 낱말이 다른 뜻으로도 쓰이면, 어떤 장면에서 그런지 실마리만 줘.',
+      '4. 잘 모르는 내용은 지어내지 말고 "사전에서 다시 확인해 봐"라고 해 줘.'
+    ].join('\n');
+  }
+
+  // ---------- 입력 칸 ----------
+  const el = k => $('#f-' + k);
+
+  function fillForm() {
+    FIELDS.forEach(k => { el(k).value = state.draft[k]; });
+    $('#f-title').value = state.title;
+  }
+
+  FIELDS.forEach(k => {
+    el(k).addEventListener('input', () => {
+      state.draft[k] = el(k).value;
+      // 내 말 뜻을 쓰기 시작하면 처음 짐작은 그대로 남긴다
+      if (k === 'mean' && len(state.draft.mean) > 0 && len(state.draft.guess) >= 2) state.draft.fixed = true;
+      $('#saveErr').textContent = '';
+      save();
+      renderWrite();
+      if (k === 'word') renderList();
+    });
+  });
+
+  $('#f-title').addEventListener('input', () => { state.title = $('#f-title').value; save(); });
+
+  $('#dictLink').addEventListener('click', () => {
+    if (len(state.draft.guess) >= 2) { state.draft.fixed = true; save(); renderWrite(); }
+  });
+
+  $('#btnUnfix').addEventListener('click', () => {
+    if (!confirm('사전을 본 뒤에 짐작을 고치면, 처음에 내가 한 생각이 사라져요. 그래도 고칠까요?')) return;
+    state.draft.fixed = false;
+    save(); renderWrite();
+    el('guess').focus();
+  });
+
+  $$('.mk').forEach(b => b.addEventListener('click', () => {
+    const m = b.dataset.mark;
+    state.draft.mark = state.draft.mark === m ? '' : m;
+    $('#saveErr').textContent = '';
+    save(); renderWrite();
+  }));
+
+  // ---------- 낱말 적기 화면 ----------
+  function setLock(n, open) {
+    $('#s' + n).classList.toggle('locked', !open);
+    $('#s' + n + '-lock').hidden = open;
+    $('#s' + n + '-body').hidden = !open;
+  }
+
+  function renderWrite() {
+    const d = state.draft, g = gates(d), w = d.word.trim();
+
+    setLock(2, g.o2);
+    if (g.o2) {
+      $('#s2-quote-lbl').textContent = findKey(d.sent, w) ? `「${w}」 앞뒤를 다시 읽어 봐요` : '내가 적은 문장을 다시 읽어 봐요';
+      $('#s2-quote').innerHTML = hl(d.sent.trim(), w);
+    }
+    const fixed = d.fixed && len(d.guess) >= 2;
+    el('guess').readOnly = fixed;
+    $('#guessFixed').hidden = !fixed;
+
+    setLock(3, g.o3);
+    if (g.o3) {
+      $('#dictLink').href = DICT + encodeURIComponent(w);
+      $('#dictWord').textContent = w;
+      $('#cmpGuess').textContent = d.guess.trim();
+      const cm = $('#cmpMean');
+      cm.textContent = d.mean.trim() || '위 칸에 쓰면 여기에 나와요';
+      cm.classList.toggle('empty', !d.mean.trim());
+      $$('.mk').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mark === d.mark)));
+      $('#whyWrap').hidden = !(d.mark === '비슷했다' || d.mark === '달랐다');
+      const mn = $('#meanNudge');
+      const circ = len(d.mean) >= 2 && !!findKey(d.mean, w);
+      mn.hidden = !circ;
+      if (circ) mn.textContent = `뜻을 풀 때 「${w}」${josa(w, '을', '를')} 다시 쓰지 않고 다른 말로 설명해 봐요.`;
+    }
+
+    setLock(4, g.o4);
+    if (g.o4) {
+      const nn = $('#mineNudge');
+      let msg = '';
+      if (len(d.mine) >= 4) {
+        if (!findKey(d.mine, w)) msg = `내 문장에 「${w}」${josa(w, '이', '가')} 들어 있는지 봐요. 모양이 바뀌어 들어갔다면 괜찮아요.`;
+        else if (similar(d.mine, d.sent) >= 0.6) msg = '책 문장과 많이 비슷해요. 내 생활이나 다른 장면으로 새로 만들어 봐요.';
+      }
+      nn.textContent = msg;
+      nn.hidden = !msg;
+    }
+
+    const done = missing(d).length === 0;
+    $('#aiGate').hidden = done;
+    $('#aiBody').hidden = !done;
+    if (done) $('#aiText').value = aiPrompt(d);
+
+    const editing = isEditing();
+    $('#btnSave').textContent = editing ? '고친 내용 저장' : '낱말장에 넣기';
+    $('#btnClear').textContent = editing ? '고치기 그만' : '쓰던 칸 비우기';
+    const en = $('#editingNote');
+    en.hidden = !editing;
+    if (editing) en.textContent = `「${byId(d.id).word}」${josa(byId(d.id).word, '을', '를')} 고치는 중이에요. 다 고치면 아래 「고친 내용 저장」을 눌러요.`;
+  }
+
+  function renderList() {
+    const ws = state.words;
+    $('#listCount').textContent = ws.length ? ws.length + '개' : '';
+    $('#tally').textContent = ws.length ? '처음 짐작: ' + tallyText() : '';
+    $('#listEmpty').hidden = ws.length > 0;
+    const cur = isEditing() ? state.draft.id : null;
+    $('#wordList').innerHTML = ws.map(w => `
+      <li class="${w.id === cur ? 'editing' : ''}">
+        <div class="wl-main">
+          <div class="wl-h"><b>${esc(w.word)}</b><span class="wl-mark">짐작 ${esc(w.mark || '표시 안 함')}${w.again ? ' · 다시 볼 낱말' : ''}</span></div>
+          <div class="wl-mean">${esc(oneLine(w.mean))}</div>
+        </div>
+        <div class="wl-act">
+          <button class="btn small" type="button" data-act="edit" data-id="${esc(w.id)}">고치기</button>
+          <button class="btn small ghost" type="button" data-act="del" data-id="${esc(w.id)}">지우기</button>
+        </div>
+      </li>`).join('');
+    $('#tabReviewN').textContent = ws.length ? String(ws.length) : '';
+  }
+
+  $('#wordList').addEventListener('click', e => {
+    const b = e.target.closest('button[data-act]');
+    if (!b) return;
+    const w = byId(b.dataset.id);
+    if (!w) return;
+    if (b.dataset.act === 'edit') {
+      if (state.draft.id !== w.id && draftHasText() && !confirm('쓰던 칸이 있어요. 비우고 이 낱말을 불러올까요?')) return;
+      state.draft = Object.assign(blankDraft(), clean(w), { id: w.id, fixed: true });
+      $('#saveErr').textContent = '';
+      save(); fillForm(); renderAll();
+      $('#s1').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      if (!confirm(`「${w.word}」${josa(w.word, '을', '를')} 낱말장에서 지울까요?`)) return;
+      state.words = state.words.filter(x => x.id !== w.id);
+      if (state.draft.id === w.id) state.draft.id = null;
+      save(); renderAll();
+      toast(`「${w.word}」${josa(w.word, '을', '를')} 지웠어요.`);
+    }
+  });
+
+  $('#btnSave').addEventListener('click', () => {
+    const d = state.draft, miss = missing(d);
+    if (miss.length) { $('#saveErr').textContent = '아직 비어 있는 칸이 있어요: ' + miss.join(', '); return; }
+    $('#saveErr').textContent = '';
+    const rec = clean(d);
+    FIELDS.forEach(k => { rec[k] = rec[k].trim(); });
+    const i = d.id ? state.words.findIndex(x => x.id === d.id) : -1;
+    if (i >= 0) {
+      state.words[i] = Object.assign(rec, { id: d.id, again: state.words[i].again, at: state.words[i].at });
+      toast(`「${rec.word}」 고친 내용을 저장했어요.`);
+    } else {
+      state.words.push(Object.assign(rec, { id: newId(), again: false, at: new Date().toISOString() }));
+      toast(`「${rec.word}」${josa(rec.word, '을', '를')} 낱말장에 넣었어요.`);
+    }
+    state.draft = blankDraft();
+    save(); fillForm(); renderAll();
+    $('#s1').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => el('word').focus({ preventScroll: true }), 350);
+  });
+
+  $('#btnClear').addEventListener('click', () => {
+    const d = state.draft;
+    if (isEditing()) {
+      const w = byId(d.id);
+      const changed = FIELDS.some(k => d[k].trim() !== w[k].trim()) || d.mark !== w.mark;
+      if (changed && !confirm('고친 내용을 저장하지 않고 그만할까요?')) return;
+    } else {
+      if (!draftHasText()) return;
+      if (!confirm('쓰던 칸을 모두 비울까요?')) return;
+    }
+    state.draft = blankDraft();
+    $('#saveErr').textContent = '';
+    save(); fillForm(); renderAll();
+  });
+
+  // ---------- 글로 복사 · 인쇄 ----------
+  function pendingNote() {
+    const d = state.draft;
+    if (isEditing()) return ' 고치는 중인 내용은 저장해야 들어가요.';
+    if (len(d.word)) return ` 쓰는 중인 「${d.word.trim()}」${josa(d.word, '은', '는')} 빠져요.`;
+    return '';
+  }
+
+  function asText() {
+    const ws = state.words;
+    const lines = ['낱말 추측 노트'];
+    if (state.title.trim()) lines.push('읽은 글: ' + state.title.trim());
+    lines.push(`모은 낱말 ${ws.length}개 (처음 짐작: ${tallyText()})`, '');
+    ws.forEach((w, i) => {
+      lines.push(
+        `${i + 1}. ${w.word}`,
+        `- 나온 문장: ${oneLine(w.sent)}`,
+        `- 처음 짐작: ${oneLine(w.guess)}`,
+        `- 사전과 견주기: ${w.mark}${w.why.trim() ? ' / 빗나간 곳: ' + oneLine(w.why) : ''}`,
+        `- 내 말 뜻: ${oneLine(w.mean)}`,
+        `- 내 문장: ${oneLine(w.mine)}`,
+        ''
+      );
+    });
+    return lines.join('\n').trim();
+  }
+
+  $('#btnCopy').addEventListener('click', async () => {
+    if (!state.words.length) { toast('낱말장에 넣은 낱말이 아직 없어요.'); return; }
+    const fb = $('#copyFallback');
+    fb.hidden = true;
+    const ok = await copyText(asText(), fb);
+    toast((ok ? '글로 복사했어요. 제출할 곳에 붙여 넣어요.' : '아래 칸의 글을 직접 골라 복사해 주세요.') + pendingNote(), 3600);
+  });
+
+  function buildPrint() {
+    const ws = state.words;
+    const today = new Date().toLocaleDateString('ko-KR');
+    const head = `<h1>낱말 추측 노트</h1>
+      <p class="p-meta">${state.title.trim() ? '읽은 글: ' + esc(state.title.trim()) + ' · ' : ''}${esc(today)} · 이름: <span class="p-blank"></span></p>
+      <p class="p-meta">모은 낱말 ${ws.length}개 · 처음 짐작: ${esc(tallyText())}</p>`;
+    if (!ws.length) { $('#printOut').innerHTML = head + '<p class="p-meta">아직 모은 낱말이 없어요.</p>'; return; }
+    $('#printOut').innerHTML = head + ws.map((w, i) => `
+      <section class="p-item">
+        <h2>${i + 1}. ${esc(w.word)}</h2>
+        <dl>
+          <dt>나온 문장</dt><dd>${hl(w.sent, w.word)}</dd>
+          <dt>처음 짐작</dt><dd>${esc(w.guess)}</dd>
+          <dt>사전과 견주기</dt><dd>${esc(w.mark)}${w.why.trim() ? ' — 빗나간 곳: ' + esc(w.why) : ''}</dd>
+          <dt>내 말 뜻</dt><dd>${esc(w.mean)}</dd>
+          <dt>내 문장</dt><dd>${hl(w.mine, w.word)}</dd>
+        </dl>
+      </section>`).join('');
+  }
+  window.addEventListener('beforeprint', buildPrint);
+
+  $('#btnPrint').addEventListener('click', () => {
+    if (!state.words.length) { toast('낱말장에 넣은 낱말이 아직 없어요.'); return; }
+    const p = pendingNote();
+    if (p) toast(p.trim(), 3600);
+    buildPrint();
+    window.print();
+  });
+
+  $('#btnAiCopy').addEventListener('click', async () => {
+    const ok = await copyText(aiPrompt(state.draft), $('#aiText'));
+    toast(ok ? '부탁문을 복사했어요.' : '칸의 글을 직접 골라 복사해 주세요.');
+  });
+
+  // ---------- 카드로 복습 ----------
+  const rv = { filter: 'all', order: [], i: 0, flipped: false };
+
+  function syncOrder() {
+    const ids = state.words.filter(w => rv.filter === 'again' ? w.again : true).map(w => w.id);
+    const kept = rv.order.filter(id => ids.includes(id));
+    ids.forEach(id => { if (!kept.includes(id)) kept.push(id); });
+    rv.order = kept;
+    if (rv.i >= rv.order.length) rv.i = 0;
+    if (rv.i < 0) rv.i = 0;
+  }
+
+  function renderReview() {
+    syncOrder();
+    const all = state.words.length, again = state.words.filter(w => w.again).length;
+    $('#rvAllN').textContent = all;
+    $('#rvAgainN').textContent = again;
+    $$('.rv-filter .chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.f === rv.filter)));
+    $('#rvShuffle').disabled = rv.order.length < 2;
+
+    const empty = $('#rvEmpty');
+    if (!all || !rv.order.length) {
+      empty.hidden = false;
+      empty.textContent = !all
+        ? '아직 모은 낱말이 없어요. 「낱말 적기」에서 낱말장에 넣으면 여기서 카드로 볼 수 있어요.'
+        : '다시 볼 낱말이 없어요. 「모든 낱말」을 골라 다시 봐요.';
+      $('#rvBox').hidden = true;
+      return;
+    }
+    empty.hidden = true;
+    $('#rvBox').hidden = false;
+
+    const w = byId(rv.order[rv.i]);
+    $('#rvCount').textContent = `${rv.i + 1} / ${rv.order.length}${w.again ? ' · 다시 볼 낱말' : ''}`;
+    $('#fcWord').textContent = w.word;
+    $('#fcWordBack').textContent = w.word;
+    $('#fcSent').innerHTML = hl(w.sent, w.word);
+    $('#fcMean').textContent = w.mean;
+    $('#fcMine').innerHTML = hl(w.mine, w.word);
+
+    const card = $('#flipCard');
+    card.classList.toggle('on', rv.flipped);
+    card.setAttribute('aria-label', rv.flipped ? '앞면으로 뒤집기' : '카드 뒤집기');
+    $('#faceFront').setAttribute('aria-hidden', String(rv.flipped));
+    $('#faceBack').setAttribute('aria-hidden', String(!rv.flipped));
+    $('#rvFlip').textContent = rv.flipped ? '앞면 보기' : '뒤집기';
+    $('#rvJudge').hidden = !rv.flipped;
+    $('#rvPrev').disabled = rv.order.length < 2;
+    $('#rvNext').disabled = rv.order.length < 2;
+  }
+
+  // 다음 카드로 갈 때는 뒤집히는 움직임 없이 바로 앞면으로
+  function showCard(i) {
+    const n = rv.order.length;
+    if (!n) return;
+    if (i >= n) { i = 0; if (n > 1) toast('한 바퀴 다 봤어요. 처음 카드로 돌아가요.'); }
+    if (i < 0) i = n - 1;
+    rv.i = i;
+    rv.flipped = false;
+    const card = $('#flipCard');
+    card.classList.add('instant');
+    renderReview();
+    void card.offsetWidth;
+    card.classList.remove('instant');
+  }
+
+  function flip() {
+    if (!rv.order.length) return;
+    rv.flipped = !rv.flipped;
+    renderReview();
+  }
+
+  function judge(again) {
+    const w = byId(rv.order[rv.i]);
+    if (!w) return;
+    w.again = again;
+    save();
+    renderList();
+    if (rv.filter === 'again' && !again) {
+      // 다시 볼 목록에서 빠지면 같은 자리에 다음 카드가 온다
+      rv.order.splice(rv.i, 1);
+      if (!rv.order.length) { rv.flipped = false; renderReview(); toast('다시 볼 낱말을 다 봤어요.'); return; }
+      showCard(rv.i);
+    } else {
+      showCard(rv.i + 1);
+    }
+  }
+
+  $('#flipCard').addEventListener('click', flip);
+  $('#flipCard').addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); }
+  });
+  $('#rvFlip').addEventListener('click', flip);
+  $('#rvPrev').addEventListener('click', () => showCard(rv.i - 1));
+  $('#rvNext').addEventListener('click', () => showCard(rv.i + 1));
+  $('#rvGot').addEventListener('click', () => judge(false));
+  $('#rvAgain').addEventListener('click', () => judge(true));
+  $$('.rv-filter .chip').forEach(c => c.addEventListener('click', () => {
+    rv.filter = c.dataset.f;
+    rv.i = 0;
+    rv.flipped = false;
+    showCard(0);
+    if (!rv.order.length) renderReview();
+  }));
+  $('#rvShuffle').addEventListener('click', () => {
+    const a = rv.order;
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    showCard(0);
+    toast('카드를 섞었어요.');
+  });
+
+  document.addEventListener('keydown', e => {
+    if (state.view !== 'review') return;
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    if (e.key === 'ArrowRight') { e.preventDefault(); showCard(rv.i + 1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); showCard(rv.i - 1); }
+  });
+
+  // ---------- 화면 고르기 ----------
+  function renderView() {
+    const r = state.view === 'review';
+    $('#viewWrite').hidden = r;
+    $('#viewReview').hidden = !r;
+    $('#tabWrite').setAttribute('aria-selected', String(!r));
+    $('#tabReview').setAttribute('aria-selected', String(r));
+    if (r) renderReview();
+  }
+  function setView(v) {
+    if (state.view === v) return;
+    state.view = v;
+    rv.flipped = false;
+    save();
+    renderView();
+  }
+  $('#tabWrite').addEventListener('click', () => setView('write'));
+  $('#tabReview').addEventListener('click', () => setView('review'));
+
+  function renderAll() { renderWrite(); renderList(); renderView(); }
+
+  // ---------- 예시 · 처음부터 ----------
+  const EXAMPLE = {
+    title: '과학 읽기 자료, 학급 문고 소설',
+    words: [
+      {
+        word: '응결',
+        sent: '새벽이 되어 기온이 내려가자 공기 속 수증기가 응결하여 풀잎 위에 작은 물방울이 맺혔다.',
+        guess: "차가워져서 얼어붙는 것 같아요. '기온이 내려가자'를 보고 짐작했어요.",
+        mark: '달랐다',
+        why: "'기온이 내려가자'만 보고 얼음이 되는 줄 알았어요. 뒤에 '물방울'이 나오니까 얼음이 아니라 물이었어요.",
+        mean: '기체가 식으면서 액체로 바뀌는 것. 공기 속 수증기가 물방울이 되는 것이 그 예다.',
+        mine: '차가운 음료수 컵 바깥에 물방울이 생기는 것은 공기 속 수증기가 차가운 컵에 닿아 응결했기 때문이다.'
+      },
+      {
+        word: '매질',
+        sent: '소리는 공기나 물 같은 매질이 있어야 전달된다. 그래서 공기가 없는 우주 공간에서는 소리가 전달되지 않는다.',
+        guess: "소리가 지나가는 길이요. '공기나 물 같은'이 예를 든 것 같아요.",
+        mark: '비슷했다',
+        why: '길이라고만 생각했는데, 떨림을 이어서 전해 주는 물질이었어요.',
+        mean: '소리 같은 파동을 다른 곳으로 전해 주는 물질. 공기, 물, 쇠 같은 것이 있다.',
+        mine: '실 전화기는 팽팽한 실이 매질이 되어 친구 목소리의 떨림을 내 쪽 종이컵까지 전해 준다.'
+      },
+      {
+        word: '가늠',
+        sent: '할머니는 수박을 손바닥으로 통통 두드려 보며 잘 익었는지 가늠하셨다.',
+        guess: "어떤지 짐작해서 알아보는 것 같아요. '두드려 보며'를 보고 짐작했어요.",
+        mark: '맞았다',
+        why: '',
+        mean: '어떤 것이 어느 정도인지 대강 헤아려 보는 것.',
+        mine: '나는 운동장 끝까지 몇 걸음이면 갈 수 있을지 눈으로 가늠해 보았다.'
+      },
+      {
+        word: '무색하다',
+        sent: '처음 나간 대회였지만, 형은 오래 연습한 선수들이 무색할 정도로 침착하게 경기를 했다.',
+        guess: '색이 없어진다는 뜻 같아요. 형이 더 잘해서 다른 선수들이 눈에 안 띄었다는 말인 것 같아요.',
+        mark: '비슷했다',
+        why: "'무색'을 '색이 없다'로만 생각했는데, 이 문장에서는 다른 선수들이 보잘것없어 보인다는 뜻이었어요.",
+        mean: '본래 모습이 드러나지 않고 보잘것없어 보이다. 아무 색이 없다, 부끄럽다는 뜻도 있다.',
+        mine: '동생이 그린 그림이 너무 멋져서, 옆에 걸린 내 그림이 무색해 보였다.'
+      }
+    ],
+    draft: { word: '실마리', sent: '형사는 창틀에 묻은 작은 흙 자국에서 사건을 풀 실마리를 찾았다.' }
+  };
+
+  $('#btnExample').addEventListener('click', () => {
+    if ((state.words.length || draftHasText() || state.title.trim()) && !confirm('지금 적은 낱말과 쓰던 칸이 예시로 바뀌어요. 계속할까요?')) return;
+    const now = new Date().toISOString();
+    state = fresh();
+    state.title = EXAMPLE.title;
+    state.words = EXAMPLE.words.map(w => Object.assign(clean(w), { id: newId(), again: false, at: now }));
+    state.draft = Object.assign(blankDraft(), EXAMPLE.draft);
+    rv.order = []; rv.i = 0; rv.flipped = false; rv.filter = 'all';
+    $('#saveErr').textContent = '';
+    $('#copyFallback').hidden = true;
+    save(); fillForm(); renderAll();
+    toast('예시 낱말 4개를 채웠어요. 「실마리」는 2단계 짐작부터 직접 해 봐요.', 4200);
+    $('#s2').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  $('#btnReset').addEventListener('click', () => {
+    if (!confirm('모은 낱말과 쓰던 칸을 모두 지울까요? 되돌릴 수 없어요.')) return;
+    store.del(KEY);
+    state = fresh();
+    rv.order = []; rv.i = 0; rv.flipped = false; rv.filter = 'all';
+    $('#saveErr').textContent = '';
+    $('#copyFallback').hidden = true;
+    fillForm(); renderAll();
+    const s = $('#saveState');
+    s.textContent = '모두 지웠어요';
+    s.classList.remove('bad');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  // ---------- 시작 ----------
+  fillForm();
+  renderAll();
+  if (state.words.length || draftHasText()) $('#saveState').textContent = '이 기기에 저장돼 있어요';
+})();
+</script>
+</body>
+</html>

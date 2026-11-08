@@ -1,0 +1,859 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>문단 지도 · 읽기 노트 실험실</title><meta name="description" content="설명문·논설문을 문단으로 나누고, 문단마다 역할·중심 내용·앞 문단과의 관계를 적어 글의 짜임을 세로 흐름도로 그려 보는 도구">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../../rn.css">
+<style>
+  .intro h1 { font-size: 24px; letter-spacing: -.02em; margin: 0 0 6px; }
+  .intro .lead { margin: 0; color: var(--ink-2); }
+  .intro h2 { font-size: 16px; margin: 16px 0 4px; }
+  .how { margin: 0; padding-left: 1.4em; }
+  .how li { margin: 3px 0; }
+  .intro .btn-row { margin-top: 14px; }
+
+  /* 1단계 */
+  #src { min-height: 220px; }
+  .line-row { margin-top: 10px; }
+  .line-row .btn { margin-top: 8px; }
+  .s1-actions { margin-top: 14px; }
+
+  /* 2단계: 문단 카드 */
+  .para { scroll-margin-top: 76px; }
+  .para:focus { outline: none; }
+  .para.flash { border-color: var(--accent); outline: 3px solid var(--accent-soft); outline-offset: 0; }
+  .para-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .para-head h3 { margin: 0; font-size: 17px; display: flex; align-items: center; gap: 8px; }
+  .pnum { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-size: 15px; font-weight: 800; }
+  .src-text { margin: 12px 0 0; padding: 12px 14px; background: var(--bg); border-radius: 10px; line-height: 1.95; }
+  .sen { cursor: pointer; border-radius: 3px; }
+  .sen:hover { background: var(--accent-soft); }
+  .sen.on { background: var(--accent-soft); text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 3px; text-underline-offset: 5px; }
+  .sen:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .src-hint { font-size: 13px; color: var(--muted); margin: 4px 0 0; }
+  fieldset.pick-set { border: 0; padding: 0; margin: 16px 0 0; min-width: 0; }
+  fieldset.pick-set legend { font-weight: 700; font-size: 15px; padding: 0; margin-bottom: 6px; }
+  .picks { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pick { position: relative; }
+  .pick input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+  .pick span { display: inline-flex; align-items: center; min-height: 44px; padding: 0 15px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--paper); cursor: pointer; font-size: 15px; }
+  .pick span:hover { border-color: var(--accent); }
+  .pick input:checked + span { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
+  .pick input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 2px; }
+  textarea.main { resize: none; line-height: 1.5; }
+  .nudge { margin: 6px 0 0; font-size: 14px; color: var(--warn); }
+  .meaning dl { margin: 8px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 14px; }
+  .meaning dt { font-weight: 700; }
+  .meaning dd { margin: 0; color: var(--ink-2); }
+  .meaning h4 { margin: 12px 0 0; font-size: 14px; }
+
+  /* 3단계: 문단 지도 */
+  .map-head { display: flex; justify-content: space-between; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; margin-top: 4px; }
+  .map-title { font-weight: 700; font-size: 16px; }
+  .map-prog { font-size: 13px; color: var(--muted); }
+  .map { margin-top: 12px; }
+  .node { display: flex; gap: 10px; align-items: flex-start; }
+  .node .num { flex: 0 0 44px; width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--accent); background: var(--paper); color: var(--accent); font-weight: 800; font-size: 17px; cursor: pointer; padding: 0; }
+  .node .num:hover { background: var(--accent-soft); }
+  .node.cur .num { background: var(--accent); color: var(--accent-ink); }
+  .node-box { flex: 1; min-width: 0; border: 1px solid var(--line-2); border-left: 5px solid var(--line-2); border-radius: 10px; padding: 8px 12px; background: var(--paper); }
+  .node .role { display: inline-block; font-size: 13px; font-weight: 700; padding: 2px 10px; border-radius: 999px; background: var(--bg); color: var(--ink-2); }
+  .node .main { margin: 4px 0 0; font-size: 15px; line-height: 1.5; }
+  .node .role.empty, .node .main.empty { color: var(--muted); font-weight: 400; }
+  .node[data-role="도입"] .node-box { border-left-color: var(--ink-2); }
+  .node[data-role="주장"] .node-box, .node[data-role="정리"] .node-box { border-left-color: var(--accent); }
+  .node[data-role="주장"] .role, .node[data-role="정리"] .role { background: var(--accent); color: var(--accent-ink); }
+  .node[data-role="근거"] .role, .node[data-role="예시"] .role, .node[data-role="설명"] .role { background: var(--accent-soft); color: var(--accent); }
+  .node[data-role="대조"] .node-box { border-left-color: var(--warn); }
+  .node[data-role="대조"] .role { background: var(--warn-soft); color: var(--warn); }
+  .link { position: relative; margin-left: 21px; padding: 8px 0 12px 20px; border-left: 2px solid var(--line-2); min-height: 44px; display: flex; align-items: center; }
+  .link::after { content: ''; position: absolute; left: -7px; bottom: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 7px solid var(--line-2); }
+  .link.empty { border-left-style: dashed; }
+  .link .rel { font-size: 13px; font-weight: 700; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--paper); color: var(--ink-2); }
+  .link.empty .rel { color: var(--muted); font-weight: 400; border-style: dashed; }
+  .link[data-rel="그러나"] .rel, .link[data-rel="한편"] .rel { color: var(--warn); border-color: var(--warn); }
+  .link[data-rel="예를 들어"] .rel { color: var(--accent); border-color: var(--accent); }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .checks { margin-top: 14px; }
+  .checks b { display: block; color: var(--ink-2); margin-bottom: 4px; }
+  .checks ul { margin: 0; padding-left: 1.2em; }
+  .checks li { margin: 3px 0; }
+
+  /* 4단계 */
+  .band { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; }
+  .band .b-item { display: inline-flex; align-items: center; gap: 5px; padding: 4px 11px; border: 1px solid var(--line-2); border-radius: 999px; font-size: 14px; background: var(--paper); }
+  .band .b-item b { color: var(--accent); }
+  .band .b-item.empty { color: var(--muted); border-style: dashed; }
+  .band .b-arrow { color: var(--muted); }
+  .print-overall { white-space: pre-wrap; margin: 6px 0 0; line-height: 1.7; }
+
+  /* 내보내기 */
+  .check { display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; font-size: 15px; margin-top: 4px; }
+  .check input { width: 20px; height: 20px; accent-color: var(--accent); margin: 0; }
+  #copyFallback, #aiText { margin-top: 10px; font-size: 14px; }
+  .ai-open .btn { margin-top: 8px; }
+
+  .basis { font-size: 12px; color: var(--muted); margin: 22px 0 0; line-height: 1.6; }
+
+  /* 큰 화면: 왼쪽에서 쓰고, 오른쪽에 지도를 붙여 둔다 */
+  @media (min-width: 1080px) {
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 400px; grid-template-rows: repeat(5, auto) 1fr; column-gap: 24px; align-items: start; }
+    .layout > section { grid-column: 1; }
+    .layout > #mapCard { grid-column: 2; grid-row: 1 / 7; position: sticky; top: 72px; max-height: calc(100vh - 88px); overflow: auto; }
+    .only-narrow { display: none !important; }
+  }
+
+  .print-only { display: none; }
+  @media print {
+    @page { margin: 14mm; }
+    .print-only { display: block; }
+    .layout { display: block; }
+    #mapCard { position: static; max-height: none; overflow: visible; }
+    #printSrc { display: none; }
+    body.with-src #printSrc { display: block; }
+    .step-tag, .map-prog, #overall, .count, .card .sub { display: none !important; }
+    .print-head { text-align: right; font-size: 14px; }
+    .print-head .blank { display: inline-block; width: 170px; border-bottom: 1px solid var(--ink); margin-left: 6px; }
+    .node, .link { break-inside: avoid; }
+    .node.cur .num { background: var(--paper); color: var(--accent); }
+    .print-src p { margin: 6px 0; line-height: 1.8; }
+    .print-src .sen.on { background: none; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body class="">
+<header class="top wide"><div class="top-in"><a class="brand" href="../">읽기 노트 실험실</a><div class="grow who">문단 지도</div><span class="save-state" id="saveState" aria-live="polite">이 기기에 저장돼요</span></div></header>
+
+<main class="wrap wide">
+  <div class="print-only print-head">학번·이름<span class="blank"></span></div>
+
+  <div class="layout">
+    <section class="card intro no-print" aria-labelledby="introTitle">
+      <h1 id="introTitle">문단 지도</h1>
+      <p class="lead">설명문이나 논설문을 문단으로 나눈 뒤 문단마다 하는 일을 골라 글의 짜임을 한 장의 지도로 그려 보는 도구예요.</p>
+      <h2>이렇게 써요</h2>
+      <ol class="how">
+        <li>읽을 글을 붙여 넣고 문단을 나눠요.</li>
+        <li>문단마다 역할을 고르고 중심 내용을 내 말로 한 줄 써요. 앞 문단과 어떻게 이어지는지도 골라요.</li>
+        <li>그려진 지도를 보고 글 전체 구조를 한 줄로 정리해요.</li>
+      </ol>
+      <p class="note box">적은 내용은 이 기기의 브라우저에만 자동으로 저장돼요.</p>
+      <div class="btn-row">
+        <button type="button" class="btn" id="exampleBtn">예시로 채워 보기</button>
+        <button type="button" class="btn ghost" id="resetBtn">처음부터</button>
+      </div>
+    </section>
+
+    <section class="card no-print" id="s1" aria-labelledby="s1Title">
+      <div class="step-tag">1단계</div>
+      <h2 id="s1Title">글 붙여 넣기</h2>
+      <p class="sub">빈 줄이 있는 곳에서 문단이 나뉘어요.</p>
+      <label class="f" for="title">글 제목 <span class="hint">적지 않아도 돼요</span></label>
+      <input class="t" id="title" maxlength="80" autocomplete="off" placeholder="예: 우리 몸은 어떻게 체온을 일정하게 지킬까">
+      <label class="f" for="src">읽을 글</label>
+      <textarea class="t" id="src" rows="9" placeholder="여기에 글을 붙여 넣어요. 문단과 문단 사이에는 빈 줄을 하나 넣어요."></textarea>
+      <p class="note" id="srcNote" hidden></p>
+      <div class="warn-box line-row" id="lineRow" hidden>
+        빈 줄이 없어서 한 문단으로 나뉘어요. 문단 사이에 빈 줄을 넣거나, 줄이 바뀌는 곳마다 나눠요.
+        <div><button type="button" class="btn" id="lineBtn">줄마다 나누기</button></div>
+      </div>
+      <div class="btn-row s1-actions">
+        <button type="button" class="btn primary" id="splitBtn">문단 나누기</button>
+        <button type="button" class="btn ghost" id="exampleTextBtn">예시 글만 넣기</button>
+      </div>
+      <p class="note" id="splitMsg" aria-live="polite"></p>
+    </section>
+
+    <section class="no-print" id="s2" aria-labelledby="s2Title">
+      <div class="card">
+        <div class="step-tag">2단계</div>
+        <h2 id="s2Title">문단마다 읽기</h2>
+        <p class="sub">문단을 읽고 ① 역할, ② 중심 내용 한 줄, ③ 앞 문단과의 관계를 채워요. 중심이 되는 문장을 누르면 밑줄이 그어져요.</p>
+        <details class="more meaning">
+          <summary>역할과 관계는 무슨 뜻이에요?</summary>
+          <h4>역할</h4>
+          <dl>
+            <dt>도입</dt><dd>화제를 꺼내거나 물음을 던져요.</dd>
+            <dt>주장</dt><dd>글쓴이의 생각을 내세워요.</dd>
+            <dt>근거</dt><dd>주장이 옳다고 보는 까닭을 대요.</dd>
+            <dt>예시</dt><dd>구체적인 예를 들어 보여 줘요.</dd>
+            <dt>대조</dt><dd>앞의 내용과 다른 점을 맞대어 보여 줘요.</dd>
+            <dt>설명</dt><dd>개념이나 원리를 풀어 줘요.</dd>
+            <dt>정리</dt><dd>앞의 내용을 모아 마무리해요.</dd>
+          </dl>
+          <h4>앞 문단과의 관계</h4>
+          <dl>
+            <dt>이어서</dt><dd>앞 내용을 이어받아 더 말해요.</dd>
+            <dt>그러나</dt><dd>앞 내용과 반대되거나 다른 말을 해요.</dd>
+            <dt>예를 들어</dt><dd>앞 내용의 예를 들어요.</dd>
+            <dt>그래서</dt><dd>앞 내용에서 나온 결과나 결론을 말해요.</dd>
+            <dt>한편</dt><dd>화제를 돌려 다른 쪽 이야기를 해요.</dd>
+          </dl>
+        </details>
+      </div>
+      <div id="paras"></div>
+    </section>
+
+    <section class="card" id="mapCard" aria-labelledby="mapH">
+      <div class="step-tag">3단계</div>
+      <h2 id="mapH">문단 지도</h2>
+      <p class="sub">번호를 누르면 원문의 그 문단으로 가요.</p>
+      <div class="map-head"><span class="map-title" id="mapTitle"></span><span class="map-prog" id="mapProg"></span></div>
+      <div class="map" id="map"></div>
+      <div class="note box checks no-print" id="checks" hidden></div>
+    </section>
+
+    <section class="card" id="s4" aria-labelledby="s4Title">
+      <div class="step-tag">4단계</div>
+      <h2 id="s4Title">글 전체 구조 한 줄</h2>
+      <p class="sub">지도를 보고, 이 글이 어떤 순서로 짜여 있는지 한 줄로 정리해요.</p>
+      <div class="f">역할 순서</div>
+      <div class="band" id="band"></div>
+      <label class="f no-print" for="overall">글 전체 구조 <span class="hint">문단 번호를 함께 적으면 좋아요</span></label>
+      <textarea class="t ruled no-print" id="overall" rows="3" maxlength="300" placeholder="예: 처음에 ○○을 묻고, ○○을 설명한 다음, ○○와 ○○를 맞대어 보여 주고, ○○로 정리한다."></textarea>
+      <div class="count no-print" id="overallCount">0자</div>
+      <p class="print-only print-overall" id="printOverall"></p>
+    </section>
+
+    <section class="card no-print" id="out" aria-labelledby="outTitle">
+      <h2 id="outTitle">내보내기</h2>
+      <p class="sub">다 쓴 지도는 인쇄하거나 글로 복사해서 제출해요.</p>
+      <label class="check"><input type="checkbox" id="withSrc"> 원문도 같이 인쇄해요</label>
+      <div class="btn-row">
+        <button type="button" class="btn primary" id="printBtn">인쇄하기</button>
+        <button type="button" class="btn" id="copyBtn">글로 복사하기</button>
+      </div>
+      <textarea class="t" id="copyFallback" rows="8" readonly hidden aria-label="복사할 글"></textarea>
+      <details class="more" id="aiBox">
+        <summary>AI에게 되묻기 받기 (다 쓴 뒤에 열려요)</summary>
+        <p class="note" id="aiLock"></p>
+        <div class="ai-open" id="aiOpen" hidden>
+          <p class="note">아래 부탁문을 복사해 AI에 붙여 넣으면, 답 대신 다시 읽어 볼 곳을 묻는 질문이 와요. 질문을 받으면 원문으로 돌아가 내 지도를 직접 고쳐요.</p>
+          <textarea class="t" id="aiText" rows="8" readonly aria-label="AI에 붙여 넣을 부탁문"></textarea>
+          <button type="button" class="btn" id="aiCopy">부탁문 복사하기</button>
+        </div>
+      </details>
+    </section>
+  </div>
+
+  <section class="print-only print-src" id="printSrc" aria-hidden="true">
+    <h2>원문</h2>
+    <div id="printSrcBody"></div>
+  </section>
+
+  <p class="basis no-print">근거: 수능 국어 독서의 사실적 이해(정보 간 관계·조직과 구조 파악, 한국교육과정평가원 행동 영역). 2022 개정 국어 [9국02-05] 설명 방법과 논증 방법을 파악하고 타당성을 평가하며 읽는다.</p>
+</main>
+
+<footer id="app-credit" style="width:100%;box-sizing:border-box;margin:2.5rem 0 0;padding:14px 12px;text-align:center;font-size:12.5px;line-height:1.6;color:#8a8f98;font-family:system-ui,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;border-top:1px solid rgba(128,128,128,.25);">© 2026 조승재(과학이조선생) · 해누리중학교 · All rights reserved<br><span style="font-size:11px;opacity:.85;">최종 업데이트: 2026-11-08</span></footer>
+
+<script src="../../rn.js"></script>
+<script>
+(function () {
+  'use strict';
+  const { esc, $, store, len, toast, copyText } = window.RN;
+
+  const KEY = 'rnlab_para-map_v1';
+  const ROLES = ['도입', '주장', '근거', '예시', '대조', '설명', '정리'];
+  const RELS = ['이어서', '그러나', '예를 들어', '그래서', '한편'];
+  const MAX = 40;
+  const wideMQ = window.matchMedia('(min-width: 1080px)');
+  const reduceMQ = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  // 예시 글: 직접 쓴 설명문(중학생 수준, 체온 조절)
+  const EX = {
+    title: '우리 몸은 어떻게 체온을 일정하게 지킬까',
+    paras: [
+      { t: '한여름 뙤약볕 아래와 한겨울 찬 바람 속은 온도가 크게 다르다. 그런데 어느 쪽에 있든 우리 몸속 온도, 곧 체온은 37 ℃ 안팎에서 크게 벗어나지 않는다. 바깥 온도가 이렇게 달라지는데, 몸은 어떻게 체온을 일정하게 지키는 것일까?',
+        role: '도입', rel: '', marks: [2],
+        main: '바깥 온도가 크게 달라도 체온이 일정하게 지켜지는 까닭을 묻는다.' },
+      { t: '체온을 조절하는 일은 뇌의 시상 하부가 맡는다. 시상 하부는 피부에서 전해 온 온도 정보와 혈액의 온도를 바탕으로 체온이 기준보다 높은지 낮은지 판단한다. 그리고 그 결과에 따라, 열을 몸 밖으로 더 내보낼지 아니면 덜 내보내고 더 만들지를 몸 곳곳에 명령한다. 집 안 온도가 정해 둔 값에서 벗어나면 냉난방기를 켜고 끄는 온도 조절기와 비슷한 셈이다.',
+        role: '설명', rel: '이어서', marks: [0],
+        main: '뇌의 시상 하부가 체온을 살펴 몸에 명령을 내려 조절한다.' },
+      { t: '더운 날을 예로 들어 보자. 체온이 오르면 피부 가까이 있는 혈관이 넓어져 피부로 흐르는 혈액이 많아진다. 그러면 혈액이 실어 온 열이 피부를 통해 몸 밖으로 많이 빠져나간다. 더울 때 얼굴이 붉어지는 것도 이 때문이다. 또 땀이 많이 나는데, 피부의 땀이 증발하면서 몸의 열을 빼앗아 가므로 체온이 내려간다.',
+        role: '예시', rel: '예를 들어', marks: [1, 4],
+        main: '더우면 피부 혈관이 넓어지고 땀이 나서 열을 많이 내보낸다.' },
+      { t: '추운 날에는 이와 반대의 일이 일어난다. 피부 가까이 있는 혈관이 좁아져 피부로 가는 혈액이 줄고, 그만큼 몸 밖으로 빠져나가는 열도 줄어든다. 이와 함께 몸은 열을 더 많이 만든다. 근육이 저절로 잘게 떨리면서 열이 나고, 세포 호흡이 활발해져 양분을 분해할 때 나오는 열도 많아진다.',
+        role: '대조', rel: '그러나', marks: [1, 2],
+        main: '추우면 피부 혈관이 좁아져 열을 덜 잃고, 근육 떨림과 세포 호흡으로 열을 더 만든다.' },
+      { t: '이처럼 우리 몸은 열을 내보내는 양과 만드는 양을 함께 조절해 체온을 일정하게 지킨다. 더울 때 그늘을 찾고 추울 때 옷을 껴입는 행동도 이 조절을 돕는다. 바깥 환경이 바뀌어도 몸 안의 상태를 일정하게 유지하려는 이런 성질을 항상성이라고 한다.',
+        role: '정리', rel: '그래서', marks: [0, 2],
+        main: '몸은 열을 내보내는 양과 만드는 양을 조절해 체온을 지키고, 이런 성질을 항상성이라 한다.' }
+    ],
+    overall: '체온이 어떻게 일정하게 지켜지는지 묻고(1), 조절을 맡는 시상 하부를 설명한 뒤(2), 더울 때와 추울 때를 맞대어 예로 들고(3·4), 항상성이라는 말로 정리한다(5).'
+  };
+
+  // ---------- 상태 ----------
+  const blank = () => ({ v: 1, title: '', text: '', splitFrom: null, paras: [], overall: '', withSrc: false, savedAt: '' });
+  const str = v => (typeof v === 'string' ? v : '');
+
+  function cleanPara(p) {
+    p = (p && typeof p === 'object') ? p : {};
+    return {
+      t: str(p.t).trim(),
+      role: ROLES.includes(p.role) ? p.role : '',
+      main: str(p.main).slice(0, 100),
+      rel: RELS.includes(p.rel) ? p.rel : '',
+      marks: Array.isArray(p.marks) ? p.marks.filter(n => Number.isInteger(n) && n >= 0 && n < 300) : []
+    };
+  }
+
+  function load() {
+    const d = store.get(KEY, null);
+    const s = blank();
+    if (!d || typeof d !== 'object') return s;
+    s.title = str(d.title).slice(0, 80);
+    s.text = str(d.text);
+    s.splitFrom = typeof d.splitFrom === 'string' ? d.splitFrom : null;
+    s.paras = (Array.isArray(d.paras) ? d.paras : []).slice(0, MAX).map(cleanPara).filter(p => p.t);
+    if (s.paras[0]) s.paras[0].rel = '';
+    s.overall = str(d.overall).slice(0, 300);
+    s.withSrc = !!d.withSrc;
+    s.savedAt = str(d.savedAt);
+    return s;
+  }
+
+  let S = load();
+  let cur = -1;
+  let warned = false;
+
+  const hm = d => d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+  function setSaveState(text, bad) {
+    const el = $('#saveState');
+    el.textContent = text;
+    el.classList.toggle('bad', !!bad);
+  }
+
+  function save() {
+    S.savedAt = new Date().toISOString();
+    const ok = store.set(KEY, S);
+    if (ok) {
+      setSaveState('저장됨 ' + hm(new Date()));
+    } else {
+      setSaveState('저장 안 됨', true);
+      if (!warned) { warned = true; toast('이 브라우저에는 저장이 안 돼요. 다 쓴 뒤 꼭 복사하거나 인쇄해 두세요.', 4000); }
+    }
+  }
+
+  function showLoadedState() {
+    const d = new Date(S.savedAt);
+    if (!S.savedAt || isNaN(d)) { setSaveState('이 기기에 저장돼요'); return; }
+    const same = d.toDateString() === new Date().toDateString();
+    setSaveState('저장됨 ' + (same ? hm(d) : `${d.getMonth() + 1}/${d.getDate()}`));
+  }
+
+  // ---------- 작은 도구 ----------
+  const finalOf = w => {
+    const c = String(w).charCodeAt(String(w).length - 1);
+    return (c >= 0xAC00 && c <= 0xD7A3) ? (c - 0xAC00) % 28 : 0;
+  };
+  const roJ = w => { const t = finalOf(w); return (t === 0 || t === 8) ? '로' : '으로'; };
+  const ieyo = w => (finalOf(w) ? '이에요' : '예요');
+
+  const hasWork = p => !!(p.role || len(p.main) || p.rel || (p.marks && p.marks.length));
+  const isDone = (p, i) => !!p.role && len(p.main) >= 2 && (i === 0 || !!p.rel);
+  const hasAny = () => !!(S.text.trim() || S.title.trim() || S.overall.trim() || S.paras.some(hasWork));
+
+  function splitText(text, mode) {
+    const t = String(text || '').replace(/\r\n?/g, '\n');
+    const parts = mode === 'line' ? t.split('\n') : t.split(/\n[ \t　]*\n/);
+    return parts
+      .map(s => s.replace(/[ \t　]*\n[ \t　]*/g, ' ').replace(/[ \t　]{2,}/g, ' ').trim())
+      .filter(Boolean);
+  }
+
+  function sentences(t) {
+    return String(t).replace(/([.?!。][”’"'」』)\]]*)\s+/g, '$1\u0001').split('\u0001').filter(s => s.trim());
+  }
+
+  const norm = s => String(s || '').replace(/[\s.,?!·'"“”‘’「」『』()\[\]~\-—:;]/g, '');
+  const copied = p => { const m = norm(p.main); return m.length >= 15 && norm(p.t).includes(m); };
+
+  function scrollTo(el, block) {
+    if (!el) return;
+    el.scrollIntoView({ behavior: reduceMQ.matches ? 'auto' : 'smooth', block: block || 'start' });
+  }
+
+  function flash(el) {
+    el.classList.remove('flash');
+    void el.offsetWidth;
+    el.classList.add('flash');
+    clearTimeout(el._fl);
+    el._fl = setTimeout(() => el.classList.remove('flash'), 1600);
+  }
+
+  // ---------- 1단계: 붙여 넣기·나누기 ----------
+  function setSplitMsg(msg) { $('#splitMsg').textContent = msg || ''; }
+
+  function updateSrcNote() {
+    const t = $('#src').value;
+    const blankN = splitText(t, 'blank').length;
+    const lineN = splitText(t, 'line').length;
+    const changed = S.paras.length > 0 && S.splitFrom !== null && t !== S.splitFrom;
+    const note = $('#srcNote');
+    if (changed) {
+      note.textContent = '글이 바뀌었어요. 「문단 다시 나누기」를 눌러야 아래 문단에도 반영돼요.';
+      note.hidden = false;
+    } else if (S.paras.length) {
+      note.textContent = `${S.paras.length}문단으로 나눠 두었어요.`;
+      note.hidden = false;
+    } else if (t.trim()) {
+      note.textContent = `지금 나누면 ${blankN}문단이 돼요.`;
+      note.hidden = false;
+    } else {
+      note.hidden = true;
+    }
+    const lineDone = S.paras.length > 1 && !changed;
+    $('#lineRow').hidden = !(blankN === 1 && lineN > 1 && !lineDone);
+    $('#splitBtn').textContent = S.paras.length ? '문단 다시 나누기' : '문단 나누기';
+  }
+
+  function doSplit(mode) {
+    const src = $('#src').value;
+    S.text = src;
+    const parts = splitText(src, mode);
+    if (!parts.length) {
+      setSplitMsg('붙여 넣은 글이 없어요.');
+      $('#src').focus();
+      return;
+    }
+    if (parts.length > MAX) {
+      setSplitMsg(`문단이 ${parts.length}개예요. ${MAX}개까지만 다룰 수 있어서, 읽을 부분만 붙여 넣어 주세요.`);
+      return;
+    }
+    const old = S.paras;
+    const used = new Set();
+    const kept = new Set();
+    const next = parts.map(t => ({ t, role: '', main: '', rel: '', marks: [] }));
+    // 같은 글인 문단은 적어 둔 것을 그대로 옮긴다
+    next.forEach((n, i) => {
+      const k = old.findIndex((o, j) => !used.has(j) && o.t === n.t);
+      if (k >= 0) {
+        used.add(k); kept.add(i);
+        n.role = old[k].role; n.main = old[k].main; n.rel = old[k].rel; n.marks = old[k].marks.slice();
+      }
+    });
+    // 문단 수가 같으면 글을 조금 고친 것으로 보고 자리대로 옮긴다(밑줄은 문장이 달라졌을 수 있어 뺀다)
+    if (old.length === next.length) {
+      next.forEach((n, i) => {
+        if (!kept.has(i) && !used.has(i)) {
+          used.add(i); kept.add(i);
+          n.role = old[i].role; n.main = old[i].main; n.rel = old[i].rel;
+        }
+      });
+    }
+    const lost = old.filter((o, j) => !used.has(j) && hasWork(o)).length;
+    if (lost && !confirm(`글이 바뀌어서, 적어 둔 문단 ${lost}개의 기록이 지워져요. 그래도 다시 나눌까요?`)) return;
+    next[0].rel = '';
+    S.paras = next;
+    S.splitFrom = src;
+    cur = -1;
+    save();
+    renderParas(); renderMap(); renderBand(); updateSrcNote();
+    setSplitMsg('');
+    toast(`${next.length}문단으로 나눴어요. 문단마다 채워 봐요.`);
+    scrollTo($('#s2'));
+  }
+
+  // ---------- 2단계: 문단 카드 ----------
+  function radios(name, list, val) {
+    return list.map(v =>
+      `<label class="pick"><input type="radio" name="${name}" value="${esc(v)}"${v === val ? ' checked' : ''}><span>${esc(v)}</span></label>`
+    ).join('');
+  }
+
+  function senHTML(p) {
+    return sentences(p.t).map((s, j) => {
+      const on = p.marks.includes(j);
+      return `<span class="sen${on ? ' on' : ''}" data-s="${j}" role="button" tabindex="0" aria-pressed="${on}">${esc(s)}</span>`;
+    }).join(' ');
+  }
+
+  function nudgeText(p) {
+    if (copied(p)) return '원문 문장을 그대로 옮겼어요. 더 짧게, 내 말로 줄여 볼까요?';
+    if (len(p.main) > 70) return '한 줄로 보기에 길어요. 꼭 필요한 말만 남겨 볼까요?';
+    return '';
+  }
+
+  function renderParas() {
+    const box = $('#paras');
+    if (!S.paras.length) {
+      box.innerHTML = '<div class="card"><p class="note">아직 나눈 문단이 없어요. 1단계에서 「문단 나누기」를 누르면 여기에 문단이 하나씩 나와요.</p></div>';
+      return;
+    }
+    box.innerHTML = S.paras.map((p, i) => {
+      const n = i + 1;
+      const nd = nudgeText(p);
+      const rel = i === 0
+        ? '<p class="note">첫 문단이라 앞 문단이 없어요.</p>'
+        : `<div class="picks">${radios('rel-' + i, RELS, p.rel)}</div>`;
+      return `<article class="card para" id="para-${i}" data-i="${i}" tabindex="-1" aria-labelledby="ph-${i}">
+  <div class="para-head">
+    <h3 id="ph-${i}"><span class="pnum">${n}</span>문단</h3>
+    <button type="button" class="btn ghost only-narrow" data-tomap="${i}">지도에서 보기</button>
+  </div>
+  <p class="src-text">${senHTML(p)}</p>
+  <p class="src-hint">중심이 되는 문장을 누르면 밑줄이 그어지고, 다시 누르면 지워져요.</p>
+  <fieldset class="pick-set"><legend>① 이 문단의 역할</legend><div class="picks">${radios('role-' + i, ROLES, p.role)}</div></fieldset>
+  <label class="f" for="main-${i}">② 중심 내용 한 줄 <span class="hint">내 말로 짧게</span></label>
+  <textarea class="t main" id="main-${i}" data-i="${i}" rows="2" maxlength="100" placeholder="이 문단이 말하는 것을 한 줄로">${esc(p.main)}</textarea>
+  <div class="count" id="cnt-${i}">${len(p.main)}자</div>
+  <p class="nudge" id="nudge-${i}"${nd ? '' : ' hidden'}>${esc(nd)}</p>
+  <fieldset class="pick-set"><legend>③ 앞 문단과의 관계</legend>${rel}</fieldset>
+</article>`;
+    }).join('');
+  }
+
+  function updateMainExtras(i) {
+    const p = S.paras[i];
+    if (!p) return;
+    const c = $('#cnt-' + i);
+    if (c) c.textContent = len(p.main) + '자';
+    const nd = $('#nudge-' + i);
+    if (nd) { const m = nudgeText(p); nd.textContent = m; nd.hidden = !m; }
+  }
+
+  function toggleMark(sen) {
+    const card = sen.closest('.para');
+    if (!card) return;
+    const p = S.paras[+card.dataset.i];
+    if (!p) return;
+    const j = +sen.dataset.s;
+    const k = p.marks.indexOf(j);
+    if (k >= 0) p.marks.splice(k, 1); else p.marks.push(j);
+    p.marks.sort((a, b) => a - b);
+    const on = k < 0;
+    sen.classList.toggle('on', on);
+    sen.setAttribute('aria-pressed', String(on));
+    save();
+  }
+
+  function goPara(i) {
+    const el = $('#para-' + i);
+    if (!el) return;
+    scrollTo(el, 'start');
+    flash(el);
+    try { el.focus({ preventScroll: true }); } catch (e) { /* 옛 브라우저 */ }
+    setCurrent(i);
+  }
+
+  function goNode(i) {
+    const el = $('#node-' + i);
+    if (!el) return;
+    scrollTo(el, 'center');
+    setCurrent(i);
+  }
+
+  function setCurrent(i) {
+    cur = i;
+    document.querySelectorAll('#map .node').forEach(n => n.classList.toggle('cur', n.id === 'node-' + i));
+    const card = $('#mapCard');
+    const node = $('#node-' + i);
+    if (!node || !wideMQ.matches || card.scrollHeight <= card.clientHeight) return;
+    const r = node.getBoundingClientRect(), c = card.getBoundingClientRect();
+    if (r.top < c.top + 8 || r.bottom > c.bottom - 8) card.scrollTop += r.top - c.top - 80;
+  }
+
+  // ---------- 3단계: 문단 지도 ----------
+  function checks() {
+    const ps = S.paras, out = [];
+    ps.forEach((p, i) => {
+      if (i === 0) return;
+      const n = i + 1;
+      if (p.role === '예시' && p.rel && p.rel !== '예를 들어') {
+        out.push(`${n}문단은 역할이 「예시」인데 앞 문단과는 「${p.rel}」${roJ(p.rel)} 이었어요. 무엇의 예인지 다시 읽어 볼까요?`);
+      }
+      if (p.rel === '예를 들어' && p.role && p.role !== '예시' && p.role !== '근거') {
+        out.push(`${n}문단은 앞 문단과 「예를 들어」로 이었는데 역할은 「${p.role}」${ieyo(p.role)}. 둘이 서로 맞는지 다시 읽어 볼까요?`);
+      }
+    });
+    const roles = ps.map(p => p.role);
+    if (ps.length >= 2 && roles.every(Boolean)) {
+      if (roles.includes('주장') && !roles.includes('근거')) {
+        out.push('「주장」 문단은 있는데 「근거」 문단이 없어요. 주장을 받쳐 주는 문단이 정말 없는지 찾아볼까요?');
+      }
+      if (roles.includes('근거') && !roles.includes('주장')) {
+        out.push('「근거」 문단이 무엇을 받쳐 주는지, 글쓴이의 주장이 어디에 있는지 찾아볼까요?');
+      }
+      if (ps.length >= 3 && roles.every(r => r === roles[0])) {
+        out.push(`모든 문단의 역할이 「${roles[0]}」${ieyo(roles[0])}. 문단마다 하는 일이 정말 같은지 다시 볼까요?`);
+      }
+    }
+    return out;
+  }
+
+  function renderChecks() {
+    const box = $('#checks');
+    const list = checks();
+    box.hidden = !list.length;
+    box.innerHTML = list.length
+      ? '<b>다시 읽어 볼 곳</b><ul>' + list.map(m => `<li>${esc(m)}</li>`).join('') + '</ul>'
+      : '';
+  }
+
+  function renderMap() {
+    const box = $('#map');
+    const ps = S.paras;
+    $('#mapTitle').textContent = S.title.trim() || '제목을 적지 않은 글';
+    if (!ps.length) {
+      box.innerHTML = '<p class="note box">1단계에서 글을 붙여 넣고 문단을 나누면 여기에 지도가 그려져요.</p>';
+      $('#mapProg').textContent = '';
+    } else {
+      const done = ps.filter(isDone).length;
+      $('#mapProg').textContent = `${ps.length}문단 중 ${done}문단 채움`;
+      box.innerHTML = ps.map((p, i) => {
+        const link = i === 0 ? '' :
+          `<div class="link${p.rel ? '' : ' empty'}" data-rel="${esc(p.rel)}"><span class="rel"><span class="sr">${i}문단에서 ${i + 1}문단으로, 앞 문단과의 관계: </span>${p.rel ? esc(p.rel) : '관계 고르기 전'}</span></div>`;
+        const m = p.main.trim();
+        return link + `<div class="node${cur === i ? ' cur' : ''}" id="node-${i}" data-role="${esc(p.role)}">
+  <button type="button" class="num" data-go="${i}" aria-label="${i + 1}문단 원문으로 가기">${i + 1}</button>
+  <div class="node-box"><span class="role${p.role ? '' : ' empty'}">${p.role ? esc(p.role) : '역할 고르기 전'}</span><p class="main${m ? '' : ' empty'}">${m ? esc(m) : '중심 내용을 아직 안 썼어요'}</p></div>
+</div>`;
+      }).join('');
+    }
+    renderChecks();
+    updateAi();
+  }
+
+  // ---------- 4단계: 전체 구조 ----------
+  function renderBand() {
+    const box = $('#band');
+    if (!S.paras.length) {
+      box.innerHTML = '<span class="note">문단을 나누면 역할 순서가 여기에 보여요.</span>';
+      return;
+    }
+    box.innerHTML = S.paras.map((p, i) =>
+      `<span class="b-item${p.role ? '' : ' empty'}"><b>${i + 1}</b>${p.role ? esc(p.role) : '고르기 전'}</span>`
+    ).join('<span class="b-arrow" aria-hidden="true">→</span>');
+  }
+
+  function updateOverallCount() { $('#overallCount').textContent = len(S.overall) + '자'; }
+
+  // ---------- 내보내기 ----------
+  function buildText() {
+    const L = [];
+    L.push('[문단 지도] ' + (S.title.trim() || '제목을 적지 않은 글'));
+    L.push('');
+    S.paras.forEach((p, i) => {
+      L.push(`${i + 1}문단 · ${p.role || '역할 고르기 전'}` + (i > 0 ? ` · 앞 문단과: ${p.rel || '고르기 전'}` : ''));
+      L.push('  중심 내용: ' + (p.main.trim() || '(비어 있음)'));
+    });
+    L.push('');
+    L.push('역할 순서: ' + S.paras.map((p, i) => `${i + 1} ${p.role || '?'}`).join(' → '));
+    L.push('글 전체 구조: ' + (S.overall.trim() || '(비어 있음)'));
+    return L.join('\n');
+  }
+
+  function buildPrompt() {
+    const title = S.title.trim();
+    return [
+      '나는 중학생이고, 아래 글을 문단별로 나눠 읽었어.',
+      '문단마다 내가 고른 역할(도입·주장·근거·예시·대조·설명·정리 가운데 하나), 내 말로 쓴 중심 내용, 앞 문단과의 관계를 적었어.',
+      '',
+      '[글' + (title ? ': ' + title : '') + ']',
+      ...S.paras.map((p, i) => `${i + 1}문단: ${p.t}`),
+      '',
+      '[내 문단 지도]',
+      ...S.paras.map((p, i) => `${i + 1}문단 · 역할: ${p.role}` + (i > 0 ? ` · 앞 문단과: ${p.rel}` : '') + ` · 중심 내용: ${p.main.trim()}`),
+      '',
+      '[내가 정리한 글 전체 구조]',
+      S.overall.trim(),
+      '',
+      '부탁:',
+      '1. 정답을 알려 주거나 내 지도를 대신 고쳐 주지 마.',
+      '2. 역할이나 관계를 다시 생각해 볼 만한 문단을 골라, 내가 스스로 확인할 수 있는 질문을 3개만 해 줘.',
+      '3. 질문마다 "몇 문단의 어느 문장을 다시 읽어 봐"처럼 글에서 찾아갈 곳을 짚어 줘.',
+      '4. 내가 잘 잡은 곳이 있으면 한 군데만 짧게 말해 줘.',
+      '5. 중학생이 알아듣는 말로 짧게 써 줘.'
+    ].join('\n');
+  }
+
+  function allDone() {
+    return S.paras.length > 0 && S.paras.every(isDone) && len(S.overall) >= 10;
+  }
+
+  function updateAi() {
+    const ok = allDone();
+    const lock = $('#aiLock');
+    $('#aiOpen').hidden = !ok;
+    lock.hidden = ok;
+    if (ok) {
+      $('#aiText').value = buildPrompt();
+    } else if (!S.paras.length) {
+      lock.textContent = '아직 열리지 않았어요. 먼저 글을 붙여 넣고 문단을 나눠요.';
+    } else {
+      const done = S.paras.filter(isDone).length;
+      lock.textContent = `아직 열리지 않았어요. 문단 지도를 다 채우고(${S.paras.length}문단 중 ${done}문단), 글 전체 구조를 한 줄(10자 넘게) 쓰면 열려요.`;
+    }
+  }
+
+  function renderPrint() {
+    $('#printOverall').textContent = S.overall.trim() || '(비어 있음)';
+    $('#printSrcBody').innerHTML = S.paras.map((p, i) => {
+      const body = sentences(p.t).map((s, j) =>
+        p.marks.includes(j) ? `<span class="sen on">${esc(s)}</span>` : esc(s)
+      ).join(' ');
+      return `<p><b>${i + 1}</b> ${body}</p>`;
+    }).join('');
+  }
+
+  // ---------- 예시·초기화 ----------
+  function fillExample(full) {
+    if (hasAny() && !confirm('지금 적은 내용이 예시로 바뀌어요. 계속할까요?')) return;
+    const text = EX.paras.map(p => p.t).join('\n\n');
+    S = blank();
+    S.title = EX.title;
+    S.text = text;
+    S.splitFrom = text;
+    S.paras = EX.paras.map(p => full
+      ? { t: p.t, role: p.role, main: p.main, rel: p.rel, marks: p.marks.slice() }
+      : { t: p.t, role: '', main: '', rel: '', marks: [] });
+    S.overall = full ? EX.overall : '';
+    S.withSrc = $('#withSrc').checked;
+    cur = -1;
+    save();
+    renderAll();
+    if (full) {
+      toast('예시로 채웠어요. 지도 번호를 눌러 원문과 견줘 봐요.');
+      scrollTo($('#mapCard'));
+    } else {
+      toast('예시 글을 넣고 문단을 나눴어요. 문단마다 직접 채워 봐요.');
+      scrollTo($('#s2'));
+    }
+  }
+
+  function resetAll() {
+    if (!confirm('적은 내용을 모두 지우고 처음부터 할까요? 지운 내용은 되돌릴 수 없어요.')) return;
+    store.del(KEY);
+    S = blank();
+    cur = -1;
+    renderAll();
+    setSaveState('이 기기에 저장돼요');
+    toast('처음 상태로 돌렸어요.');
+    window.scrollTo(0, 0);
+  }
+
+  function renderAll() {
+    $('#title').value = S.title;
+    $('#src').value = S.text;
+    $('#overall').value = S.overall;
+    $('#withSrc').checked = S.withSrc;
+    document.body.classList.toggle('with-src', S.withSrc);
+    $('#copyFallback').hidden = true;
+    setSplitMsg('');
+    renderParas(); renderMap(); renderBand(); updateSrcNote(); updateOverallCount();
+  }
+
+  // ---------- 이벤트 ----------
+  $('#title').addEventListener('input', e => {
+    S.title = e.target.value;
+    save();
+    $('#mapTitle').textContent = S.title.trim() || '제목을 적지 않은 글';
+    updateAi();
+  });
+
+  $('#src').addEventListener('input', e => {
+    S.text = e.target.value;
+    save();
+    updateSrcNote();
+  });
+
+  $('#splitBtn').addEventListener('click', () => doSplit('blank'));
+  $('#lineBtn').addEventListener('click', () => doSplit('line'));
+  $('#exampleTextBtn').addEventListener('click', () => fillExample(false));
+  $('#exampleBtn').addEventListener('click', () => fillExample(true));
+  $('#resetBtn').addEventListener('click', resetAll);
+
+  const parasBox = $('#paras');
+  parasBox.addEventListener('change', e => {
+    const t = e.target;
+    if (t.type !== 'radio') return;
+    const card = t.closest('.para');
+    if (!card) return;
+    const i = +card.dataset.i;
+    const p = S.paras[i];
+    if (!p) return;
+    if (t.name === 'role-' + i) p.role = ROLES.includes(t.value) ? t.value : '';
+    else if (t.name === 'rel-' + i && i > 0) p.rel = RELS.includes(t.value) ? t.value : '';
+    save();
+    renderMap();
+    renderBand();
+  });
+  parasBox.addEventListener('input', e => {
+    const t = e.target;
+    if (!t.classList || !t.classList.contains('main')) return;
+    const i = +t.dataset.i;
+    const p = S.paras[i];
+    if (!p) return;
+    if (/[\r\n]/.test(t.value)) t.value = t.value.replace(/\s*[\r\n]+\s*/g, ' ');
+    p.main = t.value.slice(0, 100);
+    save();
+    updateMainExtras(i);
+    renderMap();
+  });
+  parasBox.addEventListener('click', e => {
+    const sen = e.target.closest('.sen');
+    if (sen) { toggleMark(sen); return; }
+    const b = e.target.closest('[data-tomap]');
+    if (b) goNode(+b.dataset.tomap);
+  });
+  parasBox.addEventListener('keydown', e => {
+    const sen = e.target.closest && e.target.closest('.sen');
+    if (sen && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleMark(sen); return; }
+    if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('main')) e.preventDefault();
+  });
+  parasBox.addEventListener('focusin', e => {
+    const card = e.target.closest && e.target.closest('.para');
+    if (card && +card.dataset.i !== cur) setCurrent(+card.dataset.i);
+  });
+
+  $('#map').addEventListener('click', e => {
+    const b = e.target.closest('[data-go]');
+    if (b) goPara(+b.dataset.go);
+  });
+
+  $('#overall').addEventListener('input', e => {
+    S.overall = e.target.value.slice(0, 300);
+    save();
+    updateOverallCount();
+    updateAi();
+  });
+
+  $('#withSrc').addEventListener('change', e => {
+    S.withSrc = e.target.checked;
+    document.body.classList.toggle('with-src', S.withSrc);
+    save();
+  });
+
+  $('#printBtn').addEventListener('click', () => {
+    if (!S.paras.length) { toast('먼저 1단계에서 문단을 나눠 주세요.'); return; }
+    renderPrint();
+    window.print();
+  });
+  window.addEventListener('beforeprint', renderPrint);
+
+  $('#copyBtn').addEventListener('click', () => {
+    if (!S.paras.length) { toast('먼저 1단계에서 문단을 나눠 주세요.'); return; }
+    copyText(buildText(), $('#copyFallback')).then(ok => {
+      toast(ok ? '복사했어요. 제출할 곳에 붙여 넣어요.' : '자동 복사가 안 됐어요. 아래 칸의 글을 직접 복사해 주세요.');
+    });
+  });
+
+  $('#aiCopy').addEventListener('click', () => {
+    if (!allDone()) { updateAi(); return; }
+    const box = $('#aiText');
+    box.value = buildPrompt();
+    copyText(box.value, box).then(ok => {
+      toast(ok ? '부탁문을 복사했어요. AI에 붙여 넣어요.' : '자동 복사가 안 됐어요. 칸의 글을 직접 복사해 주세요.');
+    });
+  });
+
+  // ---------- 시작 ----------
+  renderAll();
+  showLoadedState();
+})();
+</script>
+</body>
+</html>

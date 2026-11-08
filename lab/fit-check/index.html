@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>이 책, 나한테 맞을까? · 읽기 노트 실험실</title>
+<meta name="description" content="고른 책을 아무 쪽이나 펴서 한 쪽을 읽고, 모르는 낱말 수와 내 말로 쓴 내용으로 나한테 맞는 책인지 가늠해 보는 책 고르기 도우미">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../../rn.css">
+<style>
+  .card { scroll-margin-top: 72px; }
+
+  /* 맨 위 */
+  .intro h1 { font-size: 24px; letter-spacing: -.02em; margin: 0 0 6px; }
+  .intro .lead { margin: 0 0 4px; color: var(--ink-2); }
+  .intro .how-h { font-size: 16px; margin: 14px 0 4px; }
+  .how { margin: 0; padding-left: 1.4em; }
+  .how li { margin: 4px 0; }
+  .intro .btn-row { margin-top: 14px; }
+
+  /* 1단계 */
+  .two { display: grid; grid-template-columns: 1.4fr 1fr; gap: 0 10px; }
+  .editing { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; color: var(--ink-2); }
+  .editing span { flex: 1 1 220px; }
+
+  /* 2단계: 세기 */
+  .counter { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: stretch; margin-top: 6px; }
+  .count-show {
+    margin: 0; min-width: 104px; padding: 10px 12px;
+    display: flex; align-items: baseline; justify-content: center; align-self: stretch;
+    border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg);
+  }
+  .count-show .num { display: inline-block; align-self: center; font-size: 56px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+  .count-show .unit { align-self: center; font-size: 18px; margin-left: 4px; color: var(--muted); }
+  .count-show .num.bump { animation: bump .2s ease-out; }
+  @keyframes bump { 50% { transform: scale(1.18); } }
+  .tap {
+    min-height: 120px; padding: 12px; cursor: pointer;
+    border: 2px solid var(--accent); border-radius: var(--radius);
+    background: var(--accent-soft); color: var(--accent);
+    font-size: 22px; font-weight: 800; line-height: 1.35;
+    touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+  }
+  .tap:active { background: var(--accent); color: var(--accent-ink); }
+  .counter-sub { margin-top: 10px; }
+
+  /* 3단계: 이해 정도 */
+  .levels { border: 0; padding: 0; margin: 18px 0 0; min-width: 0; }
+  .levels legend { font-weight: 700; font-size: 15px; padding: 0; margin-bottom: 8px; }
+  .choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .choice { position: relative; display: flex; }
+  .choice input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+  .choice span {
+    flex: 1; display: flex; align-items: center; justify-content: center; text-align: center;
+    min-height: 52px; padding: 8px 10px; cursor: pointer; font-weight: 600;
+    border: 2px solid var(--line-2); border-radius: 10px; background: var(--paper);
+  }
+  .choice span:hover { border-color: var(--ink-2); }
+  .choice input:checked + span { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+  .choice input:focus-visible + span { outline: 3px solid #8fb3ec; outline-offset: 2px; }
+  .go-row { margin-top: 18px; }
+
+  /* 결과 */
+  .r-book { margin: 2px 0 0; color: var(--ink-2); font-size: 15px; }
+  .result .r-name { font-size: 30px; letter-spacing: -.02em; margin: 4px 0 8px; outline: none; }
+  .result[data-k="easy"] .r-name { color: var(--ink-2); }
+  .result[data-k="fit"] .r-name { color: var(--accent); }
+  .result[data-k="try"] .r-name { color: var(--warn); }
+  .result[data-k="later"] .r-name { color: var(--ink); }
+  .r-why { margin: 0; }
+  .r-tip { margin: 10px 0 0; padding: 10px 12px; background: var(--bg); border-radius: 10px; }
+  .r-tip b { display: block; font-size: 14px; color: var(--ink-2); }
+  .result .btn-row { margin-top: 14px; }
+  table.rule { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px; }
+  table.rule th, table.rule td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.rule th { color: var(--muted); font-weight: 600; }
+
+  /* 기록 */
+  .tally { margin: 0; font-size: 14px; color: var(--ink-2); }
+  .empty { margin: 8px 0 0; color: var(--muted); font-size: 15px; }
+  .entry { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; margin-top: 10px; background: var(--paper); }
+  .entry.is-chosen { border: 2px solid var(--accent); padding: 13px 15px; }
+  .e-head { display: flex; gap: 10px; align-items: flex-start; }
+  .e-no { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--bg); color: var(--ink-2); display: grid; place-items: center; font-weight: 700; font-size: 14px; margin-top: 1px; }
+  .e-ttl { flex: 1; min-width: 0; }
+  .e-ttl b { display: block; font-size: 17px; line-height: 1.4; }
+  .e-ttl .e-sub { display: block; color: var(--muted); font-size: 14px; }
+  .e-ttl .e-mark { display: block; color: var(--accent); font-size: 13px; font-weight: 700; }
+  .e-res { flex: none; font-weight: 800; font-size: 15px; white-space: nowrap; }
+  .e-res[data-k="easy"] { color: var(--ink-2); }
+  .e-res[data-k="fit"] { color: var(--accent); }
+  .e-res[data-k="try"] { color: var(--warn); }
+  .e-res[data-k="later"] { color: var(--ink); }
+  .e-meta { margin: 10px 0 0; display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; font-size: 14px; }
+  .e-meta dt { color: var(--muted); }
+  .e-meta dd { margin: 0; }
+  .e-sum { margin: 8px 0 0; font-size: 15px; white-space: pre-wrap; }
+  .e-why { margin: 6px 0 0; font-size: 14px; color: var(--ink-2); }
+  .entry .btn-row { margin-top: 12px; }
+  .chosen { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .chosen h3 { font-size: 16px; margin: 0 0 4px; }
+  .chosen-name { margin: 0; }
+  .list-tools { margin-top: 16px; }
+  #copyBox { margin-top: 10px; font-size: 14px; }
+
+  .basis { margin: 28px 0 0; font-size: 12px; line-height: 1.6; color: var(--muted); }
+
+  .print-only { display: none; }
+
+  @media (max-width: 520px) {
+    .two { grid-template-columns: 1fr; }
+    .choices { grid-template-columns: 1fr; }
+    .count-show { min-width: 86px; padding: 8px; }
+    .count-show .num { font-size: 46px; }
+    .tap { font-size: 20px; min-height: 128px; }
+    .result .r-name { font-size: 26px; }
+    .e-head { flex-wrap: wrap; }
+    .e-res { flex-basis: 100%; padding-left: 38px; white-space: normal; }
+  }
+  @media (min-width: 1500px) and (min-height: 820px) {
+    .top, main.wrap { zoom: 1.25; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .count-show .num.bump { animation: none; }
+  }
+  @media print {
+    .print-only { display: block; }
+    .wrap { max-width: none; padding: 0; }
+    .print-head { margin: 0 0 10px; font-size: 13px; color: var(--ink-2); }
+    .print-head b { display: block; font-size: 17px; color: var(--ink); }
+    .entry, .entry.is-chosen { break-inside: avoid; border: 1px solid var(--line-2); padding: 10px 12px; }
+    .e-res[data-k] { color: var(--ink); }
+    #fWhy, .chosen .hint { display: none; }
+    .why-print { margin: 0; white-space: pre-wrap; }
+    .basis { margin-top: 16px; font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in"><a class="brand" href="../">읽기 노트 실험실</a><div class="grow who">이 책, 나한테 맞을까?</div><span class="save-state" id="saveState" aria-live="polite"></span></div></header>
+
+<main class="wrap">
+
+  <section class="card intro no-print">
+    <h1>이 책, 나한테 맞을까?</h1>
+    <p class="lead">고른 책을 아무 쪽이나 펴서 한 쪽만 읽어 보고, 나한테 맞는 책인지 가늠해 보는 도구예요.</p>
+    <h2 class="how-h">이렇게 써요</h2>
+    <ol class="how">
+      <li>고른 책을 아무 쪽이나 펴고, 책 제목을 적어요.</li>
+      <li>그 쪽을 읽다가 모르는 낱말이 나올 때마다 큰 단추를 눌러요.</li>
+      <li>다 읽으면 책을 덮고 내용을 내 말로 한두 줄 쓴 뒤, 얼마나 알겠는지 골라요.</li>
+    </ol>
+    <p class="note">여러 권을 펴 보면 아래 기록에 차례로 쌓여요. 견줘 보고 읽을 책을 정해요.</p>
+    <div class="btn-row">
+      <button type="button" class="btn" id="btnExample">예시로 채워 보기</button>
+      <button type="button" class="btn ghost" id="btnReset">처음부터</button>
+    </div>
+  </section>
+
+  <section class="card no-print" id="secBook">
+    <div class="step-tag">1단계</div>
+    <h2>어떤 책을 펴 볼까요?</h2>
+    <p class="sub">머리말보다 본문 가운데쯤을 펴는 게 좋아요.</p>
+    <div class="editing note box" id="editing" hidden>
+      <span id="editingText"></span>
+      <button type="button" class="btn" id="btnNew2">새 책 펴 보기</button>
+    </div>
+    <label class="f" for="fTitle">책 제목</label>
+    <input class="t" id="fTitle" maxlength="80" autocomplete="off">
+    <div class="two">
+      <div>
+        <label class="f" for="fAuthor">지은이 <span class="hint">안 써도 돼요</span></label>
+        <input class="t" id="fAuthor" maxlength="40" autocomplete="off">
+      </div>
+      <div>
+        <label class="f" for="fPage">펼친 쪽 <span class="hint">안 써도 돼요</span></label>
+        <input class="t" id="fPage" maxlength="12" inputmode="numeric" autocomplete="off" placeholder="예: 42">
+      </div>
+    </div>
+  </section>
+
+  <section class="card no-print" id="secCount">
+    <div class="step-tag">2단계</div>
+    <h2>한 쪽을 읽으며 모르는 낱말 세기</h2>
+    <p class="sub">뜻을 모르는 낱말이 나올 때마다 눌러요. 찾아보지 말고 세기만 하면서 그 쪽 끝까지 읽어요.</p>
+    <div class="counter">
+      <p class="count-show" aria-live="polite"><span class="num" id="num">0</span><span class="unit">개</span></p>
+      <button type="button" class="tap" id="btnTap">모르는 낱말이 나왔어요</button>
+    </div>
+    <div class="btn-row counter-sub">
+      <button type="button" class="btn" id="btnMinus">하나 빼기</button>
+      <button type="button" class="btn ghost" id="btnZero">0으로</button>
+    </div>
+    <label class="f" for="fWords">기억나는 모르는 낱말 <span class="hint">안 써도 돼요, 쉼표로 나눠요</span></label>
+    <input class="t" id="fWords" maxlength="200" autocomplete="off">
+  </section>
+
+  <section class="card no-print" id="secSum">
+    <div class="step-tag">3단계</div>
+    <h2>읽은 쪽을 내 말로 쓰기</h2>
+    <p class="sub">책을 덮고, 그 쪽에 무슨 내용이 있었는지 친구에게 말하듯 한두 줄 써요. 책 문장을 그대로 옮기지 않아요.</p>
+    <label class="f" for="fSum">그 쪽에 나온 내용</label>
+    <textarea class="t ruled" id="fSum" rows="3" maxlength="400"></textarea>
+    <div class="count" id="sumCount">0자</div>
+    <fieldset class="levels">
+      <legend>얼마나 알겠나요?</legend>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="level" value="most"><span>거의 다 알겠다</span></label>
+        <label class="choice"><input type="radio" name="level" value="half"><span>절반쯤</span></label>
+        <label class="choice"><input type="radio" name="level" value="little"><span>거의 모르겠다</span></label>
+      </div>
+    </fieldset>
+    <div class="btn-row go-row"><button type="button" class="btn primary" id="btnResult">결과 보기</button></div>
+    <p class="err" id="err" role="alert"></p>
+  </section>
+
+  <section class="card result no-print" id="secResult" hidden>
+    <div class="step-tag">결과</div>
+    <p class="r-book" id="rBook"></p>
+    <h2 class="r-name" id="rName" tabindex="-1"></h2>
+    <p class="r-why" id="rWhy"></p>
+    <p class="r-tip"><b>이렇게 읽어 보세요</b><span id="rTip"></span></p>
+    <p class="note">아래 기록에 저장됐어요. 결과는 참고만 하고, 읽을 책은 내가 정해요.</p>
+    <div class="btn-row">
+      <button type="button" class="btn primary" id="btnNext">다른 책 펴 보기</button>
+      <a class="btn" href="#secList">기록 보기</a>
+    </div>
+    <details class="more">
+      <summary>결과는 이렇게 정해요</summary>
+      <table class="rule">
+        <thead><tr><th>얼마나 알겠나요?</th><th>모르는 낱말</th><th>결과</th></tr></thead>
+        <tbody>
+          <tr><td>거의 다 알겠다</td><td>0~1개</td><td>조금 쉬운 책</td></tr>
+          <tr><td>거의 다 알겠다</td><td>2~5개</td><td>딱 맞는 책</td></tr>
+          <tr><td>거의 다 알겠다</td><td>6개 이상</td><td>도전해 볼 책</td></tr>
+          <tr><td>절반쯤</td><td>0~9개</td><td>도전해 볼 책</td></tr>
+          <tr><td>절반쯤</td><td>10개 이상</td><td>지금은 아껴 둘 책</td></tr>
+          <tr><td>거의 모르겠다</td><td>몇 개든</td><td>지금은 아껴 둘 책</td></tr>
+        </tbody>
+      </table>
+      <p class="note">낱말 수는 이 도구가 정한 대략의 기준이에요. 글자가 아주 적은 쪽이었다면 한 쪽 더 펴 보세요. 낱말 수보다 내 말로 옮길 수 있는지가 더 믿을 만해서, 얼마나 알겠는지를 먼저 봐요.</p>
+    </details>
+  </section>
+
+  <section class="card" id="secList">
+    <div class="print-only print-head" id="printHead"></div>
+    <h2>내 책 고르기 기록</h2>
+    <p class="sub no-print">펴 본 책이 차례로 쌓여요. 견줘 보고 읽을 책을 정해요.</p>
+    <p class="tally" id="tally"></p>
+    <div id="list"></div>
+
+    <div class="chosen" id="chosenBox" hidden>
+      <h3>읽기로 정한 책</h3>
+      <p class="chosen-name" id="chosenName"></p>
+      <label class="f" for="fWhy">이 책으로 정한 까닭 <span class="hint">다른 책과 견줘서 써 봐요</span></label>
+      <textarea class="t ruled" id="fWhy" rows="3" maxlength="400"></textarea>
+      <p class="print-only why-print" id="whyPrint"></p>
+    </div>
+
+    <div class="no-print list-tools">
+      <label class="f" for="fName">이름 <span class="hint">제출할 때만, 안 써도 돼요</span></label>
+      <input class="t" id="fName" maxlength="30" autocomplete="off">
+      <div class="btn-row" style="margin-top:12px">
+        <button type="button" class="btn" id="btnPrint">인쇄하기</button>
+        <button type="button" class="btn" id="btnCopy">글로 복사하기</button>
+      </div>
+      <textarea class="t" id="copyBox" rows="8" readonly hidden aria-label="복사할 글"></textarea>
+    </div>
+  </section>
+
+  <p class="basis">근거: 2022 개정 국어과 교육과정 [9국02-08] 「자신의 독서 상황과 수준에 맞는 글을 선정하고 읽기 과정을 점검·조정하며 읽는다.」 · 나민애 교수 특강에서 소개한 방법(아무 쪽이나 펴서 읽어 보고, 조금이라도 이해되면 도전해 보기)을 바탕으로 만들었어요.</p>
+</main>
+
+<footer id="app-credit" style="width:100%;box-sizing:border-box;margin:2.5rem 0 0;padding:14px 12px;text-align:center;font-size:12.5px;line-height:1.6;color:#8a8f98;font-family:system-ui,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;border-top:1px solid rgba(128,128,128,.25);">© 2026 조승재(과학이조선생) · 해누리중학교 · All rights reserved<br><span style="font-size:11px;opacity:.85;">최종 업데이트: 2026-11-08</span></footer>
+
+<script src="../../rn.js"></script>
+<script>
+(function () {
+  'use strict';
+  const { esc, $, $$, store, len, toast, copyText } = window.RN;
+  const KEY = 'rnlab_fit-check_v1';
+  const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+  const LEVELS = { most: '거의 다 알겠다', half: '절반쯤', little: '거의 모르겠다' };
+  const RESULTS = { easy: '조금 쉬운 책', fit: '딱 맞는 책', try: '도전해 볼 책', later: '지금은 아껴 둘 책' };
+  const SMOOTH = (function () {
+    try { return matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'; } catch (e) { return 'auto'; }
+  })();
+
+  // ---------- 상태 ----------
+  const str = v => (typeof v === 'string' ? v : '');
+  function fields(o) {
+    o = o || {};
+    let u = parseInt(o.unknown, 10);
+    if (!isFinite(u) || u < 0) u = 0;
+    if (u > 999) u = 999;
+    return {
+      title: str(o.title).slice(0, 80),
+      author: str(o.author).slice(0, 40),
+      page: str(o.page).slice(0, 12),
+      unknown: u,
+      words: str(o.words).slice(0, 200),
+      summary: str(o.summary).slice(0, 400),
+      level: (typeof o.level === 'string' && has(LEVELS, o.level)) ? o.level : ''
+    };
+  }
+  const blankDraft = () => Object.assign({ id: null, shown: false }, fields({}));
+  const fresh = () => ({ draft: blankDraft(), list: [], chosen: null, why: '', name: '' });
+
+  function load() {
+    const s = store.get(KEY, null);
+    const st = fresh();
+    if (!s || typeof s !== 'object') return st;
+    st.list = (Array.isArray(s.list) ? s.list : [])
+      .filter(e => e && typeof e === 'object' && typeof e.id === 'string' && e.id)
+      .map(e => Object.assign({ id: e.id, at: str(e.at) }, fields(e)))
+      .filter(e => e.title.trim() && e.level);
+    const d = (s.draft && typeof s.draft === 'object') ? s.draft : {};
+    st.draft = Object.assign(blankDraft(), fields(d));
+    if (typeof d.id === 'string' && st.list.some(e => e.id === d.id)) {
+      st.draft.id = d.id;
+      st.draft.shown = true;
+    }
+    st.chosen = (typeof s.chosen === 'string' && st.list.some(e => e.id === s.chosen)) ? s.chosen : null;
+    st.why = str(s.why).slice(0, 400);
+    st.name = str(s.name).slice(0, 30);
+    return st;
+  }
+
+  let state = load();
+  const hadData = store.get(KEY, null) != null;
+
+  function save() {
+    const ok = store.set(KEY, state);
+    const el = $('#saveState');
+    el.textContent = ok ? '이 기기에 저장됨' : '저장 안 됨';
+    el.classList.toggle('bad', !ok);
+  }
+
+  const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const findEntry = id => state.list.find(e => e.id === id) || null;
+  const inList = d => !!(d.id && findEntry(d.id));
+  const hasContent = d => !!(d.title.trim() || d.author.trim() || d.page.trim() || d.words.trim() || d.summary.trim() || d.unknown > 0 || d.level);
+  const pageLabel = p => { p = String(p || '').trim(); return /^\d+$/.test(p) ? p + '쪽' : p; };
+  const oneLine = s => String(s || '').trim().replace(/\s*\n\s*/g, ' ');
+  function today() {
+    const d = new Date();
+    return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.`;
+  }
+
+  // ---------- 판단 ----------
+  function judge(e) {
+    const u = e.unknown;
+    const lv = e.level;
+    let key, why, tip;
+    if (lv === 'little') {
+      key = 'later';
+      why = '그 쪽 내용이 거의 잡히지 않았다고 했어요.' +
+        (u <= 1 ? ' 모르는 낱말은 거의 없었으니, 낱말보다 문장이나 배경지식이 낯설었을 수 있어요.' : ` 모르는 낱말도 ${u}개 나왔어요.`) +
+        ' 지금 억지로 읽기보다 나중에 다시 펴 보면 달라져 있을 수 있어요.';
+      tip = '같은 주제를 다룬 더 쉬운 책을 먼저 읽고, 몇 달 뒤 이 책을 다시 펴 보세요.';
+    } else if (lv === 'half') {
+      if (u >= 10) {
+        key = 'later';
+        why = `절반쯤은 알겠다고 했지만 한 쪽에 모르는 낱말이 ${u}개나 나왔어요. 쪽마다 이만큼 멈춰야 하면 읽다가 지치기 쉬워요.`;
+        tip = '이 주제가 궁금하면 더 쉬운 책으로 낱말을 먼저 익히고, 나중에 이 책을 다시 펴 보세요.';
+      } else {
+        key = 'try';
+        why = '절반쯤은 알겠다고 했어요. 조금이라도 이해되는 책이면 도전해 볼 만해요.' +
+          (u === 0 ? ' 모르는 낱말은 없었으니, 어려운 건 낱말보다 내용이나 배경지식 쪽일 수 있어요.'
+            : u <= 3 ? ` 모르는 낱말은 ${u}개로 적으니, 어려운 건 낱말보다 내용이나 배경지식 쪽일 수 있어요.`
+              : ` 모르는 낱말이 ${u}개라 천천히 읽어야 해요.`);
+        tip = '한 번에 조금씩 나눠 읽고, 막힌 곳은 표시해 두었다가 친구나 선생님과 이야기해 보세요.';
+      }
+    } else {
+      if (u <= 1) {
+        key = 'easy';
+        why = (u === 0 ? '모르는 낱말이 없었고' : '모르는 낱말이 1개뿐이었고') + ' 내용도 거의 다 알겠다고 했어요. 편하게 술술 읽을 수 있는 책이에요.';
+        tip = '편하게 즐기며 읽어도 좋아요. 더 깊이 읽고 싶으면 같은 주제로 조금 더 어려운 책도 한 권 펴 보세요.';
+      } else if (u <= 5) {
+        key = 'fit';
+        why = `모르는 낱말이 ${u}개 있었지만 내용은 거의 다 알겠다고 했어요. 모르는 낱말을 앞뒤 문장으로 짐작하며 읽어 나갈 수 있는 정도예요.`;
+        tip = '모르는 낱말은 앞뒤 문장으로 뜻을 짐작해 보고, 꼭 필요한 것만 찾아보세요.';
+      } else {
+        key = 'try';
+        why = `내용은 거의 다 알겠다고 했지만, 한 쪽에 모르는 낱말이 ${u}개로 많은 편이에요. 낱말을 하나씩 알아 가며 읽으면 읽는 힘이 붙을 책이에요.`;
+        tip = e.words.trim()
+          ? '적어 둔 낱말부터 뜻을 찾아보고, 한 번에 조금씩 나눠 읽어 보세요.'
+          : '모르는 낱말을 몇 개 적어 두었다가 뜻을 찾아보고, 한 번에 조금씩 나눠 읽어 보세요.';
+      }
+      if (len(e.summary) < 15) why += ' 다만 내 말로 쓴 글이 짧아요. 한 줄 더 써 보면 정말 알았는지 확인할 수 있어요.';
+    }
+    return { key: key, name: RESULTS[key], why: why, tip: tip };
+  }
+
+  function check(d) {
+    if (!d.title.trim()) return { msg: '1단계에 책 제목을 적어 주세요.', el: '#fTitle' };
+    if (len(d.summary) < 5) return { msg: '3단계에 읽은 내용을 내 말로 한두 줄 써 주세요.', el: '#fSum' };
+    if (!d.level) return { msg: '얼마나 알겠는지 하나 골라 주세요.', el: 'input[name="level"]' };
+    return null;
+  }
+
+  // 지금 쓰는 내용을 기록 목록에 넣거나 고친다
+  function upsert() {
+    const d = state.draft;
+    const entry = {
+      title: d.title.trim(), author: d.author.trim(), page: d.page.trim(), unknown: d.unknown,
+      words: d.words.trim(), summary: d.summary.trim(), level: d.level
+    };
+    const e = d.id ? findEntry(d.id) : null;
+    if (e) Object.assign(e, entry);
+    else {
+      d.id = newId();
+      state.list.push(Object.assign({ id: d.id, at: new Date().toISOString() }, entry));
+    }
+  }
+
+  // ---------- 그리기 ----------
+  function fillForm() {
+    const d = state.draft;
+    $('#fTitle').value = d.title;
+    $('#fAuthor').value = d.author;
+    $('#fPage').value = d.page;
+    $('#fWords').value = d.words;
+    $('#fSum').value = d.summary;
+    $('#num').textContent = d.unknown;
+    $$('input[name="level"]').forEach(r => { r.checked = (r.value === d.level); });
+    $('#fName').value = state.name;
+    $('#fWhy').value = state.why;
+    $('#whyPrint').textContent = state.why;
+    $('#copyBox').hidden = true;
+    $('#err').textContent = '';
+    renderSumCount();
+    grow($('#fSum'));
+    grow($('#fWhy'));
+  }
+
+  // 글이 길어지면 칸도 늘린다
+  function grow(el) {
+    el.style.height = 'auto';
+    if (el.scrollHeight) el.style.height = (el.scrollHeight + 2) + 'px';
+  }
+  ['#fSum', '#fWhy'].forEach(sel => $(sel).addEventListener('input', ev => grow(ev.target)));
+
+  function renderSumCount() {
+    $('#sumCount').textContent = len(state.draft.summary) + '자';
+  }
+
+  function renderEditing() {
+    const d = state.draft;
+    const box = $('#editing');
+    const idx = d.id ? state.list.findIndex(e => e.id === d.id) : -1;
+    if (idx < 0) { box.hidden = true; return; }
+    box.hidden = false;
+    $('#editingText').textContent = `기록 ${idx + 1}번(『${state.list[idx].title}』)을 고치는 중이에요. 고친 내용은 기록에 바로 반영돼요.`;
+  }
+
+  function renderResult() {
+    const d = state.draft;
+    const sec = $('#secResult');
+    renderEditing();
+    if (!d.shown) { sec.hidden = true; return; }
+    const bad = check(d);
+    if (bad) {
+      sec.hidden = true;
+      $('#err').textContent = bad.msg;
+      return;
+    }
+    $('#err').textContent = '';
+    const r = judge(d);
+    sec.hidden = false;
+    sec.dataset.k = r.key;
+    $('#rBook').textContent = `『${d.title.trim()}』` + (d.page.trim() ? ' ' + pageLabel(d.page) : '');
+    $('#rName').textContent = r.name;
+    $('#rWhy').textContent = r.why;
+    $('#rTip').textContent = r.tip;
+  }
+
+  function renderList() {
+    const L = state.list;
+    const box = $('#list');
+    if (!L.length) {
+      box.innerHTML = '<p class="empty">아직 펴 본 책이 없어요. 위에서 한 권을 펴 보고 「결과 보기」를 누르면 여기에 쌓여요.</p>';
+      $('#tally').textContent = '';
+      $('#chosenBox').hidden = true;
+      renderPrintHead();
+      return;
+    }
+    const counts = {};
+    const items = L.map((e, i) => {
+      const r = judge(e);
+      counts[r.key] = (counts[r.key] || 0) + 1;
+      const chosen = state.chosen === e.id;
+      const sub = [e.author, pageLabel(e.page)].filter(Boolean).join(' · ');
+      return `<article class="entry${chosen ? ' is-chosen' : ''}">
+        <div class="e-head">
+          <span class="e-no">${i + 1}</span>
+          <div class="e-ttl"><b>『${esc(e.title)}』</b>${sub ? `<span class="e-sub">${esc(sub)}</span>` : ''}${chosen ? '<span class="e-mark">읽기로 정한 책</span>' : ''}</div>
+          <span class="e-res" data-k="${r.key}">${esc(r.name)}</span>
+        </div>
+        <dl class="e-meta">
+          <dt>모르는 낱말</dt><dd>${e.unknown}개${e.words ? ' (' + esc(e.words) + ')' : ''}</dd>
+          <dt>얼마나 알겠나</dt><dd>${esc(LEVELS[e.level])}</dd>
+        </dl>
+        <p class="e-sum">${esc(e.summary)}</p>
+        <p class="e-why">${esc(r.why)}</p>
+        <div class="btn-row no-print">
+          <button type="button" class="btn" data-act="open" data-id="${esc(e.id)}">다시 열기</button>
+          <button type="button" class="btn${chosen ? ' primary' : ''}" data-act="choose" data-id="${esc(e.id)}" aria-pressed="${chosen}">${chosen ? '정한 것 취소' : '이 책으로 정하기'}</button>
+          <button type="button" class="btn ghost" data-act="del" data-id="${esc(e.id)}">지우기</button>
+        </div>
+      </article>`;
+    });
+    box.innerHTML = items.join('');
+    const parts = Object.keys(RESULTS).filter(k => counts[k]).map(k => `${RESULTS[k]} ${counts[k]}권`);
+    $('#tally').textContent = `펴 본 책 ${L.length}권 · ` + parts.join(' · ');
+
+    const c = state.chosen ? findEntry(state.chosen) : null;
+    $('#chosenBox').hidden = false;
+    $('#chosenName').textContent = c
+      ? `『${c.title}』 (${judge(c).name})`
+      : '아직 안 정했어요. 위 기록에서 「이 책으로 정하기」를 눌러요.';
+    if (!$('#fWhy').style.height || $('#fWhy').style.height === 'auto') grow($('#fWhy'));
+    renderPrintHead();
+  }
+
+  function renderPrintHead() {
+    const name = state.name.trim();
+    $('#printHead').innerHTML = '<b>이 책, 나한테 맞을까?</b>' +
+      esc((name ? '이름: ' + name + ' · ' : '') + today());
+  }
+
+  function renderAll() {
+    fillForm();
+    renderResult();
+    renderList();
+  }
+
+  // ---------- 지금 쓰는 칸이 바뀔 때 ----------
+  function onDraftChange() {
+    const d = state.draft;
+    if (d.shown) {
+      if (!check(d)) upsert();
+    } else if ($('#err').textContent) {
+      const bad = check(d);
+      $('#err').textContent = bad ? bad.msg : '';
+    }
+    save();
+    renderSumCount();
+    renderResult();
+    renderList();
+  }
+
+  [['#fTitle', 'title'], ['#fAuthor', 'author'], ['#fPage', 'page'], ['#fWords', 'words'], ['#fSum', 'summary']].forEach(([sel, f]) => {
+    $(sel).addEventListener('input', ev => { state.draft[f] = ev.target.value; onDraftChange(); });
+  });
+  $$('input[name="level"]').forEach(r => {
+    r.addEventListener('change', () => { if (r.checked) { state.draft.level = r.value; onDraftChange(); } });
+  });
+
+  // 세기
+  function setCount(n) {
+    state.draft.unknown = Math.max(0, Math.min(999, n));
+    const num = $('#num');
+    num.textContent = state.draft.unknown;
+    num.classList.remove('bump');
+    void num.offsetWidth;
+    num.classList.add('bump');
+    onDraftChange();
+  }
+  $('#btnTap').addEventListener('click', () => {
+    setCount(state.draft.unknown + 1);
+    try { if (navigator.vibrate) navigator.vibrate(12); } catch (e) {}
+  });
+  $('#btnMinus').addEventListener('click', () => {
+    if (state.draft.unknown > 0) setCount(state.draft.unknown - 1);
+  });
+  $('#btnZero').addEventListener('click', () => {
+    if (state.draft.unknown === 0) return;
+    if (!confirm('모르는 낱말 수를 0으로 되돌릴까요?')) return;
+    setCount(0);
+  });
+
+  // 결과 보기
+  $('#btnResult').addEventListener('click', () => {
+    const bad = check(state.draft);
+    if (bad) {
+      $('#err').textContent = bad.msg;
+      const el = $(bad.el);
+      if (el) el.focus();
+      return;
+    }
+    $('#err').textContent = '';
+    state.draft.shown = true;
+    upsert();
+    save();
+    renderResult();
+    renderList();
+    $('#secResult').scrollIntoView({ behavior: SMOOTH, block: 'start' });
+    $('#rName').focus({ preventScroll: true });
+  });
+
+  // 새 책
+  function startNew() {
+    const d = state.draft;
+    if (!inList(d) && hasContent(d) && !confirm('지금 적은 내용은 기록에 남지 않아요. 새 책으로 시작할까요?')) return;
+    state.draft = blankDraft();
+    save();
+    renderAll();
+    $('#secBook').scrollIntoView({ behavior: SMOOTH, block: 'start' });
+    $('#fTitle').focus({ preventScroll: true });
+  }
+  $('#btnNext').addEventListener('click', startNew);
+  $('#btnNew2').addEventListener('click', startNew);
+
+  // 기록 목록의 단추
+  $('#list').addEventListener('click', ev => {
+    const b = ev.target.closest('button[data-act]');
+    if (!b) return;
+    const id = b.dataset.id;
+    const e = findEntry(id);
+    if (!e) return;
+    const act = b.dataset.act;
+    if (act === 'open') {
+      const d = state.draft;
+      if (d.id !== id && !inList(d) && hasContent(d) && !confirm('지금 적던 내용은 기록에 남지 않아요. 이 기록을 열까요?')) return;
+      state.draft = Object.assign(blankDraft(), fields(e), { id: e.id, shown: true });
+      save();
+      renderAll();
+      $('#secBook').scrollIntoView({ behavior: SMOOTH, block: 'start' });
+    } else if (act === 'choose') {
+      state.chosen = (state.chosen === id) ? null : id;
+      save();
+      renderList();
+      const sid = (window.CSS && CSS.escape) ? CSS.escape(id) : id;
+      const again = $(`#list button[data-act="choose"][data-id="${sid}"]`);
+      if (again) again.focus();
+    } else if (act === 'del') {
+      if (!confirm(`『${e.title}』 기록을 지울까요? 되돌릴 수 없어요.`)) return;
+      state.list = state.list.filter(x => x.id !== id);
+      if (state.chosen === id) state.chosen = null;
+      if (state.draft.id === id) state.draft = blankDraft();
+      save();
+      renderAll();
+      toast('기록을 지웠어요.');
+    }
+  });
+
+  // 이름, 정한 까닭
+  $('#fName').addEventListener('input', ev => { state.name = ev.target.value; save(); renderPrintHead(); });
+  $('#fWhy').addEventListener('input', ev => { state.why = ev.target.value; save(); $('#whyPrint').textContent = state.why; });
+
+  // ---------- 인쇄, 복사 ----------
+  function buildText() {
+    const lines = ['[이 책, 나한테 맞을까? 내 책 고르기 기록]'];
+    if (state.name.trim()) lines.push('이름: ' + state.name.trim());
+    lines.push('날짜: ' + today());
+    state.list.forEach((e, i) => {
+      const r = judge(e);
+      const sub = [e.author, pageLabel(e.page)].filter(Boolean).join(' · ');
+      lines.push('');
+      lines.push(`${i + 1}. 『${e.title}』` + (sub ? ' ' + sub : ''));
+      lines.push(`   결과: ${r.name}`);
+      lines.push(`   모르는 낱말: ${e.unknown}개` + (e.words ? ` (${e.words})` : ''));
+      lines.push(`   얼마나 알겠나: ${LEVELS[e.level]}`);
+      lines.push(`   내 말로: ${oneLine(e.summary)}`);
+      lines.push(`   까닭: ${r.why}`);
+    });
+    const c = state.chosen ? findEntry(state.chosen) : null;
+    lines.push('');
+    lines.push('읽기로 정한 책: ' + (c ? `『${c.title}』` : '아직 안 정함'));
+    if (state.why.trim()) lines.push('정한 까닭: ' + oneLine(state.why));
+    return lines.join('\n');
+  }
+
+  $('#btnPrint').addEventListener('click', () => {
+    if (!state.list.length) { toast('아직 기록이 없어요. 책을 한 권 펴 보고 결과를 먼저 봐요.'); return; }
+    renderPrintHead();
+    window.print();
+  });
+
+  $('#btnCopy').addEventListener('click', () => {
+    if (!state.list.length) { toast('아직 기록이 없어요. 책을 한 권 펴 보고 결과를 먼저 봐요.'); return; }
+    const box = $('#copyBox');
+    box.hidden = true;
+    copyText(buildText(), box).then(ok => {
+      toast(ok ? '복사했어요. 제출할 곳에 붙여 넣어요.' : '아래 칸의 글을 직접 골라 복사해 주세요.');
+    });
+  });
+
+  // ---------- 예시, 처음부터 ----------
+  const EXAMPLE = [
+    {
+      title: '물이 끓는 동안 생기는 일', author: '예시로 만든 가상의 책', page: '42', unknown: 3,
+      words: '대류, 기화, 응결',
+      summary: '냄비 바닥의 물이 먼저 따뜻해지면 위로 올라가고 위쪽의 차가운 물은 아래로 내려오면서, 물 전체가 돌며 데워진다(이걸 대류라고 하는 것 같다). 끓을 때 생기는 큰 거품은 공기가 아니라 물이 기체로 변한 수증기라고 한다.',
+      level: 'most'
+    },
+    {
+      title: '별빛이 늦게 도착하는 까닭', author: '예시로 만든 가상의 책', page: '87', unknown: 8,
+      words: '광년, 분광기, 흡수선, 성간 물질',
+      summary: '멀리 있는 별의 빛은 우리에게 오기까지 오래 걸려서, 지금 보는 별빛은 오래전에 별을 떠난 빛이다. 별빛을 무지개처럼 색깔별로 나누어 보면 별이 무엇으로 되어 있는지 알 수 있다는데, 어떻게 아는지는 아직 잘 모르겠다.',
+      level: 'half'
+    }
+  ];
+  const EXAMPLE_WHY = '별 책도 궁금했지만 낱말을 찾아 가며 천천히 읽어야 할 것 같다. 그래서 이번에는 물 책을 먼저 읽고, 별 책은 방학 때 도전하기로 했다.';
+
+  $('#btnExample').addEventListener('click', () => {
+    const busy = state.list.length || hasContent(state.draft) || state.why.trim();
+    if (busy && !confirm('지금 적은 내용과 기록을 지우고 예시로 채울까요?')) return;
+    const name = state.name;
+    state = fresh();
+    state.name = name;
+    const base = Date.now();
+    EXAMPLE.forEach((x, i) => {
+      state.list.push(Object.assign({ id: newId() + i, at: new Date(base + i * 60000).toISOString() }, fields(x)));
+    });
+    const last = state.list[state.list.length - 1];
+    state.draft = Object.assign(blankDraft(), fields(last), { id: last.id, shown: true });
+    state.chosen = state.list[0].id;
+    state.why = EXAMPLE_WHY;
+    save();
+    renderAll();
+    $('#secBook').scrollIntoView({ behavior: SMOOTH, block: 'start' });
+    toast('가상의 책 두 권으로 채웠어요. 아래로 내려 결과와 기록을 봐요.');
+  });
+
+  $('#btnReset').addEventListener('click', () => {
+    if (!confirm('적은 내용과 기록을 모두 지우고 처음부터 할까요? 되돌릴 수 없어요.')) return;
+    state = fresh();
+    store.del(KEY);
+    $('#err').textContent = '';
+    renderAll();
+    const el = $('#saveState');
+    el.textContent = '모두 지웠어요';
+    el.classList.remove('bad');
+    window.scrollTo({ top: 0, behavior: SMOOTH });
+  });
+
+  // ---------- 시작 ----------
+  renderAll();
+  if (hadData) $('#saveState').textContent = '이 기기에 저장됨';
+})();
+</script>
+</body>
+</html>

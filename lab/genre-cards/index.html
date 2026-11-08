@@ -1,0 +1,857 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>장르별 질문 카드 · 읽기 노트 실험실</title><meta name="description" content="선생님이 칠판에 띄워, 장르를 고르면 그 장르를 읽고 함께 이야기할 질문 카드가 한 장씩 크게 나오는 도구">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../../rn.css">
+<style>
+  .intro ol { margin: 6px 0 14px; padding-left: 1.4em; }
+  .intro li { margin: 2px 0; }
+  .how-t { font-weight: 700; margin-top: 4px; }
+
+  /* 장르 고르기 */
+  .genres { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-top: 10px; }
+  .gbtn {
+    min-height: 56px; padding: 6px 10px; border-radius: 12px;
+    border: 2px solid var(--line-2); background: var(--paper);
+    font-weight: 700; font-size: 17px; cursor: pointer;
+  }
+  .gbtn:hover { border-color: var(--ink-2); }
+  .gbtn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+
+  /* 칠판 카드 */
+  .stage { scroll-margin-top: 72px; }
+  .st-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .st-genre { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--accent); line-height: 1.3; }
+  .st-look { color: var(--muted); font-size: clamp(14px, 1.3vw, 18px); }
+  .st-pos { font-weight: 700; color: var(--ink-2); font-size: clamp(15px, 1.5vw, 20px); white-space: nowrap; font-variant-numeric: tabular-nums; padding-top: 4px; }
+  .st-book { margin-top: 6px; font-weight: 600; color: var(--ink-2); font-size: clamp(15px, 1.5vw, 20px); }
+  .qcard {
+    margin: 14px 0; border: 2px solid var(--line-2); border-radius: var(--radius); background: var(--paper);
+    min-height: clamp(220px, 44vh, 600px);
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    padding: clamp(20px, 4vw, 56px); text-align: center;
+  }
+  .qcard[data-size="0"] { --qs: clamp(20px, 2.4vw, 34px); }
+  .qcard[data-size="1"] { --qs: clamp(24px, 3.4vw, 46px); }
+  .qcard[data-size="2"] { --qs: clamp(28px, 4.4vw, 60px); }
+  .qcard[data-size="3"] { --qs: clamp(32px, 5.6vw, 78px); }
+  .qtext { margin: 0; font-size: var(--qs, 28px); font-weight: 700; line-height: 1.45; letter-spacing: -.01em; max-width: 26em; }
+  .qtext.empty { font-size: 18px; font-weight: 500; color: var(--muted); }
+  .q-mine { margin-top: 14px; font-size: 14px; color: var(--muted); }
+  .qcard.turn .qtext { animation: turn .28s ease-out; }
+  @keyframes turn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .qcard.turn .qtext { animation: none; } }
+
+  .ctl { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ctl .big { flex: 1 1 160px; min-height: 60px; font-size: 19px; border-radius: 14px; }
+  .ctl-2 { margin-top: 8px; }
+  .ctl-2 .btn { flex: 1 1 auto; }
+  .btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+
+  /* 타이머 */
+  .timer { margin-top: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .timer.done { background: var(--warn-soft); border-radius: 10px; padding: 12px; border-top-color: transparent; }
+  .t-label { font-weight: 700; color: var(--ink-2); }
+  .t-mins { display: flex; gap: 6px; }
+  .t-mins .btn { padding: 0 14px; }
+  .clock { font-size: clamp(30px, 3.6vw, 52px); font-weight: 800; font-variant-numeric: tabular-nums; min-width: 4.4ch; text-align: center; line-height: 1.2; }
+  .clock.soon, .timer.done .clock { color: var(--warn); }
+  .t-msg { font-weight: 700; color: var(--warn); }
+  .t-msg:empty { display: none; }
+  .snd { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-size: 14px; color: var(--ink-2); cursor: pointer; margin-left: auto; }
+  .snd input { width: 20px; height: 20px; margin: 0; }
+  .keys { margin: 10px 0 0; }
+
+  /* 전체 화면 */
+  #stage:fullscreen { margin: 0; border: 0; border-radius: 0; width: 100%; height: 100%; overflow: auto; display: flex; flex-direction: column; padding: 3vh 4vw; background: var(--paper); }
+  #stage:fullscreen .qcard { flex: 1; min-height: 0; }
+  #stage:fullscreen .keys { display: none; }
+  #stage:-webkit-full-screen { margin: 0; border: 0; border-radius: 0; width: 100%; height: 100%; overflow: auto; display: flex; flex-direction: column; padding: 3vh 4vw; background: var(--paper); }
+  #stage:-webkit-full-screen .qcard { flex: 1; min-height: 0; }
+  #stage:-webkit-full-screen .keys { display: none; }
+  #stage::backdrop { background: var(--paper, #fff); }
+
+  /* 카드 고치기 */
+  .mg-list { list-style: none; margin: 8px 0 0; padding: 0; border-top: 1px solid var(--line); }
+  .mg-list li { display: flex; gap: 10px; align-items: flex-start; padding: 8px; border-bottom: 1px solid var(--line); }
+  .mg-list li.now { background: var(--accent-soft); }
+  .mg-list .num { flex: 0 0 2em; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 10px; text-align: right; }
+  .mg-list .txt { flex: 1; min-width: 0; padding-top: 10px; }
+  .mg-list li.off .qt { color: var(--muted); text-decoration: line-through; }
+  .mg-list .by { display: block; font-size: 13px; color: var(--muted); }
+  .mg-list .acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .li-btn { padding: 0 14px; font-size: 14px; }
+  @media (max-width: 560px) {
+    .mg-list li { flex-wrap: wrap; }
+    .mg-list .acts { width: 100%; padding-left: calc(2em + 10px); justify-content: flex-start; }
+    .snd { margin-left: 0; }
+  }
+
+  .basis { font-size: 12.5px; margin-top: 22px; line-height: 1.6; }
+  .print-only { display: none; }
+
+  @media print {
+    main.wrap > :not(#printArea) { display: none !important; }
+    #printArea { display: block !important; }
+    .wrap { max-width: none; padding: 0; }
+    .psec h2 { font-size: 16pt; margin: 0 0 2mm; }
+    .pbook, .plook { margin: 0 0 2mm; font-size: 10.5pt; color: var(--ink-2); }
+    .pgrid { margin-top: 4mm; }
+    .pcard {
+      display: inline-block; vertical-align: top; box-sizing: border-box;
+      width: calc(50% - 3mm); margin: 0 1.5mm 3mm; min-height: 42mm; padding: 5mm;
+      border: 1px dashed var(--line-2); break-inside: avoid; page-break-inside: avoid;
+    }
+    .pk { font-size: 9.5pt; color: var(--muted); margin-bottom: 2mm; }
+    .pq { font-size: 14pt; font-weight: 600; line-height: 1.5; }
+    .psec + .psec { break-before: page; page-break-before: always; }
+    @page { size: A4; margin: 12mm; }
+  }
+</style>
+</head>
+<body>
+<header class="top wide"><div class="top-in"><a class="brand" href="../">읽기 노트 실험실</a><div class="grow who">장르별 질문 카드</div><span class="save-state" id="saveState">자동 저장</span></div></header>
+
+<main class="wrap wide">
+  <section class="card intro">
+    <h2>장르별 질문 카드</h2>
+    <p class="sub">책의 장르를 고르면, 다 읽고 함께 이야기할 질문 카드가 칠판에 한 장씩 크게 나와요.</p>
+    <div class="how-t">이렇게 써요</div>
+    <ol>
+      <li>오늘 읽은 책의 장르를 고르고 책 제목을 적어요.</li>
+      <li>카드를 한 장 띄우고 타이머를 맞춘 뒤 모둠마다 이야기를 나눠요.</li>
+      <li>다음 카드로 넘기거나 섞어요. 필요한 질문은 「카드 고치기」에서 직접 더해요.</li>
+    </ol>
+    <div class="btn-row">
+      <button type="button" class="btn" id="exBtn">예시로 채워 보기</button>
+      <button type="button" class="btn ghost" id="resetBtn">처음부터</button>
+    </div>
+  </section>
+
+  <section class="card pick">
+    <h2>장르</h2>
+    <div class="genres" id="genres" role="group" aria-label="장르 고르기"></div>
+    <label class="f" for="bookTitle">오늘 읽은 책이나 글 <span class="hint">칠판 카드 위에 같이 보여요</span></label>
+    <input class="t" id="bookTitle" maxlength="80" autocomplete="off" placeholder="예: 모둠마다 고른 과학 교양서">
+  </section>
+
+  <section class="card stage" id="stage" aria-label="질문 카드">
+    <div class="st-head">
+      <div>
+        <div class="st-genre" id="stGenre"></div>
+        <div class="st-look" id="stLook"></div>
+      </div>
+      <div class="st-pos" id="stPos"></div>
+    </div>
+    <div class="st-book" id="stBook" hidden></div>
+    <div class="qcard" id="qcard" data-size="1">
+      <p class="qtext" id="qtext" aria-live="polite"></p>
+      <div class="q-mine" id="qMine" hidden>선생님이 더한 카드</div>
+    </div>
+    <div class="ctl">
+      <button type="button" class="btn big" id="prevBtn">이전 카드</button>
+      <button type="button" class="btn primary big" id="nextBtn">다음 카드</button>
+    </div>
+    <div class="ctl ctl-2">
+      <button type="button" class="btn" id="shufBtn">섞기</button>
+      <button type="button" class="btn" id="unshufBtn">처음 순서로</button>
+      <button type="button" class="btn" id="smallBtn">글씨 작게</button>
+      <button type="button" class="btn" id="bigBtn">글씨 크게</button>
+      <button type="button" class="btn" id="fsBtn">전체 화면</button>
+    </div>
+    <div class="timer" id="timerBox">
+      <span class="t-label">타이머</span>
+      <div class="t-mins" role="group" aria-label="타이머 시간">
+        <button type="button" class="btn" data-min="1" aria-pressed="false">1분</button>
+        <button type="button" class="btn" data-min="3" aria-pressed="true">3분</button>
+        <button type="button" class="btn" data-min="5" aria-pressed="false">5분</button>
+      </div>
+      <span class="clock" id="clock" role="timer">03:00</span>
+      <button type="button" class="btn primary" id="tStart">시작</button>
+      <button type="button" class="btn" id="tReset">다시</button>
+      <span class="t-msg" id="tMsg" aria-live="assertive"></span>
+      <label class="snd"><input type="checkbox" id="sound" checked> 끝나면 소리</label>
+    </div>
+    <p class="note keys">← → 키나 발표용 리모컨으로도 카드를 넘길 수 있어요.</p>
+  </section>
+
+  <section class="card manage">
+    <h2>카드 고치기</h2>
+    <p class="sub" id="mgCount"></p>
+    <ol class="mg-list" id="mgList"></ol>
+    <label class="f" for="newCard">새 카드 더하기 <span class="hint">지금 고른 장르에 들어가요. Ctrl+Enter 로도 더해요.</span></label>
+    <textarea class="t" id="newCard" rows="2" maxlength="200" placeholder="예: 이 인물에게 하고 싶은 말 한 가지는 무엇인가요?"></textarea>
+    <div class="count" id="newCount">0 / 200자</div>
+    <div class="btn-row"><button type="button" class="btn primary" id="addBtn">이 장르에 더하기</button></div>
+  </section>
+
+  <section class="card io">
+    <h2>내보내기 · 가져오기 · 인쇄</h2>
+    <p class="sub">카드 목록을 글로 복사해 다른 기기나 동료 선생님께 옮기고, 받은 글을 붙여 넣어 가져와요. 인쇄하면 오려 쓰는 카드 모양으로 나와요.</p>
+    <div class="btn-row">
+      <button type="button" class="btn" id="cpGenre">이 장르 글로 복사</button>
+      <button type="button" class="btn" id="cpAll">모든 장르 글로 복사</button>
+      <button type="button" class="btn" id="prGenre">이 장르 카드 인쇄</button>
+      <button type="button" class="btn" id="prAll">모든 장르 카드 인쇄</button>
+    </div>
+    <label class="f" for="io">카드 목록 글</label>
+    <textarea class="t" id="io" rows="8" placeholder="[소설]&#10;- 첫 번째 질문&#10;- 두 번째 질문&#10;&#10;[시]&#10;- 첫 번째 질문"></textarea>
+    <p class="note">[장르 이름] 줄 아래에 한 줄에 카드 하나씩 적어요. 장르 줄이 없으면 지금 고른 장르에 들어가요. 이미 있는 카드는 건너뛰어요.</p>
+    <div class="btn-row"><button type="button" class="btn primary" id="impBtn">이 글에서 카드 가져오기</button></div>
+  </section>
+
+  <p class="note basis">근거: 장르마다 읽을 때 눈여겨볼 점이 다르다는 나민애 교수 특강의 장르별 읽기를 바탕으로 질문을 새로 썼어요(특강 문장은 옮기지 않았어요). 함께 읽고 이야기 나누는 사회적 독서 [9국02-01]와 이어져요.</p>
+
+  <div id="printArea" class="print-only"></div>
+</main>
+
+<footer id="app-credit" style="width:100%;box-sizing:border-box;margin:2.5rem 0 0;padding:14px 12px;text-align:center;font-size:12.5px;line-height:1.6;color:#8a8f98;font-family:system-ui,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;border-top:1px solid rgba(128,128,128,.25);">© 2026 조승재(과학이조선생) · 해누리중학교 · All rights reserved<br><span style="font-size:11px;opacity:.85;">최종 업데이트: 2026-11-08</span></footer>
+
+<script src="../../rn.js"></script>
+<script>
+(function () {
+  'use strict';
+  const { esc, $, $$, store, toast, copyText } = window.RN;
+  const KEY = 'rnlab_genre-cards_v1';
+  const MAXLEN = 200;
+
+  // 장르와 기본 카드 (질문은 새로 쓴 것, 출판물 문장 인용 없음)
+  const GENRES = [
+    { k: 'novel', name: '소설', look: '인물·사건·배경, 그리고 작가가 살던 시대', cards: [
+      '작가가 살던 시대가 이 이야기에 어떻게 묻어 있나요? 인물의 말투, 물건, 직업, 규칙에서 찾아봐요.',
+      '주인공이 가장 크게 망설인 장면은 어디인가요? 무엇과 무엇 사이에서 망설였나요?',
+      '처음과 끝에서 가장 많이 달라진 인물은 누구인가요? 무엇이 그 사람을 바꿨나요?',
+      '이 이야기를 다른 인물의 눈으로 다시 쓴다면 누구를 고르겠어요? 무엇이 다르게 보일까요?',
+      '이야기가 벌어지는 장소가 다른 곳이었다면 사건도 달라졌을까요? 장소가 맡은 몫을 말해 봐요.',
+      '작가가 일부러 자세히 말하지 않고 넘어간 곳은 어디인가요? 왜 비워 뒀을까요?',
+      '내가 그 인물이었다면 같은 선택을 했을까요? 다르게 했다면 이야기는 어디로 갔을까요?',
+      '제목이 왜 이것일까요? 다 읽고 나서 제목의 뜻이 다르게 들리나요?',
+      '이야기 속 갈등 가운데 지금 우리 사회에도 있는 것은 무엇인가요?',
+      '마지막 장면 다음 날, 주인공은 무엇을 하고 있을까요? 책 속 근거를 들어 말해 봐요.'
+    ] },
+    { k: 'poem', name: '시', look: '말소리와 되풀이, 떠오르는 장면, 마음이 움직이는 자리', cards: [
+      '마음에 남은 구절 하나를 고르고, 왜 남았는지 말해 봐요.',
+      '이 시에서 말하는 사람은 누구이고, 지금 어떤 처지에 있나요?',
+      '소리 내어 읽었을 때 되풀이되는 말이나 가락은 어디인가요? 그 되풀이가 어떤 느낌을 주나요?',
+      '눈앞에 그려지는 장면 하나를 골라 말로 그려 봐요. 무엇이 보이고 무엇이 들리나요?',
+      '시인은 무엇을 무엇에 빗대었나요? 둘은 어떤 점이 닮았나요?',
+      '감정이 바뀌는 곳은 어디인가요? 어떤 낱말에서 느낌이 달라졌나요?',
+      '행과 연이 끊기는 자리에서 잠깐 멈춰 읽어 봐요. 왜 그 자리에서 끊었을까요?',
+      '제목을 가리고 읽는다면 어떤 제목을 붙이겠어요? 시인이 붙인 제목과 견줘 봐요.',
+      '이 시를 한 문장으로 줄이면 무엇이 빠지나요? 빠진 그것이 시에서 하는 일은 무엇일까요?',
+      '이 시를 누구에게 건네고 싶나요? 왜 그 사람인가요?'
+    ] },
+    { k: 'essay', name: '에세이', look: '글쓴이가 겪은 일과 삶을 대하는 태도', cards: [
+      '글쓴이가 삶을 대하는 태도를 한마디로 말한다면 무엇일까요? 그렇게 본 문장을 짚어 봐요.',
+      '글쓴이가 겪은 일과 그 일에서 떠올린 생각을 나눠 봐요. 생각은 어디서 시작되나요?',
+      '고개가 끄덕여진 곳과 고개가 갸웃해진 곳을 하나씩 골라 봐요.',
+      '글쓴이가 아끼는 것은 무엇인가요? 글에서 여러 번 돌아오는 것을 찾아봐요.',
+      '나도 비슷한 일을 겪은 적이 있나요? 그때 나는 글쓴이와 다르게 생각했나요?',
+      '가장 솔직하다고 느낀 문장은 어디인가요? 왜 그렇게 느꼈나요?',
+      '작은 일상 하나가 큰 생각으로 번지는 곳을 찾아봐요. 어떻게 번졌나요?',
+      '글쓴이에게 편지로 한 가지를 묻는다면 무엇을 묻겠어요?',
+      '이 글을 읽고 내일 해 보고 싶어진 일이 있나요?'
+    ] },
+    { k: 'info', name: '교양서', look: '새로 안 정보와 그것을 받치는 근거', cards: [
+      '내가 몰랐던 정보 하나만 가져간다면 무엇을 고르겠어요? 왜 그것인가요?',
+      '이 책이 답하려는 큰 질문은 무엇인가요? 한 문장으로 말해 봐요.',
+      '글쓴이의 주장 하나와 그 주장을 받치는 근거를 짝지어 봐요.',
+      '그 근거는 믿을 만한가요? 누가 어떻게 알아낸 것인지 책에 나와 있나요?',
+      '읽기 전에 내가 알던 것과 부딪친 내용이 있나요? 지금은 어떻게 생각해요?',
+      '가장 잘 와닿은 예시는 무엇인가요? 그 예시는 무엇을 설명하려고 나왔나요?',
+      '이 내용을 가족에게 1분 안에 설명한다면 어떻게 말하겠어요?',
+      '글쓴이와 생각이 다를 사람은 누구일까요? 그 사람은 무엇이라고 반박할까요?',
+      '읽고 나서 더 찾아보고 싶어진 것은 무엇인가요? 어디서 찾아볼 수 있을까요?',
+      '책이 나온 뒤에 새로 밝혀져 달라졌을 수 있는 내용이 있나요? 어떻게 확인할 수 있을까요?'
+    ] },
+    { k: 'academic', name: '학술서', look: '핵심 낱말, 풀려는 문제, 방법과 결론', cards: [
+      '제목과 목차에서 되풀이되는 핵심 낱말을 찾아, 친구에게 설명하듯 말해 봐요.',
+      '이 글이 풀려는 문제는 무엇이고, 글쓴이는 왜 그 문제가 중요하다고 하나요?',
+      '글쓴이는 어떤 방법으로 답을 찾았나요? 실험인가요, 조사인가요, 다른 글을 살핀 것인가요?',
+      '낯선 용어 하나를 골라 글 안에서 뜻을 찾아봐요. 글쓴이는 그 낱말을 어떻게 정해 두었나요?',
+      '결론 한 문장을 찾아 내 말로 바꿔 봐요.',
+      '글쓴이가 스스로 밝힌 한계는 무엇인가요? 그 한계 때문에 결론을 어디까지 믿을 수 있을까요?',
+      '표나 그림 하나를 골라, 그것이 보여 주는 것을 말로 풀어 봐요.',
+      '이 글이 기대고 있는 다른 연구는 무엇인가요? 참고 문헌에서 눈에 띄는 것을 찾아봐요.',
+      '이 연구를 이어서 한다면 다음에 무엇을 알아보겠어요?',
+      '서론과 결론만 읽고 짐작한 내용과 본문이 같았나요? 어디가 달랐나요?'
+    ] },
+    { k: 'picture', name: '동화·그림책', look: '그림과 글이 함께 가리키는 세상', cards: [
+      '이 이야기가 가리키는 세상은 어떤 곳인가요? 우리가 사는 세상과 닮은 점을 찾아봐요.',
+      '글에는 없고 그림에만 있는 것을 찾아봐요. 그림이 몰래 들려주는 이야기는 무엇인가요?',
+      '색이 바뀌는 장면이 있나요? 색이 달라질 때 이야기는 어떻게 달라지나요?',
+      '동물이나 물건이 사람처럼 나온다면, 그것은 어떤 사람을 닮았나요?',
+      '같은 말이나 장면이 되풀이되나요? 되풀이될 때마다 무엇이 조금씩 달라지나요?',
+      '어린아이가 읽을 때와 지금 내가 읽을 때 다르게 보이는 것은 무엇인가요?',
+      '표지와 마지막 장을 나란히 놓고 봐요. 무엇이 달라졌나요?',
+      '이 책을 누구에게 읽어 주고 싶나요? 왜 그 사람인가요?',
+      '장을 넘기기 전에 다음 장면을 짐작하게 만든 그림은 어디였나요?',
+      '이야기가 끝난 뒤에 장면 하나를 더 그린다면 무엇을 그리겠어요?'
+    ] }
+  ];
+  const G = {};
+  GENRES.forEach(g => { G[g.k] = g; });
+
+  // 예시: 과학 수업에서 교양서를 읽을 때 쓸 카드
+  const EXAMPLE = {
+    genre: 'info',
+    title: '과학 교양서(모둠마다 고른 책)',
+    cards: [
+      '책에 나온 주장 하나를 골라요. 그 주장이 맞는지 실험으로 확인하려면 무엇을 바꾸고, 무엇을 재고, 무엇을 같게 둬야 할까요?',
+      '책에 나온 숫자 하나를 골라, 무엇을 어떤 단위로 재서 얻은 값인지 말해 봐요.',
+      '글쓴이가 아직 밝혀지지 않았다고 한 부분이 있나요? 과학자들은 그 질문에 어떤 방법으로 다가가고 있을까요?'
+    ]
+  };
+
+  const bid = (g, i) => g + '-' + (i + 1);
+  const norm = t => String(t == null ? '' : t).replace(/\s+/g, '');
+  let seq = 0;
+  const newId = () => 'm' + Date.now().toString(36) + (seq++).toString(36) + Math.random().toString(36).slice(2, 6);
+
+  function blank() {
+    const s = { genre: 'novel', title: '', pos: {}, order: {}, mine: {}, hidden: {}, size: 1, mins: 3, sound: true };
+    GENRES.forEach(g => { s.pos[g.k] = 0; s.mine[g.k] = []; s.hidden[g.k] = []; });
+    return s;
+  }
+
+  function load() {
+    const raw = store.get(KEY, null);
+    const s = blank();
+    if (!raw || typeof raw !== 'object') return { s, had: false };
+    if (G[raw.genre]) s.genre = raw.genre;
+    if (typeof raw.title === 'string') s.title = raw.title.slice(0, 80);
+    if ([0, 1, 2, 3].includes(raw.size)) s.size = raw.size;
+    if ([1, 3, 5].includes(raw.mins)) s.mins = raw.mins;
+    if (typeof raw.sound === 'boolean') s.sound = raw.sound;
+    const o = v => (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
+    const pos = o(raw.pos), order = o(raw.order), mine = o(raw.mine), hidden = o(raw.hidden);
+    GENRES.forEach(g => {
+      const k = g.k;
+      if (Number.isInteger(pos[k]) && pos[k] >= 0) s.pos[k] = pos[k];
+      if (Array.isArray(order[k])) s.order[k] = order[k].filter(x => typeof x === 'string');
+      if (Array.isArray(mine[k])) s.mine[k] = mine[k].filter(c => c && typeof c.id === 'string' && typeof c.t === 'string' && c.t.trim()).map(c => ({ id: c.id, t: c.t.slice(0, MAXLEN) }));
+      if (Array.isArray(hidden[k])) s.hidden[k] = hidden[k].filter(x => typeof x === 'string');
+    });
+    return { s, had: true };
+  }
+
+  const loaded = load();
+  let S = loaded.s;
+
+  function save() {
+    const ok = store.set(KEY, S);
+    const el = $('#saveState');
+    el.textContent = ok ? '이 기기에 저장됨' : '저장 안 됨';
+    el.classList.toggle('bad', !ok);
+    el.title = ok ? '이 브라우저에만 저장돼요.' : '브라우저가 저장을 막고 있어요. 시크릿 창인지 확인해 주세요.';
+  }
+
+  // ---------- 카드 묶음 ----------
+  // 쓰는 카드(뺀 기본 카드 제외) — 기본 순서
+  function deck(g) {
+    const h = S.hidden[g];
+    const b = G[g].cards.map((t, i) => ({ id: bid(g, i), t, mine: false })).filter(c => !h.includes(c.id));
+    return b.concat(S.mine[g].map(c => ({ id: c.id, t: c.t, mine: true })));
+  }
+  // 섞었으면 섞은 순서, 새로 더한 카드는 뒤에 붙음
+  function ordered(g) {
+    const d = deck(g);
+    const ord = S.order[g];
+    if (!Array.isArray(ord)) return d;
+    const map = new Map(d.map(c => [c.id, c]));
+    const out = [];
+    ord.forEach(id => { if (map.has(id)) { out.push(map.get(id)); map.delete(id); } });
+    map.forEach(c => out.push(c));
+    return out;
+  }
+  function cur() {
+    const list = ordered(S.genre);
+    let p = S.pos[S.genre] || 0;
+    if (p > list.length - 1) p = list.length - 1;
+    if (p < 0) p = 0;
+    S.pos[S.genre] = p;
+    return { list, p, card: list[p] || null };
+  }
+  // 목록을 바꿔도 칠판에 떠 있던 카드는 그대로 두기
+  function keepCurrent(fn) {
+    const before = cur().card;
+    const r = fn();
+    if (before) {
+      const i = ordered(S.genre).findIndex(c => c.id === before.id);
+      if (i >= 0) S.pos[S.genre] = i;
+    }
+    cur();
+    return r;
+  }
+
+  function addCard(g, text) {
+    const t = String(text == null ? '' : text).replace(/\s+/g, ' ').trim();
+    if (!t) return 'empty';
+    if (t.length > MAXLEN) return 'long';
+    const n = norm(t);
+    const bi = G[g].cards.findIndex(c => norm(c) === n);
+    if (bi >= 0) {
+      const id = bid(g, bi);
+      if (S.hidden[g].includes(id)) { S.hidden[g] = S.hidden[g].filter(x => x !== id); return 'restored'; }
+      return 'dup';
+    }
+    if (S.mine[g].some(c => norm(c.t) === n)) return 'dup';
+    S.mine[g].push({ id: newId(), t });
+    return 'added';
+  }
+
+  // ---------- 그리기 ----------
+  function renderGenres() {
+    $('#genres').innerHTML = GENRES.map(g =>
+      `<button type="button" class="gbtn" data-g="${g.k}" aria-pressed="${g.k === S.genre}">${esc(g.name)}</button>`
+    ).join('');
+  }
+
+  function renderStage(anim) {
+    const g = G[S.genre];
+    const { list, p, card } = cur();
+    $('#stGenre').textContent = g.name;
+    $('#stLook').textContent = '눈여겨볼 점: ' + g.look;
+    const bt = S.title.trim();
+    $('#stBook').textContent = bt ? '오늘 읽은 글: ' + bt : '';
+    $('#stBook').hidden = !bt;
+    $('#stPos').textContent = list.length ? `${p + 1} / ${list.length}${S.order[S.genre] ? ' · 섞은 순서' : ''}` : '0 / 0';
+    const q = $('#qtext');
+    if (card) {
+      q.textContent = card.t;
+      q.classList.remove('empty');
+      $('#qMine').hidden = !card.mine;
+    } else {
+      q.textContent = '이 장르에 남은 카드가 없어요. 아래 「카드 고치기」에서 카드를 더하거나 뺀 카드를 다시 넣어 주세요.';
+      q.classList.add('empty');
+      $('#qMine').hidden = true;
+    }
+    const qc = $('#qcard');
+    qc.dataset.size = String(S.size);
+    $('#prevBtn').disabled = list.length < 2;
+    $('#nextBtn').disabled = list.length < 2;
+    $('#shufBtn').disabled = list.length < 2;
+    $('#unshufBtn').disabled = !S.order[S.genre];
+    $('#smallBtn').disabled = S.size <= 0;
+    $('#bigBtn').disabled = S.size >= 3;
+    if (anim) { qc.classList.remove('turn'); void qc.offsetWidth; qc.classList.add('turn'); }
+  }
+
+  function renderManage() {
+    const k = S.genre, g = G[k], h = S.hidden[k];
+    const items = g.cards.map((t, i) => ({ id: bid(k, i), t, mine: false, off: h.includes(bid(k, i)) }))
+      .concat(S.mine[k].map(c => ({ id: c.id, t: c.t, mine: true, off: false })));
+    const now = cur().card;
+    const nowId = now ? now.id : '';
+    $('#mgList').innerHTML = items.map((c, i) => {
+      const id = esc(c.id);
+      let acts = c.off ? '' : `<button type="button" class="btn li-btn" data-act="show" data-id="${id}">띄우기</button>`;
+      if (c.mine) acts += `<button type="button" class="btn li-btn" data-act="del" data-id="${id}">지우기</button>`;
+      else if (c.off) acts += `<button type="button" class="btn li-btn" data-act="restore" data-id="${id}">다시 넣기</button>`;
+      else acts += `<button type="button" class="btn li-btn" data-act="hide" data-id="${id}">빼기</button>`;
+      const by = c.mine ? '<span class="by">선생님이 더한 카드</span>' : (c.off ? '<span class="by">뺀 카드</span>' : '');
+      return `<li class="${c.off ? 'off' : ''}${c.id === nowId ? ' now' : ''}"><span class="num">${i + 1}</span><div class="txt"><span class="qt">${esc(c.t)}</span>${by}</div><div class="acts">${acts}</div></li>`;
+    }).join('');
+    const active = items.filter(c => !c.off).length;
+    $('#mgCount').textContent = `${g.name} · 쓰는 카드 ${active}장 · 선생님이 더한 카드 ${S.mine[k].length}장 · 뺀 카드 ${h.length}장`;
+  }
+
+  function renderAll(anim) {
+    renderGenres();
+    renderStage(anim);
+    renderManage();
+    renderTimer();
+    $('#bookTitle').value = S.title;
+    $('#sound').checked = S.sound;
+  }
+
+  // ---------- 카드 넘기기 ----------
+  function go(d) {
+    const { list, p } = cur();
+    const n = list.length;
+    if (n < 2) return;
+    const np = (p + d + n) % n;
+    S.pos[S.genre] = np;
+    save();
+    renderStage(true);
+    renderManage();
+    if (d > 0 && np === 0) toast('첫 카드로 돌아왔어요.');
+  }
+
+  function shuffle() {
+    const ids = deck(S.genre).map(c => c.id);
+    if (ids.length < 2) return;
+    for (let i = ids.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const t = ids[i]; ids[i] = ids[j]; ids[j] = t;
+    }
+    S.order[S.genre] = ids;
+    S.pos[S.genre] = 0;
+    save();
+    renderStage(true);
+    renderManage();
+    toast('카드를 섞었어요. 첫 장부터 보여 줘요.');
+  }
+
+  function unshuffle() {
+    keepCurrent(() => { delete S.order[S.genre]; });
+    save();
+    renderStage(true);
+    renderManage();
+    toast('처음 순서로 돌렸어요.');
+  }
+
+  function setSize(d) {
+    S.size = Math.max(0, Math.min(3, S.size + d));
+    save();
+    renderStage(false);
+  }
+
+  // ---------- 전체 화면 ----------
+  const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+  function toggleFs() {
+    const st = $('#stage');
+    const fail = () => toast('이 브라우저에서는 전체 화면을 열 수 없어요.');
+    try {
+      if (fsEl()) {
+        const ex = document.exitFullscreen || document.webkitExitFullscreen;
+        if (ex) ex.call(document);
+        return;
+      }
+      const req = st.requestFullscreen || st.webkitRequestFullscreen;
+      if (!req) { fail(); return; }
+      const r = req.call(st);
+      if (r && typeof r.catch === 'function') r.catch(fail);
+    } catch (e) { fail(); }
+  }
+  function syncFs() { $('#fsBtn').textContent = fsEl() ? '전체 화면 닫기' : '전체 화면'; }
+
+  // ---------- 타이머 ----------
+  const T = { left: S.mins * 60, end: 0, run: false, h: 0, done: false };
+  const fmt = sec => {
+    sec = Math.max(0, Math.ceil(sec));
+    return String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0');
+  };
+  function renderTimer() {
+    const left = T.run ? (T.end - Date.now()) / 1000 : T.left;
+    const clock = $('#clock');
+    clock.textContent = fmt(left);
+    clock.classList.toggle('soon', T.run && left <= 10);
+    $('#timerBox').classList.toggle('done', T.done);
+    const paused = !T.run && T.left > 0 && T.left < S.mins * 60;
+    $('#tStart').textContent = T.run ? '멈춤' : (paused ? '이어서' : '시작');
+    $$('[data-min]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.min) === S.mins)));
+    $('#tMsg').textContent = T.done ? '시간이 다 됐어요' : '';
+  }
+  function stopTimer() { clearInterval(T.h); T.run = false; }
+  function setMins(m) {
+    S.mins = m;
+    save();
+    stopTimer();
+    T.left = m * 60;
+    T.done = false;
+    renderTimer();
+  }
+  function tick() {
+    const left = (T.end - Date.now()) / 1000;
+    if (left <= 0) {
+      stopTimer();
+      T.left = 0;
+      T.done = true;
+      renderTimer();
+      beep();
+      toast('시간이 다 됐어요.');
+      return;
+    }
+    renderTimer();
+  }
+  function startPause() {
+    if (T.run) {
+      T.left = Math.max(0, (T.end - Date.now()) / 1000);
+      stopTimer();
+      renderTimer();
+      return;
+    }
+    if (T.left <= 0) T.left = S.mins * 60;
+    T.done = false;
+    unlockAudio();
+    T.end = Date.now() + T.left * 1000;
+    T.run = true;
+    clearInterval(T.h);
+    T.h = setInterval(tick, 200);
+    renderTimer();
+  }
+  function resetTimer() {
+    stopTimer();
+    T.left = S.mins * 60;
+    T.done = false;
+    renderTimer();
+  }
+
+  let AC = null;
+  function unlockAudio() {
+    if (!S.sound) return;
+    try {
+      const C = window.AudioContext || window.webkitAudioContext;
+      if (!C) return;
+      AC = AC || new C();
+      if (AC.state === 'suspended') AC.resume();
+    } catch (e) { AC = null; }
+  }
+  function beep() {
+    if (!S.sound || !AC) return;
+    try {
+      const t0 = AC.currentTime + 0.02;
+      [0, 0.35, 0.7].forEach(d => {
+        const o = AC.createOscillator();
+        const gn = AC.createGain();
+        o.type = 'sine';
+        o.frequency.value = 880;
+        gn.gain.setValueAtTime(0.0001, t0 + d);
+        gn.gain.exponentialRampToValueAtTime(0.25, t0 + d + 0.02);
+        gn.gain.exponentialRampToValueAtTime(0.0001, t0 + d + 0.25);
+        o.connect(gn);
+        gn.connect(AC.destination);
+        o.start(t0 + d);
+        o.stop(t0 + d + 0.3);
+      });
+    } catch (e) { /* 소리는 없어도 됨 */ }
+  }
+
+  // ---------- 카드 고치기 ----------
+  function addFromBox() {
+    const box = $('#newCard');
+    const r = keepCurrent(() => addCard(S.genre, box.value));
+    const name = G[S.genre].name;
+    if (r === 'empty') { toast('카드에 넣을 문장을 적어 주세요.'); box.focus(); return; }
+    if (r === 'long') { toast(`카드 한 장은 ${MAXLEN}자까지예요.`); return; }
+    if (r === 'dup') { toast('같은 카드가 이미 있어요.'); return; }
+    box.value = '';
+    updateCount();
+    save();
+    renderStage(false);
+    renderManage();
+    toast(r === 'restored' ? '뺐던 기본 카드를 다시 넣었어요.' : `${name}에 카드를 더했어요. 목록 맨 끝에 있어요.`);
+  }
+  function updateCount() { $('#newCount').textContent = `${$('#newCard').value.length} / ${MAXLEN}자`; }
+
+  function onListClick(e) {
+    const b = e.target.closest('button[data-act]');
+    if (!b) return;
+    const k = S.genre, id = b.dataset.id, act = b.dataset.act;
+    if (act === 'show') {
+      const i = ordered(k).findIndex(c => c.id === id);
+      if (i < 0) return;
+      S.pos[k] = i;
+      save();
+      renderStage(true);
+      renderManage();
+      $('#stage').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    if (act === 'hide') {
+      keepCurrent(() => { if (!S.hidden[k].includes(id)) S.hidden[k].push(id); });
+      toast('카드를 뺐어요. 「다시 넣기」로 되돌릴 수 있어요.');
+    } else if (act === 'restore') {
+      keepCurrent(() => { S.hidden[k] = S.hidden[k].filter(x => x !== id); });
+      toast('카드를 다시 넣었어요.');
+    } else if (act === 'del') {
+      const c = S.mine[k].find(x => x.id === id);
+      if (!c) return;
+      if (!window.confirm('이 카드를 지울까요? 지운 카드는 되돌릴 수 없어요.\n\n' + c.t)) return;
+      keepCurrent(() => { S.mine[k] = S.mine[k].filter(x => x.id !== id); });
+      toast('카드를 지웠어요.');
+    } else return;
+    save();
+    renderStage(false);
+    renderManage();
+  }
+
+  // ---------- 내보내기·가져오기 ----------
+  function exportText(scope) {
+    const gs = scope === 'all' ? GENRES : [G[S.genre]];
+    return gs.map(g => `[${g.name}]\n` + deck(g.k).map(c => '- ' + c.t).join('\n')).join('\n\n');
+  }
+  function copyOut(scope) {
+    const text = exportText(scope);
+    const io = $('#io');
+    io.value = text;
+    copyText(text, io).then(ok => {
+      toast(ok ? '글로 복사했어요. 메모장이나 메신저에 붙여 넣으면 돼요.' : '복사가 막혔어요. 아래 칸의 글을 골라 직접 복사해 주세요.');
+    });
+  }
+
+  const GNAME = {
+    '소설': 'novel', '시': 'poem', '에세이': 'essay', '수필': 'essay',
+    '교양서': 'info', '교양': 'info', '학술서': 'academic', '학술': 'academic', '논문': 'academic',
+    '동화그림책': 'picture', '그림책동화': 'picture', '동화': 'picture', '그림책': 'picture'
+  };
+  const genreOf = name => GNAME[String(name).replace(/[\s·・,/\-]/g, '')] || null;
+
+  function importText(raw) {
+    const res = { added: 0, restored: 0, dup: 0, long: 0, unknown: [] };
+    let g = S.genre, skip = false;
+    String(raw == null ? '' : raw).split(/\r?\n/).forEach(line => {
+      const s = line.trim();
+      if (!s) return;
+      const hm = s.match(/^[\[［【]\s*(.+?)\s*[\]］】]$/) || s.match(/^#{1,6}\s*(.+)$/);
+      if (hm) {
+        const k = genreOf(hm[1]);
+        if (k) { g = k; skip = false; }
+        else { skip = true; if (!res.unknown.includes(hm[1])) res.unknown.push(hm[1]); }
+        return;
+      }
+      if (skip) return;
+      const t = s.replace(/^(?:[-*•·–]\s*|\d{1,3}[.)]\s+)/, '');
+      const r = addCard(g, t);
+      if (r in res) res[r]++;
+    });
+    return res;
+  }
+  function onImport() {
+    const raw = $('#io').value;
+    if (!raw.trim()) { toast('위 칸에 카드 목록 글을 붙여 넣어 주세요.'); $('#io').focus(); return; }
+    const res = keepCurrent(() => importText(raw));
+    const got = res.added + res.restored;
+    save();
+    renderStage(false);
+    renderManage();
+    const bits = [];
+    if (got) bits.push(`카드 ${got}장을 더했어요`);
+    if (res.dup) bits.push(`이미 있는 ${res.dup}장은 건너뛰었어요`);
+    if (res.long) bits.push(`${MAXLEN}자가 넘는 ${res.long}장은 뺐어요`);
+    if (res.unknown.length) bits.push(`모르는 장르 [${res.unknown.join(', ')}] 아래 카드는 건너뛰었어요`);
+    toast(bits.length ? bits.join(' · ') + '.' : '가져올 카드를 찾지 못했어요. 한 줄에 카드 하나씩 적어 주세요.', 4200);
+  }
+
+  // ---------- 인쇄 ----------
+  let printScope = null;
+  function buildPrint(scope) {
+    const gs = scope === 'all' ? GENRES : [G[S.genre]];
+    const bt = S.title.trim();
+    $('#printArea').innerHTML = gs.map(g => {
+      const d = deck(g.k);
+      const cards = d.length
+        ? `<div class="pgrid">${d.map((c, i) => `<div class="pcard"><div class="pk">${esc(g.name)} ${i + 1}</div><div class="pq">${esc(c.t)}</div></div>`).join('')}</div>`
+        : '<p>쓰는 카드가 없어요.</p>';
+      return `<section class="psec"><h2>장르별 질문 카드 · ${esc(g.name)}</h2>${bt && scope !== 'all' ? `<p class="pbook">오늘 읽은 글: ${esc(bt)}</p>` : ''}<p class="plook">눈여겨볼 점: ${esc(g.look)}</p>${cards}</section>`;
+    }).join('');
+  }
+  function doPrint(scope) {
+    printScope = scope;
+    buildPrint(scope);
+    window.print();
+  }
+  window.addEventListener('beforeprint', () => buildPrint(printScope || 'genre'));
+  window.addEventListener('afterprint', () => { printScope = null; });
+
+  // ---------- 예시·처음부터 ----------
+  function fillExample() {
+    stopTimer();
+    S.genre = EXAMPLE.genre;
+    S.title = EXAMPLE.title;
+    let n = 0;
+    EXAMPLE.cards.forEach(t => { if (addCard(S.genre, t) === 'added') n++; });
+    const first = S.mine[S.genre].find(c => norm(c.t) === norm(EXAMPLE.cards[0]));
+    const i = first ? ordered(S.genre).findIndex(c => c.id === first.id) : 0;
+    S.pos[S.genre] = Math.max(0, i);
+    S.mins = 3;
+    T.left = 180;
+    T.done = false;
+    save();
+    renderAll(true);
+    toast(n ? `교양서에 과학 수업용 예시 카드 ${n}장을 더하고 첫 예시 카드를 띄웠어요.` : '예시 카드는 이미 들어 있어요. 첫 예시 카드를 띄웠어요.', 3600);
+    $('#stage').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function resetAll() {
+    if (!window.confirm('선생님이 더한 카드, 뺀 카드, 섞은 순서, 책 제목을 모두 지우고 처음 상태로 돌아갈까요?\n지운 내용은 되돌릴 수 없어요.')) return;
+    stopTimer();
+    store.del(KEY);
+    S = blank();
+    T.left = S.mins * 60;
+    T.done = false;
+    $('#io').value = '';
+    $('#newCard').value = '';
+    updateCount();
+    renderAll(true);
+    const el = $('#saveState');
+    el.textContent = '처음 상태';
+    el.classList.remove('bad');
+    toast('처음 상태로 돌아왔어요.');
+  }
+
+  // ---------- 연결 ----------
+  $('#genres').addEventListener('click', e => {
+    const b = e.target.closest('button[data-g]');
+    if (!b || !G[b.dataset.g] || b.dataset.g === S.genre) return;
+    S.genre = b.dataset.g;
+    save();
+    renderGenres();
+    renderStage(true);
+    renderManage();
+  });
+  $('#bookTitle').addEventListener('input', e => {
+    S.title = e.target.value.slice(0, 80);
+    save();
+    renderStage(false);
+  });
+  $('#prevBtn').addEventListener('click', () => go(-1));
+  $('#nextBtn').addEventListener('click', () => go(1));
+  $('#shufBtn').addEventListener('click', shuffle);
+  $('#unshufBtn').addEventListener('click', unshuffle);
+  $('#smallBtn').addEventListener('click', () => setSize(-1));
+  $('#bigBtn').addEventListener('click', () => setSize(1));
+  $('#fsBtn').addEventListener('click', toggleFs);
+  document.addEventListener('fullscreenchange', syncFs);
+  document.addEventListener('webkitfullscreenchange', syncFs);
+  (function () {
+    const st = $('#stage');
+    if (!(st.requestFullscreen || st.webkitRequestFullscreen)) $('#fsBtn').hidden = true;
+  })();
+
+  $$('[data-min]').forEach(b => b.addEventListener('click', () => setMins(Number(b.dataset.min))));
+  $('#tStart').addEventListener('click', startPause);
+  $('#tReset').addEventListener('click', resetTimer);
+  $('#sound').addEventListener('change', e => {
+    S.sound = e.target.checked;
+    save();
+    if (S.sound) unlockAudio();
+  });
+
+  $('#mgList').addEventListener('click', onListClick);
+  $('#addBtn').addEventListener('click', addFromBox);
+  $('#newCard').addEventListener('input', updateCount);
+  $('#newCard').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); addFromBox(); }
+  });
+
+  $('#cpGenre').addEventListener('click', () => copyOut('genre'));
+  $('#cpAll').addEventListener('click', () => copyOut('all'));
+  $('#prGenre').addEventListener('click', () => doPrint('genre'));
+  $('#prAll').addEventListener('click', () => doPrint('all'));
+  $('#impBtn').addEventListener('click', onImport);
+
+  $('#exBtn').addEventListener('click', fillExample);
+  $('#resetBtn').addEventListener('click', resetAll);
+
+  // 방향키·발표용 리모컨(PageUp/PageDown)으로 넘기기
+  document.addEventListener('keydown', e => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const tg = e.target;
+    if (tg instanceof Element && tg.closest('input, textarea, select, [contenteditable="true"]')) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+  });
+
+  // 처음 그리기
+  T.left = S.mins * 60;
+  renderAll(false);
+  updateCount();
+  if (loaded.had) $('#saveState').textContent = '이 기기에 저장됨';
+})();
+</script>
+</body>
+</html>

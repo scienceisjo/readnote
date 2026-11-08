@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>개념 렌즈 노트 · 읽기 노트 실험실</title><meta name="description" content="개념 하나를 렌즈로 삼아 책을 읽고, 관계맺기·탐색하기·적용하기·전이하기 네 걸음으로 생각을 적는 학생용 기록장">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../../rn.css">
+<style>
+  .card { scroll-margin-top: 72px; }
+  .top .brand { display: inline-flex; align-items: center; min-height: 44px; text-decoration: none; }
+  .page-title { font-size: 26px; line-height: 1.3; margin: 0 0 6px; letter-spacing: -.02em; }
+  .lead { margin: 0; color: var(--ink-2); }
+  .how-h { font-weight: 800; margin: 14px 0 0; }
+  ol.how { margin: 6px 0 14px; padding-left: 1.4em; }
+  ol.how li { margin: 3px 0; }
+
+  .chips .chip { min-height: 44px; padding: 8px 14px; font-size: 14px; text-align: left; line-height: 1.4; }
+  .chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+  .cw { color: var(--accent); font-weight: 800; }
+
+  .pick-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .pick-row input { flex: 1 1 180px; width: auto; }
+  .f-lab { font-weight: 700; font-size: 15px; margin: 18px 0 0; }
+
+  .lens-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .lens-name { font-size: 32px; font-weight: 800; color: var(--accent); line-height: 1.2; letter-spacing: -.02em; }
+  #backBox { margin-top: 12px; }
+  #backBox .btn { margin-top: 8px; }
+  .two { display: grid; gap: 0 12px; grid-template-columns: 1fr; }
+  @media (min-width: 560px) { .two { grid-template-columns: 3fr 2fr; } }
+
+  .steps { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 18px; }
+  @media (min-width: 560px) { .steps { grid-template-columns: repeat(4, 1fr); } }
+  .steps a { display: flex; flex-direction: column; justify-content: center; min-height: 56px; padding: 8px 12px; border: 1px solid var(--line-2); border-radius: 10px; text-decoration: none; color: var(--ink); background: var(--paper); }
+  .steps a b { font-size: 15px; }
+  .steps a span { font-size: 13px; color: var(--muted); }
+  .steps a[data-s="1"] { border-color: var(--accent); }
+  .steps a[data-s="2"] { background: var(--accent-soft); border-color: var(--accent); }
+  .steps a[data-s="2"] span { color: var(--accent); font-weight: 700; }
+
+  .scene { border: 1px solid var(--line); border-radius: 10px; padding: 6px 14px 14px; margin: 14px 0 0; min-width: 0; }
+  .scene legend { font-weight: 800; padding: 0 6px; }
+  .pg { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+  .pg label { font-weight: 700; font-size: 15px; white-space: nowrap; }
+  .pg input { max-width: 170px; }
+
+  .gen { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+  .gen .lead-w { font-weight: 800; font-size: 17px; color: var(--accent); }
+  .gen .mid { font-weight: 700; font-size: 17px; }
+  .gen input { flex: 1 1 220px; width: auto; }
+  .gen-prev { margin-top: 10px; padding: 12px 14px; border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 0 10px 10px 0; font-size: 18px; font-weight: 700; line-height: 1.5; }
+  .gen-prev.empty { color: var(--muted); font-weight: 500; background: var(--bg); border-left-color: var(--line-2); }
+  .link-row { border-top: 1px dashed var(--line-2); margin-top: 16px; }
+
+  .cmp { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 8px; }
+  @media (min-width: 600px) { .cmp { grid-template-columns: 1fr 1fr; } }
+  .cmp-box { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: var(--bg); min-width: 0; }
+  .cmp-box.after { background: var(--paper); border-color: var(--accent); }
+  .cmp-k { display: block; font-size: 14px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+  .cmp-box.after .cmp-k { color: var(--accent); }
+  .cmp-v { font-size: 17px; line-height: 1.65; white-space: pre-wrap; }
+  .cmp-v.empty { color: var(--muted); font-size: 15px; }
+  .cmp-box textarea { font-size: 17px; }
+  .gen-show { font-weight: 700; }
+  .gen-show.empty { color: var(--muted); font-weight: 400; }
+
+  .basis { font-size: 12.5px; margin-top: 24px; line-height: 1.6; }
+  .teacher { margin-top: 10px; }
+  .teacher .pick-row { margin-top: 10px; }
+  #tOut { word-break: break-all; margin-top: 8px; }
+
+  .print-only { display: none; }
+  @media (min-width: 1500px) { body { zoom: 1.3; } }
+
+  @page { size: A4; margin: 14mm 14mm 16mm; }
+  @media print {
+    body { zoom: 1 !important; }
+    body.has-sheet .screen-only, .teacher { display: none !important; }
+    body.has-sheet #sheet { display: block !important; }
+    .wrap { max-width: none; padding: 0; }
+    #sheet { color: #000; font-size: 11pt; line-height: 1.55; }
+    #sheet h1 { font-size: 17pt; margin: 0; }
+    .sh-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; border-bottom: 2px solid #000; padding-bottom: 6px; }
+    .sh-id { font-size: 10.5pt; white-space: nowrap; }
+    .u { display: inline-block; min-width: 26mm; border-bottom: 1px solid #000; height: 1.1em; vertical-align: bottom; }
+    .u.wide { min-width: 48mm; }
+    .sh-meta { margin: 8px 0 0; }
+    .sh-meta b { margin: 0 4px 0 0; }
+    .sh-meta b + span, .sh-meta .gap { margin-right: 14px; }
+    #sheet h2 { font-size: 12.5pt; margin: 14px 0 4px; padding-bottom: 2px; border-bottom: 1px solid #000; break-after: avoid; page-break-after: avoid; }
+    .sh-row { margin: 6px 0; break-inside: avoid; page-break-inside: avoid; }
+    .sh-k { font-weight: 700; font-size: 10pt; color: #333; }
+    .ln { height: 1.9em; border-bottom: 1px solid #888; }
+    .sh-tb { width: 100%; border-collapse: collapse; margin-top: 4px; table-layout: fixed; }
+    .sh-tb th, .sh-tb td { border: 1px solid #666; padding: 4px 6px; vertical-align: top; text-align: left; }
+    .sh-tb th { font-size: 10pt; }
+    .sh-tb .c-p { width: 16mm; }
+    .sh-tb tr { break-inside: avoid; page-break-inside: avoid; }
+    .sh-gen { font-weight: 700; }
+    .sh-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; break-inside: avoid; page-break-inside: avoid; margin-top: 6px; }
+    .sh-two > div { border: 1px solid #666; padding: 6px 8px; }
+    .basis { color: #444; font-size: 8.5pt; margin-top: 14px; }
+  }
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in"><a class="brand" href="../">읽기 노트 실험실</a><div class="grow who">개념 렌즈 노트</div><span class="save-state" id="saveState">자동 저장</span></div></header>
+
+<main class="wrap">
+  <div class="screen-only">
+    <section class="card" id="intro">
+      <h1 class="page-title">개념 렌즈 노트</h1>
+      <p class="lead">개념 하나를 렌즈처럼 들고 책을 읽으면서, 그 개념이 책 속과 내 주변에서 어떻게 드러나는지 적는 노트예요.</p>
+      <p class="how-h">이렇게 써요</p>
+      <ol class="how">
+        <li>렌즈로 쓸 개념을 정하고, 읽기 전에 지금 생각과 질문을 적어요.</li>
+        <li>읽으면서 그 개념이 드러난 장면 세 개를 쪽수와 함께 모아요.</li>
+        <li>우리 주변의 일에 대어 보고, 한 문장으로 묶은 뒤 처음 생각과 견주어 봐요.</li>
+      </ol>
+      <div class="btn-row no-print">
+        <button class="btn" id="exBtn" type="button">예시로 채워 보기</button>
+        <button class="btn ghost" id="resetBtn" type="button">처음부터</button>
+      </div>
+      <p class="note">적은 글은 이 기기의 브라우저에만 저장돼요. 다른 기기에서는 보이지 않아요.</p>
+    </section>
+
+    <section class="card" id="pick" hidden>
+      <h2>렌즈로 쓸 개념 정하기</h2>
+      <p class="sub">선생님이 정해 준 개념이 있으면 그것을 적어요. 없으면 아래에서 골라도 돼요.</p>
+      <div class="pick-row">
+        <input class="t" id="pickIn" maxlength="12" placeholder="예) 변화" aria-label="개념" autocomplete="off">
+        <button class="btn primary" id="pickGo" type="button">이 개념으로 시작</button>
+      </div>
+      <div class="chips" id="pickChips"></div>
+      <p class="err" id="pickErr" role="alert"></p>
+      <div id="pickOld" hidden>
+        <p class="f-lab">이 기기에서 쓰던 노트 이어 쓰기</p>
+        <div class="chips" id="pickOldChips"></div>
+      </div>
+      <div class="btn-row" style="margin-top:14px">
+        <button class="btn" id="pickCancel" type="button" hidden>그대로 두기</button>
+        <button class="btn ghost" id="wipeAll" type="button" hidden>이 기기의 노트 모두 지우기</button>
+      </div>
+    </section>
+
+    <div id="body" hidden>
+      <section class="card" id="lens">
+        <div class="lens-head">
+          <div>
+            <div class="step-tag">이번 렌즈</div>
+            <div class="lens-name" id="lensName"></div>
+          </div>
+          <button class="btn" id="changeBtn" type="button">개념 바꾸기</button>
+        </div>
+        <p class="note" id="lockNote" hidden>선생님이 정한 개념이에요.</p>
+        <div class="warn-box" id="backBox" hidden>
+          <div id="backTxt"></div>
+          <button class="btn" id="backBtn" type="button"></button>
+        </div>
+        <div class="two">
+          <div><label class="f" for="fBook">읽는 책</label><input class="t" id="fBook" data-k="book" maxlength="80" placeholder="책 제목" autocomplete="off"></div>
+          <div><label class="f" for="fAuthor">지은이 <span class="hint">모르면 비워 둬요</span></label><input class="t" id="fAuthor" data-k="author" maxlength="60" autocomplete="off"></div>
+        </div>
+        <nav class="steps" aria-label="네 걸음 바로 가기">
+          <a href="#s1" data-s="0"><b>1 관계맺기</b><span>아직</span></a>
+          <a href="#s2" data-s="0"><b>2 탐색하기</b><span>아직</span></a>
+          <a href="#s3" data-s="0"><b>3 적용하기</b><span>아직</span></a>
+          <a href="#s4" data-s="0"><b>4 전이하기</b><span>아직</span></a>
+        </nav>
+      </section>
+
+      <section class="card" id="s1">
+        <div class="step-tag">1걸음 관계맺기</div>
+        <h2>읽기 전, 지금 내 생각</h2>
+        <p class="sub">정답은 없어요. 지금 떠오르는 대로 써요. 다 읽은 뒤에 이 글과 견주어 봐요.</p>
+        <label class="f" for="fNow"><span data-cj="은"></span> 무엇이라고 생각해요? <span class="hint">한 줄로</span></label>
+        <input class="t" id="fNow" data-k="now" maxlength="160" autocomplete="off">
+        <label class="f" for="fCq">개념적 질문 하나 <span class="hint">책 속 사실 말고, 개념이 어떻게·왜 일어나는지 묻기</span></label>
+        <div class="chips" id="cqChips"></div>
+        <p class="note">눌러서 넣은 뒤, 내 책에 맞게 고쳐 써요.</p>
+        <textarea class="t ruled" id="fCq" data-k="cq" rows="2" maxlength="300"></textarea>
+        <p class="note box" id="factNudge" hidden>책 속 사실을 묻는 질문 같아요. 「왜」나 「어떻게」를 넣어서 다른 책에도 던질 수 있는 질문으로 바꿔 볼까요?</p>
+        <details class="more">
+          <summary>사실 질문과 개념적 질문은 어떻게 달라요?</summary>
+          <p class="note"><b>사실 질문</b>은 답이 책 한 곳에 적혀 있어요. 예) 주인공은 어느 마을에 살까?<br>
+          <b>개념적 질문</b>은 이 책 말고 다른 책, 다른 교과에도 던질 수 있어요. 예) <span id="factEx"></span></p>
+        </details>
+      </section>
+
+      <section class="card" id="s2">
+        <div class="step-tag">2걸음 탐색하기</div>
+        <h2>책에서 <span data-cj="이"></span> 드러난 장면 세 개</h2>
+        <p class="sub">개념이 잘 드러난 장면도, 깨지거나 흔들린 장면도 좋아요. 쪽수를 꼭 적어요.</p>
+        <div id="scenes"></div>
+        <p class="count" id="sceneCount">장면 0/3 씀</p>
+      </section>
+
+      <section class="card" id="s3">
+        <div class="step-tag">3걸음 적용하기</div>
+        <h2>우리 주변의 일에 대어 보기</h2>
+        <p class="sub">교실, 학교, 동네, 뉴스에서 <span data-cj="이"></span> 걸린 일을 하나 골라요.</p>
+        <p class="f-lab">어디의 일인가요?</p>
+        <div class="chips" id="scopeChips"></div>
+        <label class="f" for="fWhat">어떤 일인가요?</label>
+        <textarea class="t ruled" id="fWhat" data-k="what" rows="3" maxlength="600"></textarea>
+        <label class="f" for="fHow">책 속 장면과 견주면 무엇이 닮았고 무엇이 다른가요?</label>
+        <textarea class="t ruled" id="fHow" data-k="how" rows="4" maxlength="800"></textarea>
+      </section>
+
+      <section class="card" id="s4">
+        <div class="step-tag">4걸음 전이하기</div>
+        <h2>한 문장으로 묶고, 다른 곳에서 찾기</h2>
+        <p class="sub">장면 세 개와 우리 주변의 일에 두루 들어맞는 문장을 만들어요.</p>
+        <label class="f" for="fGa">일반화 문장 <span class="hint">「~할 때 ~한다」 꼴</span></label>
+        <div class="gen">
+          <span class="lead-w" id="genLead"></span>
+          <input class="t" id="fGa" data-k="ga" maxlength="120" placeholder="예) 서로 필요한 것을 알" autocomplete="off" aria-label="어떤 때">
+          <span class="mid">때</span>
+          <input class="t" id="fGb" data-k="gb" maxlength="80" placeholder="예) 오래 이어진다" autocomplete="off" aria-label="어떻게 된다">
+        </div>
+        <div class="gen-prev empty" id="genPrev" aria-live="polite"></div>
+        <p class="f-lab">다른 책이나 다른 교과에서도 보이나요?</p>
+        <div id="links"></div>
+      </section>
+
+      <section class="card" id="s5">
+        <div class="step-tag">마무리</div>
+        <h2>처음 생각과 지금 생각</h2>
+        <p class="sub">1걸음에서 쓴 생각 옆에, 다 읽은 지금의 생각을 적어요.</p>
+        <div class="cmp">
+          <div class="cmp-box">
+            <span class="cmp-k">처음 생각 (1걸음)</span>
+            <div class="cmp-v" id="cmpBefore"></div>
+          </div>
+          <div class="cmp-box after">
+            <label class="cmp-k" for="fAfter">지금 생각 (다 읽은 뒤)</label>
+            <textarea class="t ruled" id="fAfter" data-k="after" rows="3" maxlength="300"></textarea>
+          </div>
+        </div>
+        <label class="f" for="fWhy">무엇 때문에 생각이 달라졌나요? <span class="hint">그대로라면 왜 그런지</span></label>
+        <textarea class="t ruled" id="fWhy" data-k="why" rows="3" maxlength="600"></textarea>
+        <p class="f-lab">내 일반화 문장</p>
+        <p class="gen-show" id="cmpGen"></p>
+        <div class="btn-row no-print" style="margin-top:16px">
+          <button class="btn primary" id="printBtn" type="button">인쇄하기</button>
+          <button class="btn" id="copyBtn" type="button">글로 복사하기</button>
+        </div>
+        <p class="note">아무것도 쓰지 않고 인쇄하면 손으로 쓰는 학습지가 돼요.</p>
+        <textarea class="t" id="copyFb" rows="8" readonly hidden aria-label="복사할 글"></textarea>
+
+        <details class="more no-print">
+          <summary>AI에게 질문 받기 (선택)</summary>
+          <p class="note">AI가 답을 써 주는 게 아니라, 내 일반화 문장을 따져 볼 질문을 받는 부탁문이에요. 복사해서 선생님이 허락한 AI에 붙여 넣어요.</p>
+          <p class="note box" id="aiGate">일반화 문장과 장면 두 개 이상을 먼저 써야 열려요.</p>
+          <div class="btn-row" style="margin-top:10px"><button class="btn" id="aiBtn" type="button" disabled>부탁문 복사하기</button></div>
+          <p class="note">받은 질문을 읽고, 일반화 문장을 고칠지 그대로 둘지는 내가 정해요.</p>
+        </details>
+      </section>
+    </div>
+  </div>
+
+  <section id="sheet" class="print-only"></section>
+
+  <p class="note basis">이 노트는 서울시교육청이 소개한 개념탐독 수업 예시의 네 단계(관계맺기, 탐색하기, 적용하기, 전이하기 순서, 2025-12-17 보도자료)를 따라 만든 기록장이에요. 교육청의 공식 양식은 아니에요.</p>
+
+  <details class="more teacher no-print">
+    <summary>개념을 정해서 나눠 줄 주소 만들기 (선생님용)</summary>
+    <p class="note">개념을 적고 주소를 복사해 나눠 주면, 학생 화면에 그 개념이 정해진 채로 열려요. 주소 끝에 ?c=개념 이 붙어요.</p>
+    <div class="pick-row">
+      <input class="t" id="tIn" maxlength="12" placeholder="예) 변화" aria-label="나눠 줄 개념" autocomplete="off">
+      <button class="btn" id="tGo" type="button">주소 복사</button>
+    </div>
+    <p class="note" id="tOut"></p>
+    <textarea class="t" id="tFb" rows="2" readonly hidden aria-label="복사할 주소"></textarea>
+  </details>
+</main>
+
+<footer id="app-credit" style="width:100%;box-sizing:border-box;margin:2.5rem 0 0;padding:14px 12px;text-align:center;font-size:12.5px;line-height:1.6;color:#8a8f98;font-family:system-ui,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;border-top:1px solid rgba(128,128,128,.25);">© 2026 조승재(과학이조선생) · 해누리중학교 · All rights reserved<br><span style="font-size:11px;opacity:.85;">최종 업데이트: 2026-11-08</span></footer>
+
+<script src="../../rn.js"></script>
+<script>
+(function () {
+  'use strict';
+  if (!window.RN) {
+    document.querySelector('main').insertAdjacentHTML('afterbegin', '<p class="err">화면을 여는 데 필요한 파일(rn.js)을 불러오지 못했어요. 새로고침해 주세요.</p>');
+    return;
+  }
+  const { esc, $, $$, store, len, toast, copyText } = window.RN;
+
+  const KEY = 'rnlab_concept-lens_v1';
+  const PICKS = ['관점', '변화', '관계', '공존', '에너지', '정체성', '책임', '균형', '순환', '선택'];
+  const SCOPES = ['우리 교실', '우리 학교', '동네', '우리 사회', '지구 환경'];
+  const SUBJ = ['국어', '과학', '사회', '도덕', '역사', '미술'];
+  const STATE_TXT = ['아직', '쓰는 중', '다 씀'];
+
+  // ---------- 글자 도구 ----------
+  const cleanC = s => String(s == null ? '' : s)
+    .replace(/[<>"'`「」『』\[\]{}\\]/g, '')
+    .replace(/\s+/g, ' ').trim().slice(0, 12);
+  const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  // 받침 있으면 true, 없으면 false, 한글·숫자가 아니면 null
+  function batchim(w) {
+    const ch = String(w).trim().slice(-1);
+    if (!ch) return null;
+    const code = ch.charCodeAt(0);
+    if (code >= 0xAC00 && code <= 0xD7A3) return (code - 0xAC00) % 28 !== 0;
+    if (/[0-9]/.test(ch)) return '013678'.indexOf(ch) >= 0;
+    return null;
+  }
+  const PAIRS = { '은': ['은', '는'], '이': ['이', '가'], '을': ['을', '를'], '과': ['과', '와'], '이라는': ['이라는', '라는'] };
+  function jp(w, p) {
+    const pr = PAIRS[p];
+    if (!pr) return '';
+    const b = batchim(w);
+    return b === null ? pr[0] + '(' + pr[1] + ')' : (b ? pr[0] : pr[1]);
+  }
+  const jo = (w, p) => w + jp(w, p);
+
+  // 개념적 질문 말머리 (어떤 개념에도 어색하지 않은 꼴만)
+  const FRAMES = [
+    c => `${jo(c, '은')} 왜 중요할까?`,
+    c => `${jo(c, '이')} 없다면 어떤 일이 생길까?`,
+    c => `${jo(c, '은')} 다른 것과 어떻게 이어져 있을까?`,
+    c => `${jo(c, '이')} 잘 드러날 때와 잘 안 드러날 때는 무엇이 다를까?`,
+    c => `${jo(c, '을')} 보는 눈은 사람마다 왜 다를까?`
+  ];
+
+  // 책 속 사실을 묻는 질문인지 가볍게 살피기
+  const FACT_START = /^(누가|누구|언제|어디|몇|주인공\s*이름|무슨\s*일이\s*있었)/;
+  const FACT_ANY = /몇\s*(살|명|개|번|쪽|년|시|마리|권)/;
+  const CONCEPT_WORD = /왜|어떻게|어떤\s*(조건|때|경우)|무엇이\s*(필요|다를|달라|같)|까닭|이어|관계|만약/;
+  function factish(q) {
+    q = String(q || '').trim();
+    if (len(q) < 4) return false;
+    return (FACT_START.test(q) || FACT_ANY.test(q)) && !CONCEPT_WORD.test(q);
+  }
+
+  // ---------- 기록 모양 ----------
+  function blank() {
+    return {
+      book: '', author: '', now: '', cq: '',
+      scenes: [0, 1, 2].map(() => ({ p: '', s: '', l: '' })),
+      scope: '', what: '', how: '', ga: '', gb: '',
+      links: [0, 1].map(() => ({ w: '', t: '' })),
+      after: '', why: '', at: ''
+    };
+  }
+  const S = v => (typeof v === 'string' ? v : '');
+  function normNote(n) {
+    n = (n && typeof n === 'object') ? n : {};
+    const b = blank();
+    ['book', 'author', 'now', 'cq', 'scope', 'what', 'how', 'ga', 'gb', 'after', 'why', 'at'].forEach(k => { b[k] = S(n[k]); });
+    const sc = Array.isArray(n.scenes) ? n.scenes : [];
+    b.scenes = b.scenes.map((x, i) => { const o = sc[i] || {}; return { p: S(o.p), s: S(o.s), l: S(o.l) }; });
+    const ln = Array.isArray(n.links) ? n.links : [];
+    b.links = b.links.map((x, i) => { const o = ln[i] || {}; return { w: S(o.w), t: S(o.t) }; });
+    return b;
+  }
+  function hasWriting(n) {
+    if (!n) return false;
+    return [n.now, n.cq, n.scope, n.what, n.how, n.ga, n.gb, n.after, n.why].some(v => len(v) > 0) ||
+      n.scenes.some(x => len(x.p) || len(x.s) || len(x.l)) ||
+      n.links.some(x => len(x.w) || len(x.t));
+  }
+  const hasAny = n => !!n && (hasWriting(n) || len(n.book) > 0 || len(n.author) > 0);
+
+  function loadState() {
+    const raw = store.get(KEY, null);
+    const out = { cur: '', notes: Object.create(null) };
+    if (raw && typeof raw === 'object') {
+      out.cur = cleanC(raw.cur);
+      const ns = (raw.notes && typeof raw.notes === 'object') ? raw.notes : {};
+      Object.keys(ns).forEach(k => { const ck = cleanC(k); if (ck) out.notes[ck] = normNote(ns[k]); });
+    }
+    return out;
+  }
+
+  const LOCK = cleanC(new URLSearchParams(location.search).get('c'));
+  let st = loadState();
+  if (LOCK) st.cur = LOCK;
+  if (st.cur && !st.notes[st.cur]) st.notes[st.cur] = blank();
+  let picking = !st.cur;
+
+  const note = () => (st.cur ? st.notes[st.cur] : null);
+
+  function getPath(o, path) {
+    const v = path.split('.').reduce((a, k) => (a == null ? a : a[k]), o);
+    return typeof v === 'string' ? v : '';
+  }
+  function setPath(o, path, val) {
+    const ks = path.split('.');
+    const last = ks.pop();
+    const t = ks.reduce((a, k) => (a == null ? a : a[k]), o);
+    if (t && typeof t === 'object') t[last] = val;
+  }
+
+  // ---------- 저장 ----------
+  const saveEl = $('#saveState');
+  let tmr = null;
+  function setSave(txt, bad) { saveEl.textContent = txt; saveEl.classList.toggle('bad', !!bad); }
+  const hm = d => d.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
+  function flush() {
+    clearTimeout(tmr); tmr = null;
+    const keep = Object.create(null);
+    Object.keys(st.notes).forEach(k => { if (k === st.cur || hasAny(st.notes[k])) keep[k] = st.notes[k]; });
+    const ok = store.set(KEY, { v: 1, cur: st.cur, notes: keep });
+    if (ok) setSave('저장됨 ' + hm(new Date()));
+    else setSave('이 기기에 저장이 안 돼요', true);
+    return ok;
+  }
+  function dirty() {
+    const n = note();
+    if (n) n.at = new Date().toISOString();
+    setSave('저장 중…');
+    clearTimeout(tmr);
+    tmr = setTimeout(flush, 400);
+  }
+  window.addEventListener('pagehide', () => { if (tmr) flush(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && tmr) flush(); });
+
+  // ---------- 고정 칸 만들기 ----------
+  function build() {
+    $('#pickChips').innerHTML = PICKS.map(p => `<button type="button" class="chip" data-pick="${esc(p)}">${esc(p)}</button>`).join('');
+    $('#scopeChips').innerHTML = SCOPES.map(s => `<button type="button" class="chip" data-scope="${esc(s)}" aria-pressed="false">${esc(s)}</button>`).join('');
+    $('#scenes').innerHTML = [0, 1, 2].map(i => `
+      <fieldset class="scene">
+        <legend>장면 ${i + 1}</legend>
+        <div class="pg"><label for="sp${i}">쪽수</label><input class="t" id="sp${i}" data-k="scenes.${i}.p" maxlength="20" placeholder="예) 45쪽" autocomplete="off"></div>
+        <label class="f" for="ss${i}">무슨 장면인가요? <span class="hint">누가 무엇을 했는지 짧게</span></label>
+        <textarea class="t ruled" id="ss${i}" data-k="scenes.${i}.s" rows="3" maxlength="600"></textarea>
+        <label class="f" for="sl${i}"><span data-cj="과"></span> 어떻게 이어지나요? <span class="hint">이루어졌나요, 깨졌나요, 바뀌었나요?</span></label>
+        <textarea class="t ruled" id="sl${i}" data-k="scenes.${i}.l" rows="3" maxlength="600"></textarea>
+      </fieldset>`).join('');
+    $('#links').innerHTML = [0, 1].map(i => `
+      <div class="link-row">
+        <label class="f" for="lw${i}">${i === 0 ? '어디에서 보이나요?' : '하나 더'} <span class="hint">${i === 0 ? '다른 책 제목이나 교과 이름' : '써도 되고 안 써도 돼요'}</span></label>
+        <input class="t" id="lw${i}" data-k="links.${i}.w" maxlength="60" placeholder="예) 과학, 다른 책 제목" autocomplete="off">
+        <div class="chips">${SUBJ.map(s => `<button type="button" class="chip" data-sub="${esc(s)}" data-row="${i}">${esc(s)}</button>`).join('')}</div>
+        <label class="f" for="lt${i}">거기서 <span data-cj="은"></span> 어떻게 보이나요?</label>
+        <textarea class="t ruled" id="lt${i}" data-k="links.${i}.t" rows="3" maxlength="600"></textarea>
+      </div>`).join('');
+  }
+
+  // ---------- 그리기 ----------
+  function genText(n, c) {
+    let a = n.ga.trim().replace(/\s*때\s*$/, '');
+    a = a.replace(new RegExp('^' + reEsc(c) + '\\s*(은|는|이|가)?\\s+'), '');
+    let b = n.gb.trim();
+    if (!a && !b) return '';
+    if (b && !/[.!?。]$/.test(b)) b += '.';
+    return `${jo(c, '은')} ${a || '____'} 때 ${b || '____.'}`;
+  }
+
+  function stepStates(n) {
+    const s1 = (len(n.now) && len(n.cq)) ? 2 : ((len(n.now) || len(n.cq)) ? 1 : 0);
+    const sc = n.scenes.filter(x => len(x.s) && len(x.l)).length;
+    const s2 = sc === 3 ? 2 : (n.scenes.some(x => len(x.p) || len(x.s) || len(x.l)) ? 1 : 0);
+    const s3 = (len(n.what) && len(n.how)) ? 2 : ((len(n.what) || len(n.how) || n.scope) ? 1 : 0);
+    const lk = n.links.some(x => len(x.w) && len(x.t));
+    const s4 = (len(n.ga) && len(n.gb) && lk) ? 2 : ((len(n.ga) || len(n.gb) || n.links.some(x => len(x.w) || len(x.t))) ? 1 : 0);
+    return [s1, s2, s3, s4];
+  }
+
+  function paintConcept(c) {
+    $$('[data-cj]').forEach(el => { el.innerHTML = `<span class="cw">${esc(c)}</span>${esc(jp(c, el.dataset.cj))}`; });
+    $('#cqChips').innerHTML = FRAMES.map((f, i) => `<button type="button" class="chip" data-cq="${i}">${esc(f(c))}</button>`).join('');
+    $('#factEx').textContent = FRAMES[3](c);
+    $('#genLead').textContent = jo(c, '은');
+    $('#lensName').textContent = c;
+  }
+
+  function renderPicker() {
+    const olds = Object.keys(st.notes).filter(k => hasWriting(st.notes[k]));
+    $('#pickOld').hidden = !olds.length;
+    $('#pickOldChips').innerHTML = olds.map(k => {
+      const b = st.notes[k].book.trim();
+      return `<button type="button" class="chip" data-open="${esc(k)}">${esc(k)}${b ? ' · ' + esc(b) : ''}</button>`;
+    }).join('');
+    $('#pickCancel').hidden = !st.cur;
+    $('#wipeAll').hidden = !Object.keys(st.notes).some(k => hasAny(st.notes[k]));
+    $('#pickErr').textContent = '';
+  }
+
+  function render() {
+    const n = note();
+    const c = st.cur;
+    $('#pick').hidden = !picking;
+    $('#body').hidden = picking || !n;
+    if (picking) renderPicker();
+    if (n && !picking) {
+      paintConcept(c);
+      $$('[data-k]').forEach(el => { const v = getPath(n, el.dataset.k); if (el.value !== v) el.value = v; });
+      $('#changeBtn').hidden = !!LOCK;
+      $('#lockNote').hidden = !(LOCK && c === LOCK);
+      const back = $('#backBox');
+      back.hidden = !(LOCK && c !== LOCK);
+      if (!back.hidden) {
+        $('#backTxt').textContent = `지금은 「${c}」 노트를 보고 있어요.`;
+        $('#backBtn').textContent = `선생님이 정한 「${LOCK}」 노트로 돌아가기`;
+      }
+      document.title = `개념 렌즈 노트 「${c}」 · 읽기 노트 실험실`;
+    } else {
+      document.title = '개념 렌즈 노트 · 읽기 노트 실험실';
+    }
+    derived();
+  }
+
+  function derived() {
+    const n = note();
+    if (!n || picking) return;
+    const c = st.cur;
+    const ss = stepStates(n);
+    const done = n.scenes.filter(x => len(x.s) && len(x.l)).length;
+    $$('.steps a').forEach((a, i) => {
+      const s = ss[i];
+      a.dataset.s = String(s);
+      a.querySelector('span').textContent = (i === 1 && s === 1) ? `장면 ${done}/3` : STATE_TXT[s];
+    });
+    $('#sceneCount').textContent = `장면 ${done}/3 씀`;
+    $$('#scopeChips .chip').forEach(b => {
+      const on = b.dataset.scope === n.scope;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    $('#factNudge').hidden = !factish(n.cq);
+
+    const g = genText(n, c);
+    const prev = $('#genPrev');
+    prev.textContent = g || `${jo(c, '은')} ____ 때 ____.`;
+    prev.classList.toggle('empty', !g);
+
+    const before = n.now.trim();
+    const bEl = $('#cmpBefore');
+    bEl.textContent = before || '1걸음에서 아직 쓰지 않았어요.';
+    bEl.classList.toggle('empty', !before);
+    const gEl = $('#cmpGen');
+    gEl.textContent = g || '4걸음에서 아직 쓰지 않았어요.';
+    gEl.classList.toggle('empty', !g);
+
+    const aiOk = len(n.ga) > 0 && len(n.gb) > 0 && done >= 2;
+    $('#aiBtn').disabled = !aiOk;
+    $('#aiGate').hidden = aiOk;
+  }
+
+  // ---------- 노트 열기·바꾸기 ----------
+  function openNote(raw) {
+    const c = cleanC(raw);
+    if (!c) {
+      $('#pickErr').textContent = '개념을 적거나 아래에서 골라 주세요.';
+      $('#pickIn').focus();
+      return;
+    }
+    const prev = note();
+    if (!st.notes[c]) {
+      const b = blank();
+      if (prev) { b.book = prev.book; b.author = prev.author; }
+      st.notes[c] = b;
+    }
+    st.cur = c;
+    picking = false;
+    flush();
+    render();
+    $('#lens').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ---------- 입력 ----------
+  document.addEventListener('input', e => {
+    const el = e.target.closest('[data-k]');
+    const n = note();
+    if (!el || !n || picking) return;
+    setPath(n, el.dataset.k, el.value);
+    dirty();
+    derived();
+  });
+
+  document.addEventListener('click', e => {
+    const t = e.target.closest('button');
+    if (!t) return;
+    const n = note();
+    if (t.dataset.pick != null) { openNote(t.dataset.pick); return; }
+    if (t.dataset.open != null) { openNote(t.dataset.open); return; }
+    if (!n) return;
+    if (t.dataset.cq != null) {
+      const txt = FRAMES[+t.dataset.cq](st.cur);
+      if (len(n.cq) && n.cq.trim() !== txt && !confirm('지금 쓴 질문 대신 이 질문을 넣을까요?\n넣은 뒤 내 말로 고쳐 써요.')) return;
+      n.cq = txt;
+      const ta = $('#fCq');
+      ta.value = txt;
+      ta.focus();
+      try { ta.setSelectionRange(txt.length, txt.length); } catch (_) { /* 무시 */ }
+      dirty(); derived();
+      return;
+    }
+    if (t.dataset.scope != null) {
+      n.scope = n.scope === t.dataset.scope ? '' : t.dataset.scope;
+      dirty(); derived();
+      return;
+    }
+    if (t.dataset.sub != null) {
+      const i = +t.dataset.row;
+      if (!n.links[i]) return;
+      n.links[i].w = t.dataset.sub;
+      $('#lw' + i).value = n.links[i].w;
+      $('#lt' + i).focus();
+      dirty(); derived();
+    }
+  });
+
+  $('#pickGo').addEventListener('click', () => openNote($('#pickIn').value));
+  $('#pickIn').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); openNote($('#pickIn').value); } });
+  $('#pickCancel').addEventListener('click', () => { picking = false; render(); });
+  $('#changeBtn').addEventListener('click', () => {
+    if (LOCK) return;
+    picking = true;
+    $('#pickIn').value = '';
+    render();
+    $('#pick').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $('#pickIn').focus({ preventScroll: true });
+  });
+  $('#backBtn').addEventListener('click', () => { if (LOCK) openNote(LOCK); });
+
+  $('#wipeAll').addEventListener('click', () => {
+    if (!confirm('이 기기에 저장된 개념 렌즈 노트를 모두 지울까요?\n지운 글은 되돌릴 수 없어요.')) return;
+    clearTimeout(tmr); tmr = null;
+    st = { cur: '', notes: Object.create(null) };
+    store.del(KEY);
+    picking = true;
+    render();
+    setSave('자동 저장');
+    toast('모두 지웠어요.');
+  });
+
+  $('#resetBtn').addEventListener('click', () => {
+    const c = st.cur;
+    if (!c || !note()) { toast('지울 기록이 없어요.'); return; }
+    if (!confirm(`「${c}」 노트에 쓴 글을 모두 지울까요?\n지운 글은 되돌릴 수 없어요.`)) return;
+    delete st.notes[c];
+    if (LOCK) {
+      st.cur = LOCK;
+      if (!st.notes[LOCK]) st.notes[LOCK] = blank();
+      picking = false;
+    } else {
+      st.cur = '';
+      picking = true;
+      $('#pickIn').value = '';
+    }
+    flush();
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast('지웠어요. 처음부터 써요.');
+  });
+
+  // ---------- 예시 (가상의 소설, 개념: 공존) ----------
+  const EXAMPLE = {
+    book: '갯벌 위의 집',
+    author: '가상의 소설(예시)',
+    now: '공존은 서로 싸우지 않고 사이좋게 지내는 것이다.',
+    cq: '서로 원하는 것이 다른데도 같은 곳에서 함께 살려면 무엇이 필요할까?',
+    scenes: [
+      { p: '12쪽', s: '갯벌에 새 보호 구역 팻말이 서자, 조개를 캐며 살아온 마을 사람들이 팻말을 뽑아 버린다. 소은이 할머니는 "새가 사람보다 먼저냐"며 화를 낸다.', l: '공존이 깨진 장면이다. 사람과 새가 같은 갯벌을 쓰는데, 상대가 왜 그곳에 있어야 하는지 서로 모를 때 다툼이 생긴다.' },
+      { p: '58쪽', s: '소은이 연구원을 따라 새를 세다가, 봄에 먼 남쪽에서 날아온 도요새들이 할머니가 조개를 캐는 바로 그 갯벌에서 갯지렁이와 작은 게를 먹으며 다시 날아갈 힘을 채운다는 것을 알게 된다.', l: '사람도 새도 같은 갯벌에 기대어 산다는 것이 드러난다. 상대가 그곳에 왜 있어야 하는지 알게 되는 것이 공존의 시작이다.' },
+      { p: '131쪽', s: '마을 회의에서 도요새가 많이 머무는 봄철에는 갯벌 일부를 쉬게 하고, 나머지 구역에서 조개를 캐기로 정한다. 할머니가 연구원과 함께 구역 지도를 그린다.', l: '한쪽이 모두 참는 대신, 양쪽이 조금씩 물러서는 규칙을 함께 정했다. 공존은 저절로 되지 않고, 함께 만든 약속으로 이어진다.' }
+    ],
+    scope: '우리 학교',
+    what: '점심시간에 축구하는 학생들이 운동장을 거의 다 써서, 다른 운동이나 놀이를 하려는 학생들이 설 자리가 없다.',
+    how: '갯벌처럼 운동장도 여러 사람이 같이 쓰는 곳이다. 책에서 철마다 구역을 나눈 것처럼 운동장도 요일이나 구역을 나누어 쓸 수 있을 것 같다. 다른 점은, 새는 말을 못 하지만 우리는 학생회에 직접 의견을 낼 수 있다는 것이다.',
+    ga: '서로가 같은 곳에 기대어 산다는 것을 알고, 함께 지킬 규칙을 정할',
+    gb: '오래 이어진다',
+    links: [
+      { w: '과학', t: '생태계에서는 여러 생물이 먹고 먹히는 관계로 이어져 있어서, 한 생물이 줄어들면 다른 생물에게도 영향이 간다. 갯벌의 도요새와 갯지렁이도 이런 관계로 이어져 있다.' },
+      { w: '사회', t: '생활 방식이 다른 사람들이 한 동네에 살 때도, 서로의 생활을 알고 함께 지킬 약속을 정해야 갈등이 줄어든다.' }
+    ],
+    after: '공존은 그냥 사이좋게 지내는 것이 아니라, 서로 필요한 것이 다르다는 것을 알고 함께 지킬 규칙을 만들어 가는 것이다.',
+    why: '58쪽에서 새와 할머니가 같은 갯벌에 기대어 산다는 것을 알았을 때 생각이 바뀌었다. 싸우지 않는 것만으로는 모자라고, 상대를 알고 약속을 정하는 일이 필요했다.'
+  };
+
+  $('#exBtn').addEventListener('click', () => {
+    const c = '공존';
+    if (st.notes[c] && hasWriting(st.notes[c]) && !confirm('「공존」 노트에 쓴 글이 예시로 바뀌어요. 계속할까요?')) return;
+    st.notes[c] = normNote(EXAMPLE);
+    st.notes[c].at = new Date().toISOString();
+    st.cur = c;
+    picking = false;
+    flush();
+    render();
+    $('#lens').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    toast(LOCK && LOCK !== c
+      ? `「공존」 예시를 열었어요. 「${LOCK}」 노트는 그대로 있어요.`
+      : '예시를 채웠어요. 고쳐 써 보거나 「처음부터」로 지울 수 있어요.', 3600);
+  });
+
+  // ---------- 인쇄 ----------
+  const lines = k => '<div class="ln"></div>'.repeat(k);
+  function pv(s, k) {
+    s = String(s || '').trim();
+    return s ? `<div class="sv">${esc(s).replace(/\n/g, '<br>')}</div>` : lines(k || 2);
+  }
+  function renderSheet() {
+    const n = note();
+    const c = st.cur;
+    const el = $('#sheet');
+    const on = !!n && !picking;
+    document.body.classList.toggle('has-sheet', on);
+    if (!on) { el.innerHTML = ''; return; }
+    const book = n.book.trim();
+    const au = n.author.trim();
+    const wrote = hasWriting(n);
+    const genHtml = (len(n.ga) || len(n.gb))
+      ? `<div class="sv sh-gen">${esc(genText(n, c))}</div>`
+      : `<div class="sv sh-gen">${esc(jo(c, '은'))} <span class="u wide"></span> 때 <span class="u wide"></span>.</div>`;
+    const linkHtml = n.links.map((x, i) => {
+      if (i === 1 && wrote && !len(x.w) && !len(x.t)) return '';
+      const w = x.w.trim();
+      return `<div class="sh-row"><div class="sh-k">다른 책·교과 ${i + 1} — 어디: ${w ? esc(w) : '<span class="u"></span>'}</div>${pv(x.t, 2)}</div>`;
+    }).join('');
+    el.innerHTML = `
+      <div class="sh-top"><h1>개념 렌즈 노트</h1><div class="sh-id">학번 <span class="u"></span> 이름 <span class="u"></span></div></div>
+      <p class="sh-meta"><b>개념</b><span>「${esc(c)}」</span> <b>책</b>${book ? `<span>『${esc(book)}』${au ? ' ' + esc(au) : ''}</span>` : '<span class="u wide"></span>'}</p>
+      <h2>1 관계맺기</h2>
+      <div class="sh-row"><div class="sh-k">읽기 전 내 생각</div>${pv(n.now, 1)}</div>
+      <div class="sh-row"><div class="sh-k">개념적 질문</div>${pv(n.cq, 2)}</div>
+      <h2>2 탐색하기 — 책에서 ${esc(jo(c, '이'))} 드러난 장면</h2>
+      <table class="sh-tb"><thead><tr><th class="c-p">쪽</th><th>장면</th><th>${esc(jo(c, '과'))} 이어지는 점</th></tr></thead><tbody>
+      ${n.scenes.map(x => `<tr><td class="c-p">${esc(x.p.trim())}</td><td>${pv(x.s, 3)}</td><td>${pv(x.l, 3)}</td></tr>`).join('')}
+      </tbody></table>
+      <h2>3 적용하기 — 우리 주변의 일</h2>
+      <div class="sh-row"><div class="sh-k">어디의 일</div>${n.scope ? `<div class="sv">${esc(n.scope)}</div>` : lines(1)}</div>
+      <div class="sh-row"><div class="sh-k">어떤 일</div>${pv(n.what, 2)}</div>
+      <div class="sh-row"><div class="sh-k">책 속 장면과 견주면</div>${pv(n.how, 3)}</div>
+      <h2>4 전이하기</h2>
+      <div class="sh-row"><div class="sh-k">일반화 문장</div>${genHtml}</div>
+      ${linkHtml}
+      <h2>처음 생각과 지금 생각</h2>
+      <div class="sh-two"><div><div class="sh-k">처음 생각</div>${pv(n.now, 2)}</div><div><div class="sh-k">지금 생각</div>${pv(n.after, 2)}</div></div>
+      <div class="sh-row"><div class="sh-k">생각이 달라진 까닭</div>${pv(n.why, 2)}</div>`;
+  }
+  window.addEventListener('beforeprint', renderSheet);
+  $('#printBtn').addEventListener('click', () => {
+    if (tmr) flush();
+    renderSheet();
+    window.print();
+  });
+
+  // ---------- 글로 복사 ----------
+  function plain(n, c) {
+    const v = s => (String(s || '').trim() || '(비어 있음)');
+    const L = [];
+    L.push(`개념 렌즈 노트 — 개념: ${c}`);
+    L.push(`책: ${n.book.trim() ? '『' + n.book.trim() + '』' : '(비어 있음)'}${n.author.trim() ? ' ' + n.author.trim() : ''}`);
+    L.push('', '[1 관계맺기]', `읽기 전 내 생각: ${v(n.now)}`, `개념적 질문: ${v(n.cq)}`);
+    L.push('', `[2 탐색하기] 책에서 ${jo(c, '이')} 드러난 장면`);
+    n.scenes.forEach((x, i) => {
+      L.push(`장면 ${i + 1}${x.p.trim() ? ' (' + x.p.trim() + ')' : ''}: ${v(x.s)}`);
+      L.push(`  → ${jo(c, '과')} 이어지는 점: ${v(x.l)}`);
+    });
+    L.push('', '[3 적용하기]', `어디의 일: ${v(n.scope)}`, `어떤 일: ${v(n.what)}`, `책 속 장면과 견주면: ${v(n.how)}`);
+    L.push('', '[4 전이하기]', `일반화 문장: ${(len(n.ga) || len(n.gb)) ? genText(n, c) : '(비어 있음)'}`);
+    n.links.forEach((x, i) => {
+      if (i === 1 && !len(x.w) && !len(x.t)) return;
+      L.push(`다른 책·교과 ${i + 1}${x.w.trim() ? ' (' + x.w.trim() + ')' : ''}: ${v(x.t)}`);
+    });
+    L.push('', '[처음 생각과 지금 생각]', `처음 생각: ${v(n.now)}`, `지금 생각: ${v(n.after)}`, `생각이 달라진 까닭: ${v(n.why)}`);
+    return L.join('\n');
+  }
+  $('#copyBtn').addEventListener('click', () => {
+    const n = note();
+    if (!n) return;
+    $('#copyFb').hidden = true;
+    copyText(plain(n, st.cur), $('#copyFb')).then(ok => {
+      toast(ok ? '복사했어요. 제출할 곳에 붙여 넣어요.' : '아래 칸의 글을 모두 골라 복사해 주세요.');
+    });
+  });
+
+  // ---------- AI 부탁문 (질문만 받기) ----------
+  function aiPrompt(n, c) {
+    const book = n.book.trim() ? `『${n.book.trim()}』${n.author.trim() ? ' (' + n.author.trim() + ')' : ''}` : '(제목 안 적음)';
+    const sc = n.scenes.filter(x => len(x.s) && len(x.l))
+      .map(x => `- ${x.p.trim() ? x.p.trim() + ': ' : ''}${x.s.trim()}\n  내가 본 연결: ${x.l.trim()}`);
+    return [
+      `나는 중학생이고, 「${c}」${jp(c, '이라는')} 개념을 렌즈로 삼아 책을 읽었어.`,
+      `책: ${book}`,
+      '아래는 내가 직접 쓴 기록이야.',
+      '',
+      '[내가 고른 장면]',
+      ...sc,
+      '',
+      '[내 일반화 문장]',
+      genText(n, c),
+      '',
+      '부탁:',
+      '1. 내 문장을 고쳐 쓰거나 정답을 알려 주지 마.',
+      '2. 내 일반화 문장이 들어맞지 않을 수도 있는 경우를 떠올려 보게 하는 질문을 2개 해 줘.',
+      '3. 내가 고른 장면이 이 문장의 근거로 충분한지 따져 보게 하는 질문을 1개 해 줘.',
+      '4. 책 내용을 정확히 모르면 지어내지 말고 "책에서 다시 확인해 봐"라고 해 줘.',
+      '5. 중학생이 알아듣는 말로 짧게 해 줘.'
+    ].join('\n');
+  }
+  $('#aiBtn').addEventListener('click', () => {
+    const n = note();
+    if (!n || $('#aiBtn').disabled) return;
+    $('#copyFb').hidden = true;
+    copyText(aiPrompt(n, st.cur), $('#copyFb')).then(ok => {
+      toast(ok ? '부탁문을 복사했어요. AI 대화창에 붙여 넣어요.' : '아래 칸의 글을 모두 골라 복사해 주세요.');
+    });
+  });
+
+  // ---------- 선생님: 개념 정한 주소 ----------
+  function teacherLink() {
+    const c = cleanC($('#tIn').value);
+    if (!c) { $('#tOut').textContent = '개념을 먼저 적어 주세요.'; return; }
+    const url = location.href.split('#')[0].split('?')[0] + '?c=' + encodeURIComponent(c);
+    $('#tOut').textContent = url;
+    $('#tFb').hidden = true;
+    copyText(url, $('#tFb')).then(ok => toast(ok ? '주소를 복사했어요.' : '아래 칸의 주소를 골라 복사해 주세요.'));
+  }
+  $('#tGo').addEventListener('click', teacherLink);
+  $('#tIn').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); teacherLink(); } });
+
+  // ---------- 시작 ----------
+  build();
+  render();
+})();
+</script>
+</body>
+</html>
