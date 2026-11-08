@@ -1,0 +1,866 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>읽기 노트 · 선생님</title>
+<meta name="description" content="학생 읽기 노트를 모아 보는 선생님 화면">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="rn.css">
+<style>
+  .top-in { max-width: 1180px; }
+  .home-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; align-items: start; }
+  .home-grid .card { margin-top: 16px; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .rooms-list { list-style: none; margin: 0; padding: 0; }
+  .rooms-list li { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .rooms-list li:last-child { border-bottom: 0; }
+  .rooms-list .rt { flex: 1; min-width: 160px; }
+  .rooms-list .rt b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rooms-list .rt span { font-size: 13px; color: var(--muted); }
+  .code-mono { font-family: ui-monospace, Consolas, monospace; letter-spacing: .08em; }
+  .inline { display: flex; gap: 8px; align-items: center; }
+  .inline input { flex: 1; min-width: 0; }
+
+  /* 방 머리 */
+  .room-head { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; margin-top: 20px; }
+  .room-head .info { flex: 1; min-width: 260px; }
+  .room-head h1 { font-size: 24px; margin: 0; letter-spacing: -.02em; }
+  .room-head .meta { color: var(--muted); font-size: 14px; }
+  .join-box { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; display: flex; gap: 16px; align-items: center; }
+  .join-box .big { font-size: 30px; font-weight: 800; }
+  .join-box .lbl { font-size: 12px; color: var(--muted); font-weight: 700; }
+  #qr { width: 96px; height: 96px; }
+  #qr img, #qr canvas { width: 96px !important; height: 96px !important; }
+  .qr-big { position: fixed; inset: 0; background: rgba(255,255,255,.97); z-index: 60; display: grid; place-items: center; text-align: center; cursor: pointer; }
+  .qr-big .c { font-size: 56px; font-weight: 800; margin-top: 14px; }
+  .qr-big #qrBigBox img, .qr-big #qrBigBox canvas { width: min(70vmin, 520px) !important; height: min(70vmin, 520px) !important; }
+
+  /* 탭 */
+  .tabs { display: flex; gap: 4px; margin-top: 20px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+  .tab { border: 0; background: none; padding: 12px 14px; cursor: pointer; font-weight: 700; color: var(--muted); border-bottom: 3px solid transparent; white-space: nowrap; min-height: 44px; }
+  .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+  .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+  .toolbar .grow { flex: 1; }
+  .switch { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
+  .switch input { width: 18px; height: 18px; }
+  .seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 999px; overflow: hidden; }
+  .seg button { border: 0; background: var(--paper); padding: 8px 14px; cursor: pointer; font-weight: 600; font-size: 14px; min-height: 38px; }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+
+  /* 진행 표 */
+  .tbl-wrap { overflow-x: auto; margin-top: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); }
+  table.prog { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.prog th, table.prog td { padding: 9px 8px; border-bottom: 1px solid var(--line); text-align: center; white-space: nowrap; }
+  table.prog th { background: #fafbfc; font-size: 13px; color: var(--ink-2); }
+  table.prog td.l, table.prog th.l { text-align: left; }
+  table.prog tbody tr { cursor: pointer; }
+  table.prog tbody tr:hover { background: var(--accent-soft); }
+  table.prog tfoot td { font-size: 12px; color: var(--muted); background: #fafbfc; }
+  .dot { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line-2); vertical-align: middle; }
+  .dot.half { border-color: var(--accent); background: linear-gradient(90deg, var(--accent) 50%, transparent 50%); }
+  .dot.on { background: var(--accent); border-color: var(--accent); }
+  .legend { font-size: 13px; color: var(--muted); display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+
+  /* 모아 보기 */
+  .qgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin-top: 12px; }
+  .qcard { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+  .qcard .qt { font-size: 16px; }
+  .qcard .qm { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .qcard .arrow { color: var(--muted); font-size: 13px; margin: 4px 0; }
+  body.board .qcard .qt { font-size: 22px; }
+  body.board .qgrid { grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); }
+  body.board table.prog { font-size: 18px; }
+  .sec-h { font-size: 16px; font-weight: 800; margin: 20px 0 4px; }
+  .bar-row { display: grid; grid-template-columns: 160px 1fr 40px; gap: 10px; align-items: center; font-size: 14px; margin-top: 6px; }
+  .bar { height: 10px; background: var(--line); border-radius: 5px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--warn); }
+
+  /* 학생 기록 */
+  dialog.rec { width: min(760px, 94vw); max-height: 88vh; border: 0; border-radius: 16px; padding: 0; }
+  dialog.rec::backdrop, dialog.pw::backdrop { background: rgba(20,30,40,.45); }
+  .rec-h { position: sticky; top: 0; background: var(--paper); padding: 16px 20px; border-bottom: 1px solid var(--line); display: flex; gap: 10px; align-items: center; }
+  .rec-h b { flex: 1; font-size: 18px; }
+  .rec-b { padding: 6px 20px 24px; }
+  .rec-b h3 { font-size: 15px; margin: 18px 0 4px; }
+  .rec-b .blk { border-left: 3px solid var(--line-2); padding: 2px 0 2px 14px; margin: 10px 0; }
+  .rec-b .blk.done { border-color: var(--accent); }
+  .rec-b .lbl { font-size: 12px; color: var(--muted); font-weight: 700; margin-top: 6px; }
+  .rec-b .empty { color: var(--muted); }
+  .rec-b ul { margin: 2px 0 0; padding-left: 18px; }
+  dialog.pw { border: 0; border-radius: 16px; padding: 20px; width: min(380px, 92vw); }
+
+  /* 설정 */
+  .ch-row { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
+  .ch-row .n { width: 28px; text-align: right; color: var(--muted); font-size: 13px; flex: none; }
+  .ch-row input { flex: 1; min-width: 0; }
+  .rd-row { display: grid; grid-template-columns: 110px 1fr auto auto; gap: 6px; align-items: center; margin-top: 8px; }
+  .rd-row .cnt { grid-column: 1 / -1; font-size: 12px; color: var(--muted); margin-top: -2px; }
+
+  @media (max-width: 860px) {
+    .home-grid { grid-template-columns: 1fr; }
+    .bar-row { grid-template-columns: 110px 1fr 32px; }
+    .rd-row { grid-template-columns: 1fr 1fr; }
+  }
+  @media print {
+    dialog.rec { position: static; width: 100%; max-height: none; box-shadow: none; }
+    body.print-rec main > *:not(#recDlg) { display: none !important; }
+    body.print-rec .rec-h button { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand">읽기 노트<small>선생님</small></div>
+    <div class="grow who" id="topRoom"></div>
+    <div class="save-state" id="loadState" aria-live="polite"></div>
+    <button class="btn small ghost" id="btnHome" hidden>방 목록</button>
+  </div>
+</header>
+
+<main class="wrap wide">
+
+  <!-- 처음 화면 -->
+  <section id="home" hidden>
+    <div class="home-grid">
+      <div class="card">
+        <h2>새 읽기 방 만들기</h2>
+        <p class="sub">책 한 권이나 글 한 편마다 방을 하나 만들어요. 학생은 참여코드와 학번·이름으로 들어와요.</p>
+        <label class="f" for="cTitle">책·글 제목</label>
+        <input class="t" id="cTitle" maxlength="80" placeholder="예: 별의 전령">
+        <div class="pair">
+          <div><label class="f" for="cAuthor">지은이<span class="hint">선택</span></label><input class="t" id="cAuthor" maxlength="60"></div>
+          <div><label class="f" for="cSubject">과목<span class="hint">선택</span></label><input class="t" id="cSubject" maxlength="30" list="subjects" placeholder="예: 과학">
+            <datalist id="subjects"><option>국어</option><option>과학</option><option>사회</option><option>도덕</option><option>역사</option><option>영어</option><option>수학</option><option>미술</option><option>음악</option><option>가정</option><option>기술</option><option>독서</option></datalist></div>
+        </div>
+        <label class="f" for="cChapters">읽을 부분<span class="hint">한 줄에 하나씩 (장 제목, 쪽수, 소제목 무엇이든)</span></label>
+        <textarea class="t" id="cChapters" rows="6" placeholder="1장 달의 표면&#10;2장 붙박이별&#10;3장 은하수와 성운"></textarea>
+        <div class="inline" style="margin-top:6px">
+          <span class="note">제목 없이 개수만:</span>
+          <input class="t" id="cN" type="number" min="1" max="60" style="max-width:90px" aria-label="부분 개수">
+          <button class="btn small" id="btnFillN">1장~N장 채우기</button>
+        </div>
+        <label class="f" for="cConcept">핵심 개념<span class="hint">선택 · 개념기반 탐구독서를 하신다면 이 책으로 다룰 개념 하나 (예: 관점, 에너지)</span></label>
+        <input class="t" id="cConcept" maxlength="60">
+        <label class="f" for="cGuide">읽기 전 안내<span class="hint">선택 · 학생 화면 맨 위에 보여요</span></label>
+        <textarea class="t" id="cGuide" rows="2" maxlength="400"></textarea>
+        <label class="switch" style="margin-top:12px"><input type="checkbox" id="cAi" checked> 학생 화면에 AI 칸 보이기(학교에서 AI를 쓰지 않으면 끄세요)</label>
+        <label class="f" for="cPass">선생님 비밀번호<span class="hint">6자 이상 · 이 방 기록을 볼 때 써요</span></label>
+        <input class="t" id="cPass" type="password" maxlength="40" autocomplete="new-password">
+        <label class="switch" style="margin-top:10px"><input type="checkbox" id="cRemember"> 이 기기에서 비밀번호 기억하기(내 기기일 때만)</label>
+        <div class="btn-row" style="margin-top:16px"><button class="btn primary" id="btnCreate">방 만들기</button></div>
+        <div class="err" id="createErr" role="alert"></div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h2>내 읽기 방</h2>
+          <p class="sub">이 기기에서 만들거나 연 방이에요.</p>
+          <ul class="rooms-list" id="myRooms"></ul>
+        </div>
+        <div class="card">
+          <h2>코드로 방 열기</h2>
+          <p class="sub">다른 기기에서 만든 방은 참여코드와 비밀번호로 열어요.</p>
+          <div class="inline"><input class="t code-mono" id="oCode" maxlength="16" placeholder="참여코드" autocapitalize="characters" spellcheck="false" aria-label="참여코드"></div>
+          <div class="inline" style="margin-top:8px"><input class="t" id="oPass" type="password" maxlength="40" placeholder="선생님 비밀번호" aria-label="선생님 비밀번호"><button class="btn" id="btnOpen">열기</button></div>
+          <label class="switch" style="margin-top:8px"><input type="checkbox" id="oRemember"> 이 기기에서 비밀번호 기억하기</label>
+          <div class="err" id="openErr" role="alert"></div>
+        </div>
+        <div class="card">
+          <h2>예시로 둘러보기</h2>
+          <p class="sub">학생 여섯 명이 『별의 전령』을 읽는 중이라고 가정한 예시 화면이에요. 실제 학생 기록이 아니에요.</p>
+          <div class="btn-row"><button class="btn" id="btnDemo">예시 보기</button><a class="btn" href="index.html?demo" target="_blank" rel="noopener">학생 화면 체험</a></div>
+        </div>
+        <details class="card more" style="margin-top:16px">
+          <summary>서버 준비(처음 한 번만)</summary>
+          <p class="note">이 사이트를 처음 쓸 때 한 번만 해요. Supabase 프로젝트의 SQL Editor 에 <a href="setup.sql" target="_blank" rel="noopener">setup.sql</a> 을 통째로 붙여 넣고 Run 을 누르면 끝이에요. 마지막에 함수 9개가 보이면 준비된 거예요.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- 방 화면 -->
+  <section id="roomView" hidden>
+    <div class="warn-box" id="demoBar" style="margin-top:16px" hidden>예시 화면이에요. 학생 이름과 기록은 꾸며 낸 것이고, 고쳐도 저장되지 않아요. QR은 학생 화면 체험으로 이어져요.</div>
+    <div class="room-head">
+      <div class="info">
+        <h1 id="rTitle"></h1>
+        <div class="meta" id="rMeta"></div>
+        <div class="note" id="rStat" style="margin-top:6px"></div>
+      </div>
+      <div class="join-box">
+        <div id="qr" role="img" aria-label="학생 들어오는 주소 QR"></div>
+        <div>
+          <div class="lbl">참여코드</div>
+          <div class="big code-mono" id="rCode"></div>
+          <div class="btn-row" style="margin-top:6px">
+            <button class="btn small" id="btnCopyLink">학생 주소 복사</button>
+            <button class="btn small" id="btnQrBig">크게 띄우기</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="prog">진행 상황</button>
+      <button class="tab" role="tab" data-tab="gather">모아 보기</button>
+      <button class="tab" role="tab" data-tab="notes">막힌 곳 · 남은 구절</button>
+      <button class="tab" role="tab" data-tab="set">방 설정</button>
+    </div>
+
+    <div class="toolbar">
+      <label class="switch"><input type="checkbox" id="boardMode"> 칠판에 띄우기(학번·이름 가리고 크게)</label>
+      <select class="t" id="banFilter" style="max-width:160px;min-height:38px" aria-label="반 고르기" hidden></select>
+      <span class="grow"></span>
+      <button class="btn small" id="btnReload">새로고침</button>
+      <button class="btn small" id="btnCsv">엑셀로 내려받기(CSV)</button>
+    </div>
+
+    <div id="tabBody"></div>
+  </section>
+
+  <dialog class="rec" id="recDlg" aria-labelledby="recTitle">
+    <div class="rec-h"><b id="recTitle"></b><button class="btn small" id="recPrint">인쇄</button><button class="btn small" id="recClose">닫기</button></div>
+    <div class="rec-b" id="recBody"></div>
+  </dialog>
+
+  <dialog class="pw" id="pwDlg" aria-labelledby="pwTitle">
+    <h2 id="pwTitle" style="font-size:18px;margin:0 0 4px"></h2>
+    <p class="note" style="margin:0 0 10px">선생님 비밀번호를 적어 주세요.</p>
+    <input class="t" id="pwIn" type="password" maxlength="40" aria-label="선생님 비밀번호">
+    <div class="err" id="pwErr"></div>
+    <div class="btn-row" style="margin-top:12px"><button class="btn primary" id="pwOk">열기</button><button class="btn" id="pwCancel">닫기</button></div>
+  </dialog>
+
+  <div class="qr-big" id="qrBig" hidden>
+    <div><div id="qrBigBox"></div><div class="c code-mono" id="qrBigCode"></div><p class="note">화면을 누르면 닫혀요</p></div>
+  </div>
+
+</main>
+
+<footer id="app-credit" style="width:100%;box-sizing:border-box;margin:2.5rem 0 0;padding:14px 12px;text-align:center;font-size:12.5px;line-height:1.6;color:#8a8f98;font-family:system-ui,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;border-top:1px solid rgba(128,128,128,.25);">© 2026 조승재(과학이조선생) · 해누리중학교 · All rights reserved<br><span style="font-size:11px;opacity:.85;">최종 업데이트: 2026-11-08</span></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="rn.js"></script>
+<script>
+(function () {
+  'use strict';
+  const { rpc, esc, $, $$, store, chapterId, len, arr, obj, realQ, fmtTime, normCode, copyText, toast, slotOf, slotState, isStuck } = RN;
+  const ROOMS_KEY = 'rn_teacher_rooms_v1';
+
+  const T = { mode: null, code: '', pass: '', room: null, readers: [], entries: [], by: {}, tab: 'prog',
+              gview: 'q', gFilter: 'all', ban: 'all', board: false, timer: null, recId: null, seq: 0, sig: '' };
+
+  // ---------- 방 목록 (이 기기) ----------
+  const myRooms = () => arr(store.get(ROOMS_KEY, []));
+  function rememberRoom(code, title, pass) {   // pass 가 '' 이면 비밀번호는 기억하지 않음
+    const old = myRooms().find(r => r.code === code);
+    const list = myRooms().filter(r => r.code !== code);
+    list.unshift({ code, title, pass: pass === undefined ? (old ? old.pass : '') : pass, at: new Date().toISOString() });
+    store.set(ROOMS_KEY, list.slice(0, 50));
+  }
+  function forgetRoom(code) { store.set(ROOMS_KEY, myRooms().filter(r => r.code !== code)); }
+  function forgetPass(code) { store.set(ROOMS_KEY, myRooms().map(r => r.code === code ? { ...r, pass: '' } : r)); }
+
+  function renderHome() {
+    stopAuto();
+    T.mode = null; T.seq++;
+    T.board = false; $('#boardMode').checked = false; document.body.classList.remove('board');
+    $('#home').hidden = false; $('#roomView').hidden = true; $('#btnHome').hidden = true;
+    $('#topRoom').textContent = ''; $('#loadState').textContent = '';
+    const list = myRooms();
+    $('#myRooms').innerHTML = list.length ? list.map(r => `
+      <li>
+        <div class="rt"><b>${esc(r.title)}</b><span class="code-mono">${esc(r.code)}</span><span> · ${esc(fmtTime(r.at))}${r.pass ? ' · 비밀번호 기억함' : ''}</span></div>
+        <button class="btn small" data-open="${esc(r.code)}">열기</button>
+        ${r.pass ? `<button class="btn small ghost" data-forgetpass="${esc(r.code)}">비밀번호 잊기</button>` : ''}
+        <button class="btn small ghost" data-forget="${esc(r.code)}" aria-label="${esc(r.title)} 목록에서 빼기">빼기</button>
+      </li>`).join('') : '<li class="note">아직 없어요.</li>';
+  }
+
+  // ---------- 방 만들기 ----------
+  function parseChapters(text) {
+    const seen = new Set();
+    return text.split(/\r?\n/).map(s => s.trim()).filter(Boolean).slice(0, 60).map(name => {
+      let id; do { id = chapterId(); } while (seen.has(id)); seen.add(id);
+      return { id, name: name.slice(0, 80) };
+    });
+  }
+
+  async function createRoom() {
+    const err = $('#createErr'); err.textContent = '';
+    const btn = $('#btnCreate');
+    if (btn.disabled) return;
+    const title = $('#cTitle').value.trim();
+    const chapters = parseChapters($('#cChapters').value);
+    const pass = $('#cPass').value;
+    if (!title) { err.textContent = '책이나 글 제목을 적어 주세요.'; $('#cTitle').focus(); return; }
+    if (!chapters.length) { err.textContent = '읽을 부분을 한 줄에 하나씩 적거나, 개수로 채워 주세요.'; $('#cChapters').focus(); return; }
+    if (pass.length < 6) { err.textContent = '선생님 비밀번호를 6자 이상으로 정해 주세요.'; $('#cPass').focus(); return; }
+    btn.disabled = true; btn.textContent = '만드는 중…';
+    try {
+      const code = await rpc('rn_create_room', {
+        p_title: title, p_author: $('#cAuthor').value.trim(), p_subject: $('#cSubject').value.trim(),
+        p_chapters: chapters, p_concept: $('#cConcept').value.trim(), p_guide: $('#cGuide').value.trim(),
+        p_pass: pass, p_opts: { ai: $('#cAi').checked }
+      });
+      const keep = $('#cRemember').checked;
+      ['#cTitle', '#cAuthor', '#cSubject', '#cChapters', '#cConcept', '#cGuide', '#cPass', '#cN'].forEach(id => { $(id).value = ''; });
+      await openRoom(code, pass, keep);
+      toast(`방을 만들었어요. 참여코드 ${code}`);
+    } catch (e) {
+      err.textContent = e.message;
+    } finally {
+      btn.disabled = false; btn.textContent = '방 만들기';
+    }
+  }
+
+  // ---------- 방 열기 ----------
+  // keep: true=비밀번호 기억, false=기억 안 함, undefined=예전 설정 그대로
+  async function openRoom(code, pass, keep) {
+    code = normCode(code);
+    const my = ++T.seq;
+    const data = await rpc('rn_teacher_load', { p_code: code, p_pass: pass });
+    if (my !== T.seq) return;
+    Object.assign(T, { mode: 'server', code, pass, tab: 'prog', gview: 'q', gFilter: 'all', ban: 'all', recId: null, sig: '' });
+    setData(data);
+    rememberRoom(code, data.room.title, keep === undefined ? undefined : (keep ? pass : ''));
+    showRoom();
+    startAuto();
+  }
+
+  async function reload(quiet) {
+    if (T.mode !== 'server') { renderTab(); return; }
+    const my = ++T.seq, code = T.code;
+    try {
+      const data = await rpc('rn_teacher_load', { p_code: T.code, p_pass: T.pass });
+      if (my !== T.seq || T.mode !== 'server' || T.code !== code) return;   // 그사이 방을 나갔거나 바꿨으면 버린다
+      const changed = setData(data);
+      renderRoomHead();
+      if ((changed || !quiet) && T.tab !== 'set') {   // 설정 탭은 고치던 글이 날아가지 않게 다시 그리지 않는다
+        const w = $('.tbl-wrap'), x = w ? w.scrollLeft : 0;
+        renderTab();
+        const w2 = $('.tbl-wrap'); if (w2) w2.scrollLeft = x;
+      }
+      if (T.recId != null && $('#recDlg').open) renderRec(T.recId);
+      $('#loadState').textContent = '불러옴 ' + fmtTime(new Date().toISOString()).replace('오늘 ', '');
+      $('#loadState').classList.remove('bad');
+    } catch (e) {
+      if (my !== T.seq) return;
+      $('#loadState').textContent = '불러오기 실패';
+      $('#loadState').classList.add('bad');
+      if (!quiet) toast(e.message, 4000);
+    }
+  }
+
+  // 받은 자료를 넣고, 지난번과 달라졌는지 돌려준다
+  function setData(data) {
+    T.room = data.room;
+    T.readers = arr(data.readers);
+    T.entries = arr(data.entries);
+    T.by = {};
+    T.entries.forEach(e => { (T.by[e.reader_id] = T.by[e.reader_id] || {})[e.slot] = e; });
+    const sig = [JSON.stringify(T.room), T.readers.map(r => r.id + r.student_no + r.name).join(','),
+                 T.entries.length, T.entries.reduce((m, e) => e.updated_at > m ? e.updated_at : m, '')].join('|');
+    const changed = sig !== T.sig;
+    T.sig = sig;
+    return changed;
+  }
+
+  function startAuto() {
+    stopAuto();
+    T.timer = setInterval(() => { if (!document.hidden && T.mode === 'server' && !$('#roomView').hidden) reload(true); }, 30000);
+  }
+  function stopAuto() { if (T.timer) clearInterval(T.timer); T.timer = null; }
+
+  // ---------- 상태 계산 ----------
+  const E = (rid, slot) => (T.by[rid] || {})[slot];
+  const cellState = (rid, slot) => slotState(slot, E(rid, slot));
+  const slots = () => ['before', ...T.room.chapters.map(c => slotOf(c.id)), 'after'];
+  const slotName = slot => slot === 'before' ? '읽기 전' : slot === 'after' ? '읽은 뒤' : ((T.room.chapters.find(c => slotOf(c.id) === slot) || {}).name || '(지운 부분)');
+  const doneCount = r => slots().filter(s => cellState(r.id, s) === 'on').length;
+
+  // 학번이 5자리(학년1+반2+번호2)면 반으로 거를 수 있게
+  const banOf = no => /^\d{5}$/.test(no) ? `${no[0]}학년 ${+no.slice(1, 3)}반` : '';
+  function shownReaders() {
+    const list = T.ban === 'all' ? T.readers.slice() : T.readers.filter(r => banOf(r.student_no) === T.ban);
+    if (T.board) list.sort((a, b) => doneCount(b) - doneCount(a) || a.id - b.id);   // 칠판에선 학번 순서도 드러나지 않게
+    return list;
+  }
+  function boardLabel(r) { return '학생 ' + (shownReaders().indexOf(r) + 1); }
+  const who = r => T.board ? '' : `${r.student_no} ${r.name}`;
+
+  function renderBanFilter() {
+    const bans = [...new Set(T.readers.map(r => banOf(r.student_no)).filter(Boolean))].sort();
+    const sel = $('#banFilter');
+    sel.hidden = bans.length < 2;
+    if (!bans.includes(T.ban)) T.ban = 'all';
+    sel.innerHTML = `<option value="all">모든 반</option>` + bans.map(b => `<option ${T.ban === b ? 'selected' : ''}>${esc(b)}</option>`).join('');
+  }
+
+  // ---------- 방 화면 ----------
+  function showRoom() {
+    $('#home').hidden = true; $('#roomView').hidden = false; $('#btnHome').hidden = false;
+    $('#demoBar').hidden = T.mode !== 'demo';
+    renderRoomHead();
+    selectTab(T.tab);
+    drawQr();
+  }
+
+  function renderRoomHead() {
+    const r = T.room;
+    $('#topRoom').textContent = `『${r.title}』`;
+    $('#rTitle').textContent = `『${r.title}』`;
+    $('#rMeta').textContent = [r.author, r.subject, r.concept ? `핵심 개념: ${r.concept}` : '', r.opts && r.opts.ai === false ? 'AI 칸 끔' : '', r.closed ? '마감됨' : ''].filter(Boolean).join(' · ');
+    $('#rCode').textContent = r.code;
+    const finished = T.readers.filter(rd => cellState(rd.id, 'after') === 'on').length;
+    const active = T.readers.filter(rd => Date.now() - new Date(rd.last_seen).getTime() < 10 * 60 * 1000).length;
+    $('#rStat').textContent = `들어온 학생 ${T.readers.length}명 · 지금 쓰는 중(10분 안) ${active}명 · 끝까지 마친 학생 ${finished}명`;
+    renderBanFilter();
+  }
+
+  function studentUrl() {
+    if (T.mode === 'demo') return new URL('index.html?demo', location.href).href;
+    return new URL('index.html?c=' + encodeURIComponent(T.room.code), location.href).href;
+  }
+
+  function drawQr() {
+    const box = $('#qr'); box.innerHTML = '';
+    if (window.QRCode) { try { new QRCode(box, { text: studentUrl(), width: 192, height: 192, correctLevel: QRCode.CorrectLevel.M }); } catch (e) {} }
+  }
+
+  function selectTab(tab) {
+    if (tab === 'set' && T.board) { T.board = false; $('#boardMode').checked = false; document.body.classList.remove('board'); }
+    T.tab = tab;
+    $$('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab ? 'true' : 'false'));
+    renderTab();
+  }
+
+  function renderTab() {
+    const body = $('#tabBody');
+    try {
+      if (T.tab === 'prog') body.innerHTML = progHtml();
+      else if (T.tab === 'gather') body.innerHTML = gatherHtml();
+      else if (T.tab === 'notes') body.innerHTML = notesHtml();
+      else body.innerHTML = setHtml();
+    } catch (e) {
+      body.innerHTML = `<div class="card"><p class="sub" style="margin:0">화면을 그리다 문제가 생겼어요. 새로고침해 주세요.</p></div>`;
+      console.error(e);
+    }
+  }
+
+  function progHtml() {
+    const chs = T.room.chapters;
+    const list = shownReaders();
+    if (!T.readers.length) return `<div class="card"><h2>아직 들어온 학생이 없어요</h2><p class="sub">학생에게 참여코드 <b class="code-mono">${esc(T.room.code)}</b> 를 알려 주거나 QR을 띄워 주세요.</p></div>`;
+    const cols = slots();
+    const count = slot => list.filter(r => cellState(r.id, slot) === 'on').length;
+    return `
+      <div class="legend" style="margin-top:12px"><span><i class="dot on"></i> 다 씀</span><span><i class="dot half"></i> 쓰는 중</span><span><i class="dot"></i> 아직</span>${T.board ? '' : '<span>· 줄을 누르면 그 학생 기록이 열려요</span>'}</div>
+      <div class="tbl-wrap"><table class="prog">
+        <thead><tr>
+          ${T.board ? '<th class="l">학생</th>' : '<th class="l">학번</th><th class="l">이름</th>'}
+          <th>읽기 전</th>
+          ${chs.map((c, i) => `<th title="${esc(c.name)}">${i + 1}</th>`).join('')}
+          <th>읽은 뒤</th>${T.board ? '' : '<th class="l">마지막 기록</th>'}
+        </tr></thead>
+        <tbody>
+          ${list.map(r => {
+            const last = Object.values(T.by[r.id] || {}).map(e => e.updated_at).sort().pop();
+            return `<tr ${T.board ? '' : `data-rec="${r.id}" tabindex="0"`}>
+              ${T.board ? `<td class="l">${esc(boardLabel(r))}</td>` : `<td class="l">${esc(r.student_no)}</td><td class="l">${esc(r.name)}</td>`}
+              ${cols.map(s => { const x = cellState(r.id, s); return `<td><i class="dot ${x}" aria-label="${x === 'on' ? '다 씀' : x === 'half' ? '쓰는 중' : '아직'}"></i></td>`; }).join('')}
+              ${T.board ? '' : `<td class="l note">${esc(fmtTime(last || ''))}</td>`}
+            </tr>`;
+          }).join('')}
+        </tbody>
+        <tfoot><tr><td class="l" colspan="${T.board ? 1 : 2}">다 쓴 학생</td>${cols.map(s => `<td>${count(s)}</td>`).join('')}${T.board ? '' : '<td></td>'}</tr></tfoot>
+      </table></div>
+      <p class="note" style="margin-top:8px">숫자는 부분 순서예요. 머리글에 마우스를 올리면 부분 이름이 보여요.${chs.length ? ' ' + chs.map((c, i) => `${i + 1} ${esc(c.name)}`).join(' · ') : ''}</p>`;
+  }
+
+  // 모아 보기: 질문 / 내 말 요약 / 개념 생각
+  function gatherItems() {
+    const out = [];
+    shownReaders().forEach(r => {
+      const b = obj((E(r.id, 'before') || {}).data), a = obj((E(r.id, 'after') || {}).data);
+      if (T.gview === 'q') {
+        if (len(b.question)) out.push({ slot: 'before', text: b.question, r });
+        T.room.chapters.forEach(c => arr(obj((E(r.id, slotOf(c.id)) || {}).data).questions).filter(realQ).forEach(q => out.push({ slot: slotOf(c.id), text: q, r })));
+        if (len(a.new_q)) out.push({ slot: 'after', text: a.new_q, r });
+      } else if (T.gview === 's') {
+        T.room.chapters.forEach(c => { const d = obj((E(r.id, slotOf(c.id)) || {}).data); if (len(d.summary)) out.push({ slot: slotOf(c.id), text: d.summary, r }); });
+        if (len(a.one_line)) out.push({ slot: 'after', text: a.one_line, r, tag: '한 문장' });
+        if (len(a.answer)) out.push({ slot: 'after', text: a.answer, r, tag: '처음 질문의 답' });
+      } else {
+        if (len(b.concept_now) || len(a.concept_after)) out.push({ slot: 'after', before: b.concept_now, after: a.concept_after, r });
+      }
+    });
+    return out;
+  }
+
+  function gatherHtml() {
+    const hasConcept = !!T.room.concept;
+    if (T.gview === 'c' && !hasConcept) T.gview = 'q';
+    const opts = [['all', '모든 부분'], ...(T.gview === 'q' ? [['before', '읽기 전 질문']] : []), ...T.room.chapters.map(c => [slotOf(c.id), c.name]), ['after', T.gview === 'q' ? '읽은 뒤 새 질문' : '읽은 뒤']];
+    if (!opts.some(o => o[0] === T.gFilter)) T.gFilter = 'all';
+    let list = gatherItems();
+    if (T.gview !== 'c' && T.gFilter !== 'all') list = list.filter(x => x.slot === T.gFilter);
+    const order = slots();
+    list.sort((a, b) => order.indexOf(a.slot) - order.indexOf(b.slot) || String(a.r.student_no).localeCompare(String(b.r.student_no)));
+    const meta = x => `${esc(x.tag || slotName(x.slot))}${T.board ? '' : ' · ' + esc(who(x.r))}`;
+    const cards = T.gview === 'c'
+      ? list.map(x => `<div class="qcard"><div class="qt">${len(x.before) ? esc(x.before) : '<span class="note">(처음 생각 없음)</span>'}</div><div class="arrow">읽고 나서 ↓</div><div class="qt">${len(x.after) ? esc(x.after) : '<span class="note">(아직)</span>'}</div>${T.board ? '' : `<div class="qm">${esc(who(x.r))}</div>`}</div>`).join('')
+      : list.map(x => `<div class="qcard"><div class="qt">${esc(x.text)}</div><div class="qm">${meta(x)}</div></div>`).join('');
+    const unit = T.gview === 'q' ? '질문' : T.gview === 's' ? '글' : '학생';
+    return `
+      <div class="toolbar">
+        <div class="seg" role="group" aria-label="무엇을 모아 볼까">
+          <button data-gview="q" aria-pressed="${T.gview === 'q'}">질문</button>
+          <button data-gview="s" aria-pressed="${T.gview === 's'}">내 말 요약</button>
+          ${hasConcept ? `<button data-gview="c" aria-pressed="${T.gview === 'c'}">‘${esc(T.room.concept)}’ 생각 변화</button>` : ''}
+        </div>
+        ${T.gview === 'c' ? '' : `<select class="t" id="gFilter" style="max-width:280px;min-height:38px" aria-label="어느 부분">${opts.map(([v, t]) => `<option value="${esc(v)}" ${T.gFilter === v ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>`}
+        <span class="note">${unit} ${list.length}${unit === '학생' ? '명' : '개'}</span>
+      </div>
+      ${T.gview === 's' ? '<p class="note" style="margin:6px 0 0">같은 부분을 반 아이들이 어떻게 요약했는지 견줘 보면, 놓친 핵심이나 잘못 이해한 곳을 다음 시간에 짚을 수 있어요.</p>' : ''}
+      ${list.length ? `<div class="qgrid">${cards}</div>` : '<div class="card"><p class="sub" style="margin:0">아직 없어요.</p></div>'}`;
+  }
+
+  function notesHtml() {
+    const chs = T.room.chapters;
+    const rs = shownReaders();
+    const stuck = chs.map(c => ({ c, items: rs.map(r => ({ r, d: obj((E(r.id, slotOf(c.id)) || {}).data) })).filter(x => isStuck(x.d)) }));
+    const max = Math.max(1, ...stuck.map(s => s.items.length));
+    const quotes = [];
+    rs.forEach(r => chs.forEach(c => { const q = obj(obj((E(r.id, slotOf(c.id)) || {}).data).quote); if (len(q.text)) quotes.push({ r, c, q }); }));
+    return `
+      <div class="sec-h">어디서 막혔나</div>
+      <p class="note" style="margin:0">학생이 「여기서 막혔어요」에 표시하거나 막힌 곳을 적은 부분이에요. 다음 시간에 함께 짚을 곳을 고를 때 써요.</p>
+      ${stuck.map(s => `<div class="bar-row"><span>${esc(s.c.name)}</span><span class="bar"><i style="width:${s.items.length / max * 100}%"></i></span><b>${s.items.length}</b></div>`).join('')}
+      ${stuck.some(s => s.items.length) ? `<div class="qgrid">${stuck.flatMap(s => s.items.map(x => `
+        <div class="qcard"><div class="qt">${len(obj(x.d.stuck).where) ? esc(obj(x.d.stuck).where) : '<span class="note">(어디인지 안 적음)</span>'}</div>
+        <div class="qm">${esc(s.c.name)}${T.board ? '' : ' · ' + esc(who(x.r))}</div></div>`)).join('')}</div>` : '<p class="note">아직 막힌 곳 표시가 없어요.</p>'}
+
+      <div class="sec-h">마음에 남은 구절</div>
+      ${quotes.length ? `<div class="qgrid">${quotes.map(x => `
+        <div class="qcard"><div class="qt">${esc(x.q.text)}</div>
+        ${len(x.q.why) ? `<div class="note" style="margin-top:6px">고른 까닭 · ${esc(x.q.why)}</div>` : ''}
+        <div class="qm">${esc(x.c.name)}${x.q.page ? ' · ' + esc(x.q.page) + '쪽' : ''}${T.board ? '' : ' · ' + esc(who(x.r))}</div></div>`).join('')}</div>` : '<p class="note">아직 옮겨 친 구절이 없어요.</p>'}`;
+  }
+
+  function setHtml() {
+    const r = T.room;
+    const used = new Set(T.entries.map(e => e.slot));
+    return `
+      <div class="home-grid">
+        <div class="card">
+          <h2>방 정보</h2>
+          <label class="f" for="sTitle">책·글 제목</label><input class="t" id="sTitle" maxlength="80" value="${esc(r.title)}">
+          <div class="pair">
+            <div><label class="f" for="sAuthor">지은이</label><input class="t" id="sAuthor" maxlength="60" value="${esc(r.author)}"></div>
+            <div><label class="f" for="sSubject">과목</label><input class="t" id="sSubject" maxlength="30" list="subjects" value="${esc(r.subject)}"></div>
+          </div>
+          <label class="f" for="sConcept">핵심 개념</label><input class="t" id="sConcept" maxlength="60" value="${esc(r.concept)}">
+          <label class="f" for="sGuide">읽기 전 안내</label><textarea class="t" id="sGuide" rows="2" maxlength="400">${esc(r.guide)}</textarea>
+          <label class="f">읽을 부분<span class="hint">학생이 이미 쓴 부분은 지울 수 없고 이름만 고칠 수 있어요</span></label>
+          <div id="chRows">${r.chapters.map((c, i) => chRow(c, i, used.has(slotOf(c.id)))).join('')}</div>
+          <div class="btn-row" style="margin-top:8px"><button class="btn small" id="btnAddCh">부분 하나 더</button></div>
+          <label class="switch" style="margin-top:16px"><input type="checkbox" id="sAi" ${r.opts && r.opts.ai === false ? '' : 'checked'}> 학생 화면에 AI 칸 보이기</label><br>
+          <label class="switch" style="margin-top:10px"><input type="checkbox" id="sClosed" ${r.closed ? 'checked' : ''}> 마감하기(학생은 볼 수만 있고 고칠 수 없어요)</label>
+          <div class="btn-row" style="margin-top:16px"><button class="btn primary" id="btnSaveRoom">저장</button></div>
+          <div class="err" id="setErr" role="alert"></div>
+        </div>
+        <div class="card">
+          <h2>학생 고치기</h2>
+          <p class="sub">학번을 잘못 쳐서 두 번 들어온 학생은 기록이 적은 쪽을 지우거나 학번·이름을 고쳐요. 지우면 그 학생 기록도 함께 지워지고 되돌릴 수 없어요.</p>
+          <div id="rdCard">${readersHtml()}</div>
+          <div class="sec-h">이 기기에서</div>
+          <button class="btn small ghost" id="btnForget">내 방 목록에서 빼기</button>
+        </div>
+      </div>`;
+  }
+
+  function readersHtml() {
+    if (!T.readers.length) return '<p class="note">아직 들어온 학생이 없어요.</p>';
+    return T.readers.map(rd => {
+      const es = Object.values(T.by[rd.id] || {});
+      const last = es.map(e => e.updated_at).sort().pop();
+      return `
+      <div class="rd-row" data-rd="${rd.id}">
+        <input class="t" value="${esc(rd.student_no)}" maxlength="12" aria-label="학번">
+        <input class="t" value="${esc(rd.name)}" maxlength="20" aria-label="이름">
+        <button class="btn small" data-fix="${rd.id}">고치기</button>
+        <button class="btn small ghost" data-del="${rd.id}">지우기</button>
+        <div class="cnt">기록 ${es.length}칸${last ? ' · 마지막 ' + esc(fmtTime(last)) : ''}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function chRow(c, i, used) {
+    return `<div class="ch-row" data-id="${esc(c.id)}" data-used="${used ? 1 : 0}"><span class="n">${i + 1}</span><input class="t" maxlength="80" value="${esc(c.name)}" aria-label="${i + 1}번 부분 이름">${used ? '<span class="note" title="학생 기록이 있는 부분">기록 있음</span>' : `<button class="btn small ghost" data-delch="${esc(c.id)}" aria-label="${i + 1}번 부분 지우기">지우기</button>`}</div>`;
+  }
+
+  async function saveRoom() {
+    const err = $('#setErr'); err.textContent = '';
+    const rows = $$('#chRows .ch-row');
+    const blankUsed = rows.find(row => row.dataset.used === '1' && !$('input', row).value.trim());
+    if (blankUsed) { err.textContent = '학생 기록이 있는 부분은 이름을 비울 수 없어요.'; $('input', blankUsed).focus(); return; }
+    const chapters = rows.map(row => ({ id: row.dataset.id, name: $('input', row).value.trim() })).filter(c => c.name);
+    if (!chapters.length) { err.textContent = '읽을 부분이 하나는 있어야 해요.'; return; }
+    if (T.mode === 'demo') { toast('예시 화면이라 저장하지 않아요.'); return; }
+    const btn = $('#btnSaveRoom'); btn.disabled = true;
+    try {
+      const room = await rpc('rn_update_room', {
+        p_code: T.code, p_pass: T.pass, p_title: $('#sTitle').value.trim(), p_author: $('#sAuthor').value.trim(),
+        p_subject: $('#sSubject').value.trim(), p_chapters: chapters, p_concept: $('#sConcept').value.trim(),
+        p_guide: $('#sGuide').value.trim(), p_closed: $('#sClosed').checked, p_opts: { ai: $('#sAi').checked }
+      });
+      T.room = room;
+      rememberRoom(T.code, room.title);
+      renderRoomHead(); renderTab();
+      toast('저장했어요.');
+    } catch (e) {
+      err.textContent = e.message;
+      if (e.code === 'chapter_in_use') reload(true);
+    } finally { btn.disabled = false; }
+  }
+
+  // ---------- 학생 기록 ----------
+  function renderRec(rid) {
+    const r = T.readers.find(x => x.id === rid);
+    if (!r) return;
+    const v = s => len(s) ? esc(s) : '<span class="empty">(비어 있음)</span>';
+    const b = obj((E(rid, 'before') || {}).data), a = obj((E(rid, 'after') || {}).data);
+    const room = T.room;
+    let h = `<h3>읽기 전</h3><div class="blk ${cellState(rid, 'before') === 'on' ? 'done' : ''}">
+      <div class="lbl">들고 들어간 질문</div>${v(b.question)}
+      ${room.concept ? `<div class="lbl">‘${esc(room.concept)}’에 대한 처음 생각</div>${v(b.concept_now)}` : ''}</div><h3>읽는 동안</h3>`;
+    const part = (name, e) => {
+      const d = obj(e && e.data), q = obj(d.quote), stc = obj(d.stuck);
+      const qs = arr(d.questions).filter(realQ);
+      const on = e && slotState('ch:x', e) === 'on';
+      return `<div class="blk ${on ? 'done' : ''}"><b>${esc(name)}</b> <span class="note">${on ? '· 다 읽음' : ''} ${e && e.updated_at ? '· ' + esc(fmtTime(e.updated_at)) : ''}</span>
+        <div class="lbl">내 말 요약</div>${v(d.summary)}
+        <div class="lbl">생긴 질문</div>${qs.length ? `<ul>${qs.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : v('')}
+        ${len(q.text) ? `<div class="lbl">마음에 남은 구절 ${q.page ? '(' + esc(q.page) + '쪽)' : ''}</div>${esc(q.text)}${len(q.why) ? `<div class="note">고른 까닭 · ${esc(q.why)}</div>` : ''}` : ''}
+        ${isStuck(d) ? `<div class="lbl">막힌 곳</div>${v(stc.where)}` : ''}</div>`;
+    };
+    room.chapters.forEach(c => { h += part(c.name, E(rid, slotOf(c.id))); });
+    h += `<h3>읽은 뒤</h3><div class="blk ${cellState(rid, 'after') === 'on' ? 'done' : ''}">
+      <div class="lbl">처음 질문에 대한 답</div>${v(a.answer)}
+      <div class="lbl">이 책을 한 문장으로</div>${v(a.one_line)}
+      <div class="lbl">새로 생긴 질문</div>${v(a.new_q)}
+      ${room.concept ? `<div class="lbl">‘${esc(room.concept)}’에 대한 생각이 달라진 점</div>${v(a.concept_after)}` : ''}</div>`;
+    const known = new Set(slots());
+    const orphan = Object.values(T.by[rid] || {}).filter(e => !known.has(e.slot));
+    if (orphan.length) h += `<h3>지운 부분에 남은 기록</h3>${orphan.map(e => part('지운 부분', e)).join('')}`;
+    $('#recTitle').textContent = `${r.student_no} ${r.name} · 『${room.title}』`;
+    $('#recBody').innerHTML = h;
+  }
+  function openRec(rid) {
+    if (T.board) return;
+    T.recId = rid; renderRec(rid);
+    const d = $('#recDlg');
+    if (d.showModal) d.showModal(); else d.setAttribute('open', '');
+  }
+
+  // ---------- CSV ----------
+  function csvCell(s) {
+    let t = String(s == null ? '' : s).replace(/\r?\n/g, ' ');
+    if (/^[=+\-@\t\r]/.test(t)) t = "'" + t;
+    return '"' + t.replace(/"/g, '""') + '"';
+  }
+  const csvNo = no => /^\d+$/.test(no) ? `="${no}"` : csvCell(no);   // 엑셀이 숫자·날짜로 바꾸지 않게
+  function downloadCsv() {
+    const head = ['학번', '이름', '부분', '요약·답', '질문', '마음에 남은 구절', '막힌 곳', '개념 생각', '다 씀', '마지막 기록'];
+    const rows = [head.map(csvCell).join(',')];
+    const line = (r, cells) => rows.push([csvNo(r.student_no), ...[r.name, ...cells].map(csvCell)].join(','));
+    shownReaders().slice().sort((a, b) => String(a.student_no).localeCompare(String(b.student_no))).forEach(r => {
+      const mine = T.by[r.id] || {};
+      if (!Object.keys(mine).length) { line(r, ['(기록 없음)', '', '', '', '', '', '', '']); return; }
+      const order = slots();
+      const extra = Object.keys(mine).filter(s => !order.includes(s));
+      [...order, ...extra].forEach(slot => {
+        const e = mine[slot]; if (!e) return;
+        const d = obj(e.data);
+        let main = '', qs = '', quote = '', stuck = '', concept = '';
+        if (slot === 'before') { qs = d.question; concept = d.concept_now; }
+        else if (slot === 'after') { main = [d.answer, d.one_line ? '한 문장: ' + d.one_line : ''].filter(Boolean).join(' / '); qs = d.new_q; concept = d.concept_after; }
+        else {
+          main = d.summary; qs = arr(d.questions).filter(realQ).join(' | ');
+          const q = obj(d.quote), stc = obj(d.stuck);
+          if (len(q.text)) quote = `${q.page ? q.page + '쪽 ' : ''}${q.text}${q.why ? ' (까닭: ' + q.why + ')' : ''}`;
+          if (isStuck(d)) stuck = stc.where || '(표시만)';
+        }
+        line(r, [slotName(slot), main, qs, quote, stuck, concept, slotState(slot, e) === 'on' ? 'O' : '', e.updated_at ? new Date(e.updated_at).toLocaleString('ko-KR') : '']);
+      });
+    });
+    const csv = '﻿' + rows.join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = `읽기노트_${T.room.title.replace(/[\\/:*?"<>|]/g, '')}_${T.room.code}${T.ban !== 'all' ? '_' + T.ban.replace(/\s/g, '') : ''}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }
+
+  // ---------- 비밀번호 묻기 ----------
+  function askPass(title) {
+    return new Promise(resolve => {
+      const d = $('#pwDlg');
+      $('#pwTitle').textContent = title; $('#pwIn').value = ''; $('#pwErr').textContent = '';
+      const done = v => { d.close(); resolve(v); };
+      $('#pwOk').onclick = () => { const v = $('#pwIn').value; if (!v) { $('#pwErr').textContent = '비밀번호를 적어 주세요.'; return; } done(v); };
+      $('#pwCancel').onclick = () => done(null);
+      $('#pwIn').onkeydown = ev => { if (ev.key === 'Enter' && !ev.isComposing) $('#pwOk').click(); };
+      d.oncancel = () => resolve(null);
+      d.showModal(); $('#pwIn').focus();
+    });
+  }
+
+  // ---------- 예시 ----------
+  function demoData() {
+    const ago = m => new Date(Date.now() - m * 60000).toISOString();
+    const chs = [{ id: 'moon', name: '달의 표면' }, { id: 'star', name: '붙박이별' }, { id: 'milky', name: '은하수와 성운' }, { id: 'jove', name: '목성 둘레의 네 별' }];
+    const room = { code: 'EXAMPL', title: '별의 전령', author: '갈릴레오 갈릴레이', subject: '과학', chapters: chs, concept: '관찰',
+      guide: '갈릴레오가 망원경으로 처음 하늘을 본 기록이에요. 읽기 전에 궁금한 것 하나를 질문으로 적어요.', closed: false, opts: { ai: true } };
+    const P = [[20301, '김하늘'], [20302, '이도윤'], [20305, '박서연'], [20308, '최지호'], [20311, '정유나'], [20314, '한민재']];
+    const readers = P.map(([no, name], i) => ({ id: i + 1, student_no: String(no), name, last_seen: ago([3, 6, 2, 40, 1, 55][i]), created_at: ago(90) }));
+    const S1 = { summary: '망원경으로 보니 달이 매끈하지 않고 산과 골짜기가 있었다. 밝은 곳과 어두운 곳의 경계가 울퉁불퉁해서 알 수 있었다.', questions: ['그림자 길이로 산 높이를 잴 수 있을까?', '그 전에는 왜 달이 매끈하다고 믿었을까?'] };
+    const S2 = { summary: '망원경으로 보면 맨눈보다 별이 훨씬 많이 보인다. 행성은 둥근 원반처럼 커 보이는데 별은 여전히 점처럼 보였다.', questions: ['별은 왜 망원경으로 봐도 커지지 않을까?', '더 큰 망원경이면 별이 더 많이 보일까?'] };
+    const S3 = { summary: '은하수는 하늘에 낀 구름이 아니라 아주 많은 별이 모여 있는 것이었다. 흐릿하게 보이던 것도 가까이 보니 별 무리였다.', questions: ['우리가 은하수 안에 있다면 밖에서 보면 어떤 모양일까?'] };
+    const S4 = { summary: '목성 옆에 작은 별 네 개가 있었는데 밤마다 자리가 바뀌었다. 여러 밤 기록해 보니 목성 둘레를 도는 것이었다.', questions: ['지구가 아닌 다른 행성 둘레를 도는 천체가 있다는 게 왜 중요했을까?', '지금은 목성 둘레를 도는 천체가 몇 개 알려져 있을까?'] };
+    const entries = [];
+    const add = (rid, slot, data, done, m) => entries.push({ reader_id: rid, slot, data, done, updated_at: ago(m) });
+    const before = (rid, q, c, m) => add(rid, 'before', { question: q, concept_now: c }, len(q) >= 5, m);
+    before(1, '갈릴레오는 망원경으로 무엇을 처음 봤을까?', '관찰은 눈으로 자세히 보는 것이다.', 80);
+    add(1, 'ch:moon', S1, true, 70); add(1, 'ch:star', S2, true, 50); add(1, 'ch:milky', S3, true, 30); add(1, 'ch:jove', S4, true, 12);
+    add(1, 'after', { answer: '처음 본 것은 울퉁불퉁한 달이었다. 그다음 맨눈으로 못 보던 별들과 목성 둘레를 도는 별을 봤다.', one_line: '망원경 하나로 하늘에 대한 생각이 바뀐 기록', new_q: '망원경이 더 좋아지면서 무엇을 더 알게 됐을까?', concept_after: '관찰은 그냥 보는 것이 아니라 여러 날 기록하고 견주는 것이었다.' }, true, 3);
+    before(2, '망원경이 없던 때 사람들은 하늘을 어떻게 생각했을까?', '관찰은 보는 것.', 75);
+    add(2, 'ch:moon', { summary: '달에도 지구처럼 산이 있다. 빛과 그림자로 알 수 있다.', questions: ['달의 산은 얼마나 높을까?'] }, true, 60);
+    add(2, 'ch:star', { summary: '별이 생각보다 훨씬 많다. 망원경으로 봐야 보인다.', questions: ['맨눈으로는 왜 그 별들이 안 보일까?'], stuck: { on: true, where: '붙박이별이 무슨 뜻인지 헷갈렸다' } }, true, 20);
+    add(2, 'ch:milky', { summary: '은하수는', questions: [] }, false, 6);
+    before(3, '이 책이 왜 그렇게 유명할까?', '관찰하면 새로운 걸 알 수 있다.', 85);
+    add(3, 'ch:moon', S1, true, 65); add(3, 'ch:star', S2, true, 45);
+    add(3, 'ch:milky', { summary: S3.summary, questions: ['성운은 지금 말로 하면 무엇일까?'], stuck: { on: true, where: '성운이라는 말이 어려웠다' } }, true, 25);
+    add(3, 'ch:jove', { summary: '목성 옆 작은 별들이', questions: ['밤마다 위치가 바뀌는 걸 어떻게 알았을까?'] }, false, 2);
+    before(4, '달은 정말 울퉁불퉁할까?', '', 50);
+    add(4, 'ch:moon', { summary: '', questions: ['망원경은 누가 처음 만들었을까?'] }, false, 40);
+    before(5, '갈릴레오가 본 것 중에서 가장 놀라운 것은 무엇일까?', '관찰은 확인하는 것이다.', 90);
+    add(5, 'ch:moon', S1, true, 72); add(5, 'ch:star', S2, true, 55); add(5, 'ch:milky', { ...S3, stuck: { on: false, where: '흐릿한 것이 별 무리라는 부분' } }, true, 33);
+    add(5, 'ch:jove', S4, true, 10);
+    add(5, 'after', { answer: '목성 둘레를 도는 별이 가장 놀라웠다. 모든 것이 지구 둘레를 도는 게 아니었다.', one_line: '', new_q: '' }, false, 1);
+    return { room, readers, entries };
+  }
+
+  // ---------- 이벤트 ----------
+  document.addEventListener('click', async ev => {
+    const t = ev.target;
+    const op = t.closest('[data-open]');
+    if (op) {
+      const r = myRooms().find(x => x.code === op.dataset.open);
+      let pass = r && r.pass;
+      if (!pass) { pass = await askPass(`『${r ? r.title : op.dataset.open}』`); if (!pass) return; }
+      try { await openRoom(op.dataset.open, pass, undefined); }
+      catch (e) { toast(e.message, 4000); if (e.code === 'wrong_pass' && r && r.pass) { forgetPass(r.code); renderHome(); } }
+      return;
+    }
+    const fp = t.closest('[data-forgetpass]');
+    if (fp) { forgetPass(fp.dataset.forgetpass); renderHome(); toast('이 기기에서 비밀번호를 지웠어요.'); return; }
+    const fg = t.closest('[data-forget]');
+    if (fg) { if (confirm('이 기기 목록에서만 빼요. 방과 학생 기록은 그대로예요.')) { forgetRoom(fg.dataset.forget); renderHome(); } return; }
+    const tb = t.closest('.tab');
+    if (tb) { selectTab(tb.dataset.tab); return; }
+    const gv = t.closest('[data-gview]');
+    if (gv) { T.gview = gv.dataset.gview; T.gFilter = 'all'; renderTab(); return; }
+    const rec = t.closest('[data-rec]');
+    if (rec) { openRec(+rec.dataset.rec); return; }
+    if (t.id === 'btnAddCh') {
+      const rows = $('#chRows'), i = rows.children.length;
+      if (i >= 60) { toast('60개까지예요.'); return; }
+      rows.insertAdjacentHTML('beforeend', chRow({ id: chapterId(), name: '' }, i, false));
+      $('input', rows.lastElementChild).focus();
+      return;
+    }
+    const dc = t.closest('[data-delch]');
+    if (dc) { dc.closest('.ch-row').remove(); $$('#chRows .ch-row .n').forEach((n, i) => { n.textContent = i + 1; }); return; }
+    if (t.id === 'btnSaveRoom') { saveRoom(); return; }
+    if (t.id === 'btnForget') { if (confirm('이 기기 목록에서만 빼요. 방과 학생 기록은 그대로예요.')) { forgetRoom(T.code); renderHome(); } return; }
+    const fx = t.closest('[data-fix]');
+    if (fx) {
+      if (T.mode === 'demo') { toast('예시 화면이라 저장하지 않아요.'); return; }
+      const row = fx.closest('.rd-row'), ins = $$('input', row);
+      try {
+        await rpc('rn_teacher_fix_reader', { p_code: T.code, p_pass: T.pass, p_reader_id: +fx.dataset.fix, p_no: ins[0].value, p_name: ins[1].value });
+        toast('고쳤어요.'); await reload(true); const c = $('#rdCard'); if (c) c.innerHTML = readersHtml();
+      } catch (e) { toast(e.message, 4000); }
+      return;
+    }
+    const dl = t.closest('[data-del]');
+    if (dl) {
+      if (T.mode === 'demo') { toast('예시 화면이라 저장하지 않아요.'); return; }
+      const rd = T.readers.find(x => x.id === +dl.dataset.del);
+      const n = Object.keys(T.by[rd.id] || {}).length;
+      if (!confirm(`${rd.student_no} ${rd.name} 학생과 그 기록 ${n}칸을 모두 지울까요? 되돌릴 수 없어요.`)) return;
+      try {
+        await rpc('rn_teacher_remove_reader', { p_code: T.code, p_pass: T.pass, p_reader_id: rd.id });
+        toast('지웠어요.'); await reload(true); const c = $('#rdCard'); if (c) c.innerHTML = readersHtml();
+      } catch (e) { toast(e.message, 4000); }
+    }
+  });
+  document.addEventListener('keydown', ev => {
+    const rec = ev.target.closest && ev.target.closest('[data-rec]');
+    if (rec && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); openRec(+rec.dataset.rec); }
+  });
+  document.addEventListener('change', ev => {
+    if (ev.target.id === 'gFilter') { T.gFilter = ev.target.value; renderTab(); }
+    if (ev.target.id === 'banFilter') { T.ban = ev.target.value; if (T.tab !== 'set') renderTab(); }
+  });
+
+  $('#btnCreate').onclick = createRoom;
+  $('#btnFillN').onclick = () => {
+    const n = parseInt($('#cN').value, 10);
+    if (!n) { $('#cN').focus(); return; }
+    $('#cChapters').value = Array.from({ length: Math.max(1, Math.min(60, n)) }, (_, i) => `${i + 1}장`).join('\n');
+  };
+  $('#btnOpen').onclick = async () => {
+    $('#openErr').textContent = '';
+    const code = normCode($('#oCode').value), pass = $('#oPass').value;
+    if (!code || !pass) { $('#openErr').textContent = '참여코드와 비밀번호를 적어 주세요.'; return; }
+    try { await openRoom(code, pass, $('#oRemember').checked); $('#oPass').value = ''; } catch (e) { $('#openErr').textContent = e.message; }
+  };
+  $('#btnDemo').onclick = () => {
+    T.seq++;
+    Object.assign(T, { mode: 'demo', code: 'EXAMPL', pass: '', tab: 'prog', gview: 'q', gFilter: 'all', ban: 'all', recId: null, sig: '' });
+    setData(demoData()); showRoom();
+  };
+  $('#btnHome').onclick = () => renderHome();
+  $('#btnReload').onclick = () => reload(false);
+  $('#btnCsv').onclick = downloadCsv;
+  $('#boardMode').onchange = ev => {
+    T.board = ev.target.checked;
+    document.body.classList.toggle('board', T.board);
+    if (T.board && T.tab === 'set') selectTab('prog'); else renderTab();
+    if (T.board && $('#recDlg').open) $('#recDlg').close();
+  };
+  $('#btnCopyLink').onclick = () => copyText(studentUrl()).then(ok => toast(ok ? '학생 주소를 복사했어요.' : studentUrl(), 4000));
+  $('#btnQrBig').onclick = () => {
+    const box = $('#qrBigBox'); box.innerHTML = '';
+    if (window.QRCode) new QRCode(box, { text: studentUrl(), width: 520, height: 520, correctLevel: QRCode.CorrectLevel.M });
+    $('#qrBigCode').textContent = T.mode === 'demo' ? '체험' : T.room.code;
+    $('#qrBig').hidden = false;
+  };
+  $('#qrBig').onclick = () => { $('#qrBig').hidden = true; };
+  $('#recClose').onclick = () => { $('#recDlg').close(); T.recId = null; };
+  $('#recPrint').onclick = () => { document.body.classList.add('print-rec'); window.print(); };
+  window.addEventListener('afterprint', () => document.body.classList.remove('print-rec'));
+  $('#oCode').addEventListener('blur', () => { $('#oCode').value = normCode($('#oCode').value); });
+
+  const p = new URLSearchParams(location.search);
+  if (p.has('demo')) $('#btnDemo').click(); else renderHome();
+})();
+</script>
+</body>
+</html>

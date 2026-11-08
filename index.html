@@ -1,0 +1,895 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>읽기 노트</title>
+<meta name="description" content="책을 읽으며 질문과 내 말 요약을 남기는 학생용 읽기 노트">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="rn.css">
+<style>
+  /* 들어오기 */
+  .join { max-width: 440px; margin: 40px auto 0; }
+  .join h1 { font-size: 26px; letter-spacing: -.03em; margin: 0 0 6px; }
+  .join .lead { color: var(--ink-2); margin: 0 0 8px; }
+  .room-peek { margin-top: 8px; font-size: 14px; color: var(--accent); min-height: 1.4em; }
+  .join .two { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }
+  .loading { text-align: center; color: var(--muted); padding: 60px 0; }
+
+  /* 책 머리 */
+  .book { margin-top: 20px; }
+  .book .ttl { font-size: 23px; font-weight: 800; letter-spacing: -.02em; margin: 0; }
+  .book .meta { color: var(--muted); font-size: 14px; margin-top: 2px; }
+  .me-line { margin-top: 10px; font-size: 15px; display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; }
+  .me-line b { font-size: 17px; }
+  .me-line .code-hint { font-size: 13px; color: var(--muted); }
+  .me-line .code-hint b { font-size: 13px; letter-spacing: .06em; color: var(--ink-2); }
+  .concept-tag { display: inline-block; margin-top: 8px; font-size: 14px; color: var(--ink-2); }
+  .concept-tag b { color: var(--accent); }
+  .closed-bar { margin-top: 12px; }
+
+  /* 진행 막대 */
+  .prog { display: flex; gap: 4px; margin-top: 14px; }
+  .prog i { flex: 1; height: 8px; border-radius: 4px; background: var(--line); }
+  .prog i.half { background: #a9c1e6; }
+  .prog i.on { background: var(--done); }
+  .prog-label { font-size: 13px; color: var(--muted); margin-top: 6px; }
+
+  /* 부분 목록 */
+  .chap { border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); margin-top: 10px; }
+  .chap-h {
+    width: 100%; display: flex; align-items: center; gap: 12px; text-align: left;
+    background: none; border: 0; padding: 14px 16px; cursor: pointer; min-height: 56px;
+  }
+  .chap-n { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--line-2); display: grid; place-items: center; font-weight: 700; font-size: 14px; color: var(--muted); flex: none; }
+  .chap.half .chap-n { border-color: #a9c1e6; color: var(--accent); }
+  .chap.on .chap-n { background: var(--done); border-color: var(--done); color: #fff; }
+  .chap-t { flex: 1; min-width: 0; }
+  .chap-t b { display: block; }
+  .chap-t span { display: block; color: var(--muted); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chap-s { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .chap.on .chap-s { color: var(--accent); font-weight: 600; }
+  .chap-b { padding: 0 16px 18px; border-top: 1px solid var(--line); }
+
+  /* 앞에서 쓴 요약 */
+  .lamp { margin: 14px 0 4px; padding: 10px 12px 10px 14px; background: var(--bg); border-radius: 10px; font-size: 14px; }
+  .lamp-h { font-weight: 700; color: var(--ink-2); font-size: 13px; margin-bottom: 6px; }
+  .lamp ol { list-style: none; margin: 0; padding: 0 0 0 14px; border-left: 2px solid var(--line-2); }
+  .lamp li { position: relative; padding: 2px 0 6px 10px; color: var(--ink-2); }
+  .lamp li::before { content: ''; position: absolute; left: -20px; top: 9px; width: 10px; height: 10px; border-radius: 50%; background: var(--done); }
+  .lamp li em { font-style: normal; color: var(--muted); font-size: 12px; display: block; }
+  .lamp .carry { color: var(--accent); font-weight: 600; }
+
+  .q-row { display: flex; gap: 6px; margin-top: 6px; }
+  .q-row input { flex: 1; min-width: 0; }
+  .q-row .x { width: 44px; min-height: 44px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--paper); cursor: pointer; color: var(--muted); flex: none; }
+  .q-hint { font-size: 12px; color: var(--warn); margin-top: 2px; }
+  .two-in { display: grid; grid-template-columns: 90px 1fr; gap: 8px; }
+
+  /* AI 칸 */
+  .ai { margin-top: 16px; border: 1px dashed var(--line-2); border-radius: 10px; padding: 12px 14px; }
+  .ai-h { font-weight: 700; font-size: 15px; }
+  .ai .gate { font-size: 13px; color: var(--warn); margin-top: 4px; }
+  .ai textarea { margin-top: 8px; font-size: 13px; }
+
+  /* 전체 기록 */
+  .chain h3 { font-size: 16px; margin: 18px 0 6px; }
+  .chain .blk { border-left: 3px solid var(--line-2); padding: 2px 0 2px 14px; margin: 10px 0; }
+  .chain .blk.done { border-color: var(--done); }
+  .chain .lbl { font-size: 12px; color: var(--muted); font-weight: 700; margin-top: 6px; }
+  .chain .empty { color: var(--muted); font-style: normal; }
+  .chain ul { margin: 2px 0 0; padding-left: 18px; }
+
+  @media (max-width: 520px) {
+    .join { margin-top: 24px; }
+    .join .two { grid-template-columns: 1fr; }
+    .book .ttl { font-size: 20px; }
+  }
+  @media print {
+    body.print-chain #desk { display: none !important; }
+    body.print-chain #chainView { display: block !important; }
+    .chain .blk { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand">읽기 노트</div>
+    <div class="grow who" id="who"></div>
+    <div class="save-state" id="saveState" aria-live="polite"></div>
+    <button class="btn small ghost no-print" id="btnOut" hidden>나가기</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="loading" id="loadingView" hidden>불러오는 중…</div>
+
+  <!-- 들어오기 -->
+  <section id="joinView" class="join" hidden>
+    <h1>읽기 노트</h1>
+    <p class="lead">읽기 전에 질문 하나, 읽으면서 내 말로 한두 줄. 선생님이 알려 준 참여코드로 들어와요.</p>
+    <div class="card">
+      <label class="f" for="inCode">참여코드</label>
+      <input class="t" id="inCode" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="16" placeholder="예: K7M2QX">
+      <div class="room-peek" id="roomPeek"></div>
+      <div class="two">
+        <div>
+          <label class="f" for="inNo">학번</label>
+          <input class="t" id="inNo" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="20312">
+        </div>
+        <div>
+          <label class="f" for="inName">이름</label>
+          <input class="t" id="inName" autocomplete="off" maxlength="20" placeholder="김민수">
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:18px">
+        <button class="btn primary" id="btnJoin">들어가기</button>
+      </div>
+      <div class="err" id="joinErr" role="alert"></div>
+      <p class="note">다음에 다시 들어올 때도 같은 학번과 이름을 쓰면 적던 글이 이어져요.</p>
+    </div>
+    <div class="card">
+      <h2>먼저 써 보기</h2>
+      <p class="sub">참여코드 없이 아무 책이나 떠올리며 써 볼 수 있어요. 이 기기에만 남아요.</p>
+      <button class="btn" id="btnDemo">체험해 보기</button>
+    </div>
+  </section>
+
+  <!-- 이어 쓰기 확인 -->
+  <section id="resumeView" class="join" hidden>
+    <div class="card">
+      <h2 id="resumeTitle"></h2>
+      <p class="sub">이 기기에서 마지막으로 쓴 사람이에요. 본인이 아니면 「제가 아니에요」를 눌러 주세요.</p>
+      <div class="btn-row">
+        <button class="btn primary" id="btnResumeYes">네, 이어서 쓸게요</button>
+        <button class="btn" id="btnResumeNo">제가 아니에요</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 내 책상 -->
+  <section id="desk" hidden>
+    <div class="book">
+      <p class="ttl" id="bookTitle"></p>
+      <div class="meta" id="bookMeta"></div>
+      <div class="me-line" id="meLine"></div>
+      <div class="concept-tag" id="conceptTag" hidden></div>
+      <div class="closed-bar warn-box" id="closedBar" hidden>이 방은 마감됐어요. 쓴 글을 볼 수는 있지만 고칠 수는 없어요.</div>
+      <div class="closed-bar warn-box" id="demoBar" hidden>체험용이에요. 여기 적은 글은 이 기기에만 남고 선생님께 가지 않아요.</div>
+      <div class="closed-bar warn-box" id="offBar" hidden></div>
+      <div class="prog" id="prog" aria-hidden="true"></div>
+      <div class="prog-label" id="progLabel"></div>
+    </div>
+
+    <div class="card" id="beforeCard"></div>
+
+    <div style="margin-top:22px">
+      <div class="step-tag">읽는 동안</div>
+      <h2 style="font-size:19px;margin:0">한 부분을 읽을 때마다</h2>
+      <p class="note" style="margin:2px 0 0">책 문장을 옮기지 말고 내 말로 적어요. 앞에서 쓴 요약이 다음 부분을 읽을 때 길잡이가 돼요.</p>
+      <div id="chapList"></div>
+    </div>
+
+    <div class="card" id="afterCard"></div>
+
+    <div class="card no-print">
+      <h2>내 기록 전체</h2>
+      <p class="sub">읽기 전 질문부터 마지막 답까지 이어서 보고, 인쇄할 수 있어요.</p>
+      <button class="btn" id="btnChain">전체 기록 보기</button>
+    </div>
+  </section>
+
+  <!-- 전체 기록 -->
+  <section id="chainView" hidden>
+    <div class="btn-row no-print" style="margin-top:18px">
+      <button class="btn small" id="btnBack">← 돌아가기</button>
+      <button class="btn small" id="btnPrint">인쇄하기</button>
+    </div>
+    <div class="card chain" id="chainBody"></div>
+    <div class="card no-print ai" id="tidyBox"></div>
+  </section>
+
+</main>
+
+<footer id="app-credit" style="width:100%;box-sizing:border-box;margin:2.5rem 0 0;padding:14px 12px;text-align:center;font-size:12.5px;line-height:1.6;color:#8a8f98;font-family:system-ui,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;border-top:1px solid rgba(128,128,128,.25);">© 2026 조승재(과학이조선생) · 해누리중학교 · All rights reserved<br><span style="font-size:11px;opacity:.85;">최종 업데이트: 2026-11-08</span></footer>
+
+<script src="rn.js"></script>
+<script>
+(function () {
+  'use strict';
+  const { rpc, esc, $, $$, store, len, arr, obj, realQ, fmtTime, normCode, copyText, toast, STARTERS, slotOf, promptCheck, promptTidy, slotState, isStuck } = RN;
+
+  const SESS_KEY = 'rn_sess_v1';
+  const RESUME_ASK_MS = 3 * 60 * 60 * 1000;   // 3시간 넘게 지났으면 누구인지 묻는다
+  const DEMO_ROOM = {
+    code: 'DEMO', title: '체험: 지금 읽고 있는 책', author: '', subject: '',
+    chapters: [{ id: 'p1', name: '처음 부분' }, { id: 'p2', name: '가운데 부분' }, { id: 'p3', name: '끝 부분' }],
+    concept: '', guide: '아무 책이나 떠올리며 써 보세요.', closed: false, opts: { ai: true }
+  };
+  const SUMMARY_MIN = 10;
+  const AI_MIN = 20;
+  const MAX_Q = 8;
+
+  const S = {
+    mode: null, code: '', token: '', no: '', name: '',
+    room: null, entries: {}, open: null, loading: false,
+    pending: {}, inflight: {}, again: {}, timers: {},
+    retry: null, reloadTimer: null, reloadWait: 15000, closedHit: false, lastLoad: 0
+  };
+
+  // ---------- 저장소 ----------
+  const cacheKey = () => `rn_cache_v1_${S.mode}_${S.code}_${S.token || S.no}`;
+  function writeCache() {
+    if (!S.mode) return;
+    store.set(cacheKey(), { room: S.room, entries: S.entries, pending: Object.keys(S.pending) });
+  }
+  function readCache() { return store.get(cacheKey(), null); }
+  function stampSession() {
+    const s = store.get(SESS_KEY, null);
+    if (s) { s.last = Date.now(); store.set(SESS_KEY, s); }
+  }
+
+  function entry(slot) {
+    if (!S.entries[slot]) S.entries[slot] = { data: {}, done: false, updated_at: null };
+    if (!S.entries[slot].data || typeof S.entries[slot].data !== 'object') S.entries[slot].data = {};
+    return S.entries[slot];
+  }
+  const readOnly = () => !!(S.room && S.room.closed) || S.closedHit;
+  const aiOn = () => !(S.room && S.room.opts && S.room.opts.ai === false);
+  const st = slot => slotState(slot, S.entries[slot]);
+
+  // ---------- 저장 ----------
+  function setSaveState(text, bad) {
+    const el = $('#saveState');
+    el.textContent = text || '';
+    el.title = text || '';
+    el.classList.toggle('bad', !!bad);
+  }
+
+  function touch(slot) {
+    if (readOnly()) return;
+    S.pending[slot] = true;
+    writeCache();
+    stampSession();
+    if (S.mode === 'demo') { delete S.pending[slot]; writeCache(); setSaveState('이 기기에 저장됨'); return; }
+    setSaveState('저장 중…');
+    clearTimeout(S.timers[slot]);
+    S.timers[slot] = setTimeout(() => save(slot), 1200);
+  }
+
+  async function save(slot, keepalive) {
+    if (S.mode !== 'server' || !S.pending[slot]) return;
+    if (S.inflight[slot]) { S.again[slot] = true; return; }   // 같은 칸은 한 번에 하나씩
+    const e = entry(slot);
+    const sent = JSON.stringify([e.data, !!e.done]);
+    S.inflight[slot] = true;
+    try {
+      const at = await rpc('rn_save', { p_token: S.token, p_slot: slot, p_data: e.data, p_done: !!e.done }, { keepalive });
+      e.updated_at = at;
+      if (JSON.stringify([e.data, !!e.done]) === sent) delete S.pending[slot];  // 보내는 동안 또 고쳤으면 그대로 둔다
+      else S.again[slot] = true;
+      writeCache();
+      if (!Object.keys(S.pending).length) setSaveState('저장됨 ' + fmtTime(at).replace('오늘 ', ''));
+      else if (!Object.keys(S.timers).some(k => S.pending[k])) scheduleRetry(3000);
+    } catch (err) {
+      if (err.code === 'closed') {
+        S.closedHit = true; S.pending = {}; writeCache();
+        setSaveState('마감된 방', true); renderDesk(); return;
+      }
+      if (err.code === 'no_reader') { setSaveState('다시 들어와 주세요', true); return; }
+      if (err.code === 'bad_slot') { setSaveState('부분 목록이 바뀌었어요', true); delete S.pending[slot]; writeCache(); loadServer(true); return; }
+      setSaveState('저장 안 됨 · 다시 시도 중', true);
+      scheduleRetry(15000);
+    } finally {
+      S.inflight[slot] = false;
+      if (S.again[slot]) { S.again[slot] = false; if (S.pending[slot]) save(slot); }
+    }
+  }
+  function scheduleRetry(ms) {
+    clearTimeout(S.retry);
+    S.retry = setTimeout(() => flushAll(false), ms);
+  }
+  function flushAll(keepalive) {
+    Object.keys(S.pending).forEach(slot => { clearTimeout(S.timers[slot]); delete S.timers[slot]; save(slot, keepalive); });
+  }
+  window.addEventListener('online', () => flushAll(false));
+  // 휴대폰에서 다른 앱(AI)으로 넘어가거나 탭을 닫을 때 바로 보낸다
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { flushAll(true); return; }
+    // 돌아왔을 때: 저장할 것이 없고 입력 중이 아니면 서버 글을 다시 받는다(다른 기기에서 쓴 글)
+    if (S.mode === 'server' && !Object.keys(S.pending).length && !Object.values(S.inflight).some(Boolean)
+        && !document.activeElement?.dataset?.slot && Date.now() - S.lastLoad > 60000 && !$('#desk').hidden) {
+      loadServer(true);
+    }
+  });
+  window.addEventListener('pagehide', () => flushAll(true));
+  window.addEventListener('beforeunload', ev => {
+    if (S.mode === 'server' && Object.keys(S.pending).length) { flushAll(true); ev.preventDefault(); ev.returnValue = ''; }
+  });
+
+  // ---------- 화면 바꾸기 ----------
+  function show(view) {
+    ['#loadingView', '#joinView', '#resumeView', '#desk', '#chainView'].forEach(id => { $(id).hidden = id !== view; });
+    const inside = view === '#desk' || view === '#chainView';
+    $('#btnOut').hidden = !inside;
+    if (!inside) { $('#who').textContent = ''; setSaveState(''); }
+  }
+
+  // ---------- 들어오기 ----------
+  function showJoin(msg) {
+    show('#joinView');
+    const p = new URLSearchParams(location.search);
+    if (p.get('c') && !$('#inCode').value) { $('#inCode').value = normCode(p.get('c')); peekRoom(); }
+    $('#joinErr').textContent = msg || '';
+  }
+
+  let peekSeq = 0;
+  async function peekRoom() {
+    const code = normCode($('#inCode').value);
+    const out = $('#roomPeek');
+    if (code.length < 6) { out.textContent = ''; return; }
+    const my = ++peekSeq;
+    try {
+      const r = await rpc('rn_room_public', { p_code: code });
+      if (my !== peekSeq) return;
+      out.textContent = r ? `『${r.title}』${r.author ? ' · ' + r.author : ''}` : '이 코드로 된 방이 없어요.';
+      out.style.color = r ? '' : 'var(--bad)';
+    } catch (e) {
+      if (my !== peekSeq) return;
+      out.textContent = e.code === 'not_installed' ? '서버 준비 전이에요. 아래 「체험해 보기」로 먼저 써 볼 수 있어요.' : '';
+      out.style.color = 'var(--warn)';
+    }
+  }
+
+  async function doJoin() {
+    const btn = $('#btnJoin');
+    if (btn.disabled) return;
+    const code = normCode($('#inCode').value);
+    $('#inCode').value = code;
+    const no = $('#inNo').value.replace(/[\s-]/g, '');
+    const name = $('#inName').value.trim();
+    const err = $('#joinErr');
+    if (!code) { err.textContent = '참여코드를 적어 주세요.'; $('#inCode').focus(); return; }
+    if (!no) { err.textContent = '학번을 적어 주세요.'; $('#inNo').focus(); return; }
+    if (!name) { err.textContent = '이름을 적어 주세요.'; $('#inName').focus(); return; }
+    err.textContent = '';
+    btn.disabled = true; btn.textContent = '들어가는 중…';
+    try {
+      const j = await rpc('rn_join', { p_code: code, p_no: no, p_name: name });
+      Object.assign(S, { mode: 'server', code, token: j.token, no: j.student_no, name: j.name, room: j.room, entries: {}, pending: {}, closedHit: false, open: null });
+      store.set(SESS_KEY, { mode: 'server', code, token: j.token, no: j.student_no, name: j.name, last: Date.now() });
+      await loadServer(false);
+    } catch (e) {
+      err.textContent = e.message;
+    } finally {
+      btn.disabled = false; btn.textContent = '들어가기';
+    }
+  }
+
+  function startDemo() {
+    Object.assign(S, { mode: 'demo', code: 'DEMO', token: '', no: '체험', name: '', room: DEMO_ROOM, pending: {}, closedHit: false, open: null });
+    const c = readCache();
+    S.entries = (c && c.entries) || {};
+    store.set(SESS_KEY, { mode: 'demo', code: 'DEMO', no: '체험', last: Date.now() });
+    openDesk();
+  }
+
+  // quiet = 이미 책상이 열려 있을 때 조용히 맞추기
+  async function loadServer(quiet) {
+    clearTimeout(S.reloadTimer);
+    const c = readCache();
+    if (!quiet) {
+      if (c) {
+        S.room = c.room || S.room; S.entries = c.entries || {};
+        (c.pending || []).forEach(s => { S.pending[s] = true; });
+      }
+      if (c && S.room) { S.loading = true; openDesk(); }   // 이 기기 글로 먼저 보여 주되, 서버 글이 올 때까지 잠근다
+      else show('#loadingView');
+    }
+    try {
+      const my = await rpc('rn_my', { p_token: S.token });
+      S.lastLoad = Date.now();
+      S.room = my.room;
+      if (my.student_no !== S.no || my.name !== S.name) {   // 선생님이 학번·이름을 고친 경우
+        S.no = my.student_no; S.name = my.name;
+        const s = store.get(SESS_KEY, null); if (s) { s.no = S.no; s.name = S.name; store.set(SESS_KEY, s); }
+      }
+      const fresh = {};
+      arr(my.entries).forEach(e => { fresh[e.slot] = { data: obj(e.data), done: !!e.done, updated_at: e.updated_at }; });
+      Object.keys(S.pending).forEach(slot => { if (S.entries[slot]) fresh[slot] = S.entries[slot]; });
+      S.entries = fresh;
+      S.loading = false;
+      S.reloadWait = 15000;
+      writeCache();
+      $('#offBar').hidden = true;
+      if (quiet && !$('#desk').hidden) renderDesk(); else if (!quiet) openDesk();
+      if (Object.keys(S.pending).length) flushAll(false);
+      else setSaveState(S.room.closed ? '' : '불러옴');
+    } catch (e) {
+      S.loading = false;
+      if (e.code === 'no_reader') { logout(true); showJoin('다시 들어와 주세요.'); return; }
+      if (S.room) {
+        if ($('#desk').hidden && $('#chainView').hidden) openDesk(); else renderDesk();
+        setSaveState('오프라인 · 이 기기 글', true);
+        const off = $('#offBar');
+        off.textContent = e.code === 'not_installed' ? e.message : '서버에 닿지 않아요. 이 기기에 남은 글로 보여요. 계속 써도 되고, 연결되면 저절로 보내요.';
+        off.hidden = false;
+        S.reloadTimer = setTimeout(() => loadServer(true), S.reloadWait);   // 다시 받아 보기(점점 느리게)
+        S.reloadWait = Math.min(S.reloadWait * 2, 120000);
+      } else showJoin(e.message);
+    }
+  }
+
+  function logout(silent) {
+    if (!silent && S.mode === 'server' && Object.keys(S.pending).length &&
+        !confirm('아직 서버에 저장 못 한 글이 있어요. 그래도 나갈까요?')) return;
+    if (!silent && !confirm('나갈까요? 다음에 같은 학번과 이름으로 들어오면 이어서 쓸 수 있어요.')) return;
+    if (S.mode === 'server') store.del(cacheKey());
+    store.del(SESS_KEY);
+    clearTimeout(S.reloadTimer); clearTimeout(S.retry);
+    Object.values(S.timers).forEach(clearTimeout);
+    Object.assign(S, { mode: null, code: '', token: '', no: '', name: '', room: null, entries: {}, pending: {}, inflight: {}, again: {}, timers: {}, open: null, closedHit: false, loading: false });
+    $('#inNo').value = ''; $('#inName').value = '';
+    showJoin('');
+  }
+
+  // ---------- 책상 그리기 ----------
+  function openDesk() {
+    show('#desk');
+    $('#who').textContent = S.mode === 'demo' ? '체험 중' : `${S.no} ${S.name}`;
+    renderDesk();
+  }
+
+  const beforeDone = () => st('before') === 'on';
+  const afterDone = () => st('after') === 'on';
+  const stText = s => s === 'on' ? '다 읽음' : s === 'half' ? '쓰는 중' : '아직';
+
+  function renderDesk() {
+    const r = S.room;
+    $('#who').textContent = S.mode === 'demo' ? '체험 중' : `${S.no} ${S.name}`;
+    $('#bookTitle').textContent = `『${r.title}』`;
+    $('#bookMeta').textContent = [r.author, r.subject].filter(Boolean).join(' · ');
+    $('#meLine').innerHTML = S.mode === 'demo' ? '' :
+      `<b>${esc(S.no)} ${esc(S.name)}</b><span class="code-hint">참여코드 <b>${esc(S.code)}</b> · 다른 기기에서도 이 코드와 같은 학번·이름으로 들어오면 이어서 써요</span>`;
+    const ct = $('#conceptTag');
+    ct.hidden = !r.concept;
+    ct.innerHTML = r.concept ? `이 책으로 생각해 볼 개념 <b>${esc(r.concept)}</b>` : '';
+    $('#closedBar').hidden = !readOnly();
+    $('#demoBar').hidden = S.mode !== 'demo';
+    renderBefore();
+    renderChapters();
+    renderAfter();
+    renderProgress();
+    setReadOnly();
+  }
+
+  function setReadOnly() {
+    const lock = readOnly() || S.loading;
+    $$('#desk textarea, #desk input, #desk .chip, #desk .x, #desk [data-act="addq"], #desk [data-act="done"]').forEach(el => { el.disabled = lock; });
+  }
+
+  function renderProgress() {
+    const chs = S.room.chapters;
+    const cells = [st('before'), ...chs.map(ch => st(slotOf(ch.id))), st('after')];
+    $('#prog').innerHTML = cells.map(c => `<i class="${c}"></i>`).join('');
+    const doneCh = chs.filter(ch => st(slotOf(ch.id)) === 'on').length;
+    $('#progLabel').textContent = `읽기 전 ${beforeDone() ? '✓' : '·'}  ·  다 읽은 부분 ${doneCh}/${chs.length}  ·  읽은 뒤 ${afterDone() ? '✓' : '·'}`;
+  }
+
+  function renderBefore() {
+    const r = S.room, d = entry('before').data;
+    $('#beforeCard').innerHTML = `
+      <div class="step-tag">읽기 전</div>
+      <h2>들고 들어갈 질문 하나</h2>
+      <p class="sub">이 책에서 무엇을 알고 싶은지 질문 하나로 적어요. 읽는 내내 이 질문의 답을 찾아요.</p>
+      ${r.guide ? `<div class="note box">선생님 안내 · ${esc(r.guide)}</div>` : ''}
+      <label class="f" for="bQ">내 질문</label>
+      <textarea class="t ruled" id="bQ" rows="2" data-slot="before" data-key="question" maxlength="300"
+        placeholder="예: 이 책 제목은 왜 이렇게 지었을까?">${esc(d.question)}</textarea>
+      ${r.concept ? `
+      <label class="f" for="bC">‘${esc(r.concept)}’에 대해 지금 내 생각 한 줄<span class="hint">읽은 뒤 다시 견줘 봐요</span></label>
+      <textarea class="t ruled" id="bC" rows="2" data-slot="before" data-key="concept_now" maxlength="300">${esc(d.concept_now)}</textarea>` : ''}
+    `;
+  }
+
+  function afterBqHtml() {
+    const bq = (S.entries.before || {}).data?.question;
+    return bq ? '처음 질문 · ' + esc(bq) : '<span style="color:var(--warn)">처음 질문을 아직 안 적었어요. 맨 위 「읽기 전」에 먼저 적어요.</span>';
+  }
+  function afterConceptHtml() {
+    return '처음 생각 · ' + (esc((S.entries.before || {}).data?.concept_now) || '(안 적음)');
+  }
+
+  function renderAfter() {
+    const r = S.room, d = entry('after').data;
+    $('#afterCard').innerHTML = `
+      <div class="step-tag">읽은 뒤</div>
+      <h2>처음 질문으로 돌아가기</h2>
+      <p class="sub">다 읽고 나서 처음 질문에 내 말로 답해요.</p>
+      <div class="note box" id="afterBq">${afterBqHtml()}</div>
+      <label class="f" for="aA">지금 내 답</label>
+      <textarea class="t ruled" id="aA" rows="3" data-slot="after" data-key="answer" maxlength="1000">${esc(d.answer)}</textarea>
+      <label class="f" for="aL">이 책을 내 말로 한 문장</label>
+      <textarea class="t ruled" id="aL" rows="2" data-slot="after" data-key="one_line" maxlength="300">${esc(d.one_line)}</textarea>
+      <label class="f" for="aN">읽고 나서 새로 생긴 질문<span class="hint">다음에 읽을 거리가 돼요</span></label>
+      <textarea class="t ruled" id="aN" rows="2" data-slot="after" data-key="new_q" maxlength="500">${esc(d.new_q)}</textarea>
+      ${r.concept ? `
+      <label class="f" for="aC">읽고 나서 ‘${esc(r.concept)}’에 대한 내 생각은 어떻게 달라졌나요?</label>
+      <div class="note" id="afterConcept">${afterConceptHtml()}</div>
+      <textarea class="t ruled" id="aC" rows="2" data-slot="after" data-key="concept_after" maxlength="500">${esc(d.concept_after)}</textarea>` : ''}
+    `;
+  }
+
+  function renderChapters() {
+    const chs = S.room.chapters;
+    $('#chapList').innerHTML = chs.map((ch, i) => {
+      const s = st(slotOf(ch.id));
+      const d = obj((S.entries[slotOf(ch.id)] || {}).data);
+      const open = S.open === ch.id;
+      return `
+      <div class="chap ${s}" data-ch="${esc(ch.id)}">
+        <button class="chap-h" data-act="toggle" aria-expanded="${open}" aria-controls="cb-${esc(ch.id)}">
+          <span class="chap-n">${s === 'on' ? '✓' : i + 1}</span>
+          <span class="chap-t"><b>${esc(ch.name)}</b>${!open && d.summary ? `<span>${esc(d.summary)}</span>` : ''}</span>
+          <span class="chap-s">${stText(s)}</span>
+        </button>
+        ${open ? `<div class="chap-b" id="cb-${esc(ch.id)}">${chapterBody(ch, i, d)}</div>` : ''}
+      </div>`;
+    }).join('');
+    if (S.open) { updateGate(S.open); updateDoneBtn(S.open); }
+  }
+
+  function chapterBody(ch, i, d) {
+    const chs = S.room.chapters;
+    const prev = chs.slice(0, i).map(c => ({ c, s: obj((S.entries[slotOf(c.id)] || {}).data).summary })).filter(x => len(x.s));
+    const bq = (S.entries.before || {}).data?.question;
+    const qs = arr(d.questions).length ? arr(d.questions) : [''];
+    const sl = slotOf(ch.id);
+    const q = obj(d.quote), stc = obj(d.stuck);
+    return `
+      ${(prev.length || bq) ? `
+      <div class="lamp">
+        <div class="lamp-h">앞에서 내가 쓴 것</div>
+        ${bq ? `<div class="carry" style="margin-bottom:6px">들고 들어간 질문 · ${esc(bq)}</div>` : ''}
+        ${prev.length ? `<ol>${prev.map(x => `<li><em>${esc(x.c.name)}</em>${esc(x.s)}</li>`).join('')}</ol>` : ''}
+      </div>` : ''}
+
+      <label class="f" for="s-${esc(ch.id)}">이 부분을 내 말로 한두 줄</label>
+      <textarea class="t ruled" id="s-${esc(ch.id)}" rows="3" data-slot="${esc(sl)}" data-key="summary" maxlength="800"
+        placeholder="책 문장 그대로 말고, 친구에게 설명하듯이">${esc(d.summary)}</textarea>
+      <div class="count" data-count="${esc(sl)}">${len(d.summary)}자</div>
+
+      <label class="f">읽으면서 생긴 질문<span class="hint">막히면 아래 말머리를 눌러 봐요</span></label>
+      <div data-qlist="${esc(sl)}">${qs.map((x, k) => qRow(sl, k, x)).join('')}</div>
+      <div class="btn-row" style="margin-top:6px">
+        <button class="btn small" data-act="addq" data-slot="${esc(sl)}">질문 하나 더</button>
+      </div>
+      <div class="chips" aria-label="질문 말머리">
+        ${STARTERS.map((s, k) => `<button class="chip" data-act="starter" data-slot="${esc(sl)}" data-k="${k}">${esc(s.k)}</button>`).join('')}
+      </div>
+
+      <details class="more" ${len(q.text) || isStuck(d) ? 'open' : ''}>
+        <summary>마음에 남은 구절 · 막힌 곳 적기</summary>
+        <label class="f">마음에 남은 구절<span class="hint">손으로 옮겨 치면 더 오래 남아요</span></label>
+        <div class="two-in">
+          <input class="t" placeholder="쪽" maxlength="10" data-slot="${esc(sl)}" data-key="quote.page" value="${esc(q.page)}" aria-label="쪽수">
+          <input class="t" placeholder="구절을 그대로 옮겨 치기" maxlength="400" data-slot="${esc(sl)}" data-key="quote.text" value="${esc(q.text)}" aria-label="구절">
+        </div>
+        <input class="t" style="margin-top:8px" placeholder="왜 이 구절을 골랐나요?" maxlength="300" data-slot="${esc(sl)}" data-key="quote.why" value="${esc(q.why)}" aria-label="고른 까닭">
+        <label class="f" style="display:flex;align-items:center;gap:8px;font-weight:600">
+          <input type="checkbox" data-slot="${esc(sl)}" data-key="stuck.on" ${stc.on ? 'checked' : ''} style="width:20px;height:20px"> 여기서 막혔어요
+        </label>
+        <input class="t" placeholder="어디서, 왜 막혔나요? (낱말·문장·흐름)" maxlength="300" data-slot="${esc(sl)}" data-key="stuck.where" value="${esc(stc.where)}" aria-label="막힌 곳">
+      </details>
+
+      <div class="btn-row" style="margin-top:16px">
+        <button class="btn primary" data-act="done" data-ch="${esc(ch.id)}">이 부분 다 읽었어요</button>
+      </div>
+      <div class="err" data-doneerr="${esc(ch.id)}"></div>
+
+      ${aiOn() ? `
+      <div class="ai no-print">
+        <div class="ai-h">AI에게 내 이해 확인받기</div>
+        <p class="note" style="margin:2px 0 0">AI가 답을 주는 게 아니라, 내 요약에서 빠진 곳을 질문으로 짚어 줘요. 부탁문을 복사해서 학교에서 쓰는 AI에 붙여 넣어요. 이름과 학교는 넣지 않았어요.</p>
+        <div class="gate" data-gate="${esc(ch.id)}"></div>
+        <div class="btn-row" style="margin-top:8px"><button class="btn small" data-act="aicheck" data-ch="${esc(ch.id)}">부탁문 복사</button></div>
+        <textarea class="t" rows="8" readonly hidden data-aiout="${esc(ch.id)}" aria-label="AI 부탁문"></textarea>
+      </div>` : ''}`;
+  }
+
+  function qRow(sl, k, q) {
+    return `<div class="q-row"><input class="t" maxlength="200" data-slot="${esc(sl)}" data-key="questions" data-k="${k}" value="${esc(q)}" placeholder="질문 ${k + 1}" aria-label="질문 ${k + 1}"><button class="x" data-act="delq" data-slot="${esc(sl)}" data-k="${k}" aria-label="질문 ${k + 1} 지우기">×</button></div>${len(q) && !realQ(q) ? '<div class="q-hint">말머리의 빈자리를 채워야 질문으로 남아요.</div>' : ''}`;
+  }
+
+  function updateGate(chId) {
+    const d = obj((S.entries[slotOf(chId)] || {}).data);
+    const g = $(`[data-gate="${CSS.escape(chId)}"]`);
+    const b = $(`[data-act="aicheck"][data-ch="${CSS.escape(chId)}"]`);
+    if (!g || !b) return;
+    const n = len(d.summary);
+    const ok = n >= AI_MIN;
+    b.disabled = !ok;
+    g.textContent = ok ? '' : `먼저 내 말로 요약을 ${AI_MIN}자 이상 써야 열려요. (지금 ${n}자)`;
+  }
+
+  function updateDoneBtn(chId) {
+    const b = $(`[data-act="done"][data-ch="${CSS.escape(chId)}"]`);
+    if (!b) return;
+    const on = st(slotOf(chId)) === 'on';
+    b.textContent = on ? '다 읽음 ✓ (고쳐도 돼요)' : '이 부분 다 읽었어요';
+    b.classList.toggle('primary', !on);
+  }
+
+  // ---------- 입력 받기 ----------
+  function setDeep(o, key, val) {
+    const parts = key.split('.');
+    for (let i = 0; i < parts.length - 1; i++) { if (!o[parts[i]] || typeof o[parts[i]] !== 'object' || Array.isArray(o[parts[i]])) o[parts[i]] = {}; o = o[parts[i]]; }
+    o[parts[parts.length - 1]] = val;
+  }
+
+  function onInput(ev) {
+    const el = ev.target;
+    if (el.id === 'inCode') { if (!ev.isComposing) { fixCodeInput(); } return; }
+    const slot = el.dataset.slot, key = el.dataset.key;
+    if (!slot || !key || readOnly() || S.loading) return;
+    const e = entry(slot);
+    if (key === 'questions') {
+      const k = +el.dataset.k;
+      const a = arr(e.data.questions).slice();
+      while (a.length <= k) a.push('');
+      a[k] = el.value;
+      e.data.questions = a;
+    } else {
+      setDeep(e.data, key, el.type === 'checkbox' ? el.checked : el.value);
+    }
+    // 막힌 곳을 글로 적으면 「막혔어요」도 켠다
+    if (key === 'stuck.where' && len(el.value) && !obj(e.data.stuck).on) {
+      e.data.stuck.on = true;
+      const cb = $(`[data-slot="${CSS.escape(slot)}"][data-key="stuck.on"]`); if (cb) cb.checked = true;
+    }
+    if (slot === 'before') e.done = beforeDone();
+    if (slot === 'after') e.done = afterDone();
+    if (key === 'summary') {
+      const c = $(`[data-count="${CSS.escape(slot)}"]`); if (c) c.textContent = len(el.value) + '자';
+      if (slot.startsWith('ch:') && e.done && len(el.value) < SUMMARY_MIN) e.done = false;   // 요약을 지우면 다 읽음도 풀린다
+      updateGate(slot.slice(3));
+    }
+    if (slot === 'before') {
+      const a = $('#afterBq'); if (a) a.innerHTML = afterBqHtml();
+      const c = $('#afterConcept'); if (c) c.innerHTML = afterConceptHtml();
+    }
+    touch(slot);
+    refreshLight(slot);
+  }
+
+  // 글자를 칠 때마다 전체를 다시 그리면 커서가 튀니, 상태 표시만 바꾼다
+  function refreshLight(slot) {
+    renderProgress();
+    if (slot.startsWith('ch:')) {
+      const id = slot.slice(3);
+      const box = $(`.chap[data-ch="${CSS.escape(id)}"]`);
+      if (box) {
+        const s = st(slot);
+        box.classList.toggle('on', s === 'on');
+        box.classList.toggle('half', s === 'half');
+        const t = $('.chap-s', box); if (t) t.textContent = stText(s);
+        const n = $('.chap-n', box); if (n) n.textContent = s === 'on' ? '✓' : (S.room.chapters.findIndex(c => c.id === id) + 1);
+      }
+      updateDoneBtn(id);
+    }
+  }
+
+  function onClick(ev) {
+    const b = ev.target.closest('[data-act]');
+    if (!b) return;
+    const act = b.dataset.act;
+    if (act === 'toggle') {
+      const id = b.closest('.chap').dataset.ch;
+      S.open = S.open === id ? null : id;
+      renderChapters(); setReadOnly();
+      if (S.open) {
+        const box = $(`.chap[data-ch="${CSS.escape(S.open)}"]`);
+        if (box) box.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      }
+      return;
+    }
+    if (act === 'aicheck') {
+      const id = b.dataset.ch, ch = S.room.chapters.find(c => c.id === id);
+      const d = entry(slotOf(id)).data;
+      if (len(d.summary) < AI_MIN) return;
+      flushAll(false);
+      const text = promptCheck(S.room, ch.name, d);
+      const out = $(`[data-aiout="${CSS.escape(id)}"]`);
+      out.value = text; out.hidden = false;
+      copyText(text, out).then(ok => toast(ok ? '복사했어요. 학교에서 쓰는 AI에 붙여 넣어요.' : '아래 글을 길게 눌러 복사해 주세요.'));
+      return;
+    }
+    if (readOnly() || S.loading) return;
+    if (act === 'addq' || act === 'starter') {
+      const slot = b.dataset.slot, e = entry(slot);
+      const a = arr(e.data.questions).length ? arr(e.data.questions).slice() : [''];
+      if (act === 'starter') {
+        const s = STARTERS[+b.dataset.k];
+        let k = a.findIndex(q => !len(q));
+        if (k < 0) { if (a.length >= MAX_Q) { toast(`질문은 ${MAX_Q}개까지 적을 수 있어요.`); return; } a.push(''); k = a.length - 1; }
+        a[k] = s.t;
+        e.data.questions = a;
+        rerenderQs(slot);
+        const inp = $(`[data-slot="${CSS.escape(slot)}"][data-key="questions"][data-k="${k}"]`);
+        if (inp) { inp.focus(); const c = Math.min(s.c, s.t.length); inp.setSelectionRange(c, c); }
+        if (realQ(s.t)) { touch(slot); refreshLight(slot); }   // 빈자리 없는 말머리만 바로 저장
+        return;
+      }
+      if (a.length >= MAX_Q) { toast(`질문은 ${MAX_Q}개까지 적을 수 있어요.`); return; }
+      a.push('');
+      e.data.questions = a;
+      rerenderQs(slot);
+      const inp = $(`[data-slot="${CSS.escape(slot)}"][data-key="questions"][data-k="${a.length - 1}"]`);
+      if (inp) inp.focus();
+      return;
+    }
+    if (act === 'delq') {
+      const slot = b.dataset.slot, e = entry(slot), k = +b.dataset.k;
+      const a = arr(e.data.questions).slice();
+      a.splice(k, 1);
+      e.data.questions = a.length ? a : [''];
+      rerenderQs(slot);
+      touch(slot); refreshLight(slot);
+      return;
+    }
+    if (act === 'done') {
+      const id = b.dataset.ch, slot = slotOf(id), e = entry(slot);
+      const errEl = $(`[data-doneerr="${CSS.escape(id)}"]`);
+      if (len(e.data.summary) < SUMMARY_MIN) { errEl.textContent = `내 말로 한두 줄을 먼저 적어 주세요. (${SUMMARY_MIN}자 이상)`; return; }
+      errEl.textContent = '';
+      if (st(slot) === 'on') { toast('다 읽음으로 표시돼 있어요. 고친 글도 그대로 저장돼요.'); return; }
+      e.done = true;
+      touch(slot);
+      const chs = S.room.chapters, i = chs.findIndex(c => c.id === id);
+      const notDone = c => st(slotOf(c.id)) !== 'on';
+      const next = chs.slice(i + 1).find(notDone) || chs.slice(0, i).find(notDone);
+      S.open = next ? next.id : null;
+      renderChapters(); renderProgress(); setReadOnly();
+      toast(next ? `잘했어요. 다음은 「${next.name}」` : '모든 부분을 다 읽었어요. 아래 「읽은 뒤」로 가요.');
+      const target = next ? $(`.chap[data-ch="${CSS.escape(next.id)}"]`) : $('#afterCard');
+      if (target) target.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      return;
+    }
+  }
+
+  function rerenderQs(slot) {
+    const box = $(`[data-qlist="${CSS.escape(slot)}"]`);
+    const a = arr(entry(slot).data.questions).length ? arr(entry(slot).data.questions) : [''];
+    if (box) box.innerHTML = a.map((q, k) => qRow(slot, k, q)).join('');
+    setReadOnly();
+  }
+
+  // ---------- 전체 기록 ----------
+  function recordText() {
+    const r = S.room, b = obj((S.entries.before || {}).data), a = obj((S.entries.after || {}).data);
+    const lines = [];
+    lines.push('읽기 전 · 들고 들어간 질문: ' + (b.question || '[비어 있음]'));
+    if (r.concept) lines.push(`읽기 전 · ‘${r.concept}’에 대한 생각: ` + (b.concept_now || '[비어 있음]'));
+    r.chapters.forEach(ch => {
+      const d = obj((S.entries[slotOf(ch.id)] || {}).data), q = obj(d.quote), stc = obj(d.stuck);
+      lines.push('');
+      lines.push(`[${ch.name}]`);
+      lines.push('내 말 요약: ' + (d.summary || '[비어 있음]'));
+      const qs = arr(d.questions).filter(realQ);
+      lines.push('생긴 질문: ' + (qs.length ? qs.join(' / ') : '[비어 있음]'));
+      if (len(q.text)) lines.push(`마음에 남은 구절(${q.page || '쪽 모름'}): ${q.text}${q.why ? ' — 고른 까닭: ' + q.why : ''}`);
+      if (isStuck(d)) lines.push('막힌 곳: ' + (stc.where || '(적지 않음)'));
+    });
+    lines.push('');
+    lines.push('읽은 뒤 · 처음 질문에 대한 내 답: ' + (a.answer || '[비어 있음]'));
+    lines.push('읽은 뒤 · 이 책을 한 문장으로: ' + (a.one_line || '[비어 있음]'));
+    lines.push('읽은 뒤 · 새로 생긴 질문: ' + (a.new_q || '[비어 있음]'));
+    if (r.concept) lines.push(`읽은 뒤 · ‘${r.concept}’에 대한 생각: ` + (a.concept_after || '[비어 있음]'));
+    return lines.join('\n');
+  }
+
+  function showChain() {
+    flushAll(false);
+    const r = S.room, b = obj((S.entries.before || {}).data), a = obj((S.entries.after || {}).data);
+    const v = s => len(s) ? esc(s) : '<span class="empty">(비어 있음)</span>';
+    let h = `<p style="font-size:20px;font-weight:800;margin:0">『${esc(r.title)}』</p>
+      <div class="note">${esc([r.author, r.subject].filter(Boolean).join(' · '))}${S.mode === 'server' ? ` · ${esc(S.no)} ${esc(S.name)}` : ''}</div>
+      <h3>읽기 전</h3>
+      <div class="blk ${beforeDone() ? 'done' : ''}"><div class="lbl">들고 들어간 질문</div>${v(b.question)}
+      ${r.concept ? `<div class="lbl">‘${esc(r.concept)}’에 대한 처음 생각</div>${v(b.concept_now)}` : ''}</div>
+      <h3>읽는 동안</h3>`;
+    r.chapters.forEach(ch => {
+      const sl = slotOf(ch.id), d = obj((S.entries[sl] || {}).data), q = obj(d.quote), stc = obj(d.stuck);
+      const on = st(sl) === 'on';
+      const qs = arr(d.questions).filter(realQ);
+      h += `<div class="blk ${on ? 'done' : ''}"><b>${esc(ch.name)}</b>${on ? ' <span class="note">· 다 읽음</span>' : ''}
+        <div class="lbl">내 말 요약</div>${v(d.summary)}
+        <div class="lbl">생긴 질문</div>${qs.length ? `<ul>${qs.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : v('')}
+        ${len(q.text) ? `<div class="lbl">마음에 남은 구절 ${q.page ? '(' + esc(q.page) + '쪽)' : ''}</div>${esc(q.text)}${q.why ? `<div class="note">고른 까닭 · ${esc(q.why)}</div>` : ''}` : ''}
+        ${isStuck(d) ? `<div class="lbl">막힌 곳</div>${v(stc.where)}` : ''}
+      </div>`;
+    });
+    h += `<h3>읽은 뒤</h3>
+      <div class="blk ${afterDone() ? 'done' : ''}">
+        <div class="lbl">처음 질문에 대한 내 답</div>${v(a.answer)}
+        <div class="lbl">이 책을 한 문장으로</div>${v(a.one_line)}
+        <div class="lbl">새로 생긴 질문</div>${v(a.new_q)}
+        ${r.concept ? `<div class="lbl">‘${esc(r.concept)}’에 대한 생각이 달라진 점</div>${v(a.concept_after)}` : ''}
+      </div>`;
+    $('#chainBody').innerHTML = h;
+
+    const box = $('#tidyBox');
+    box.hidden = !aiOn();
+    if (aiOn()) {
+      const doneN = r.chapters.filter(ch => st(slotOf(ch.id)) === 'on').length;
+      const need = Math.min(2, r.chapters.length);
+      const open = doneN >= need;
+      box.innerHTML = `
+        <div class="ai-h">AI에게 정리만 맡기기</div>
+        <p class="note" style="margin:2px 0 0">내가 쓴 말을 그대로 두고 묶어 달라고 부탁하는 글이에요. 새 내용은 보태지 말고, 아직 답을 못 찾은 질문만 따로 모아 달라고 적혀 있어요.</p>
+        ${open ? '' : `<div class="gate">먼저 ${need}부분을 ‘다 읽음’까지 내 말로 써야 열려요. (지금 ${doneN}부분)</div>`}
+        <div class="btn-row" style="margin-top:8px"><button class="btn small" id="btnTidy" ${open ? '' : 'disabled'}>부탁문 복사</button></div>
+        <textarea class="t" rows="10" readonly hidden id="tidyOut" aria-label="AI 정리 부탁문"></textarea>`;
+      const bt = $('#btnTidy');
+      if (bt) bt.onclick = () => {
+        const text = promptTidy(r, recordText());
+        const out = $('#tidyOut'); out.value = text; out.hidden = false;
+        copyText(text, out).then(ok => toast(ok ? '복사했어요. 학교에서 쓰는 AI에 붙여 넣어요.' : '아래 글을 길게 눌러 복사해 주세요.'));
+      };
+    }
+    show('#chainView');
+    $('#who').textContent = S.mode === 'demo' ? '체험 중' : `${S.no} ${S.name}`;
+    window.scrollTo(0, 0);
+  }
+
+  // ---------- 참여코드 칸 ----------
+  function fixCodeInput() {
+    const el = $('#inCode');
+    const v = normCode(el.value);
+    if (v !== el.value) el.value = v;
+    peekRoom();
+  }
+
+  // ---------- 시작 ----------
+  document.addEventListener('input', onInput);
+  document.addEventListener('change', ev => { if (ev.target.type === 'checkbox' && ev.target.dataset.slot) onInput(ev); });
+  document.addEventListener('click', onClick);
+  $('#inCode').addEventListener('compositionend', fixCodeInput);
+  $('#inCode').addEventListener('blur', fixCodeInput);
+  $('#btnJoin').onclick = doJoin;
+  $('#btnDemo').onclick = startDemo;
+  $('#btnOut').onclick = () => logout(false);
+  $('#btnChain').onclick = showChain;
+  $('#btnBack').onclick = () => { show('#desk'); $('#who').textContent = S.mode === 'demo' ? '체험 중' : `${S.no} ${S.name}`; };
+  $('#btnPrint').onclick = () => { document.body.classList.add('print-chain'); window.print(); };
+  window.addEventListener('afterprint', () => document.body.classList.remove('print-chain'));
+  ['#inCode', '#inNo', '#inName'].forEach(id => $(id).addEventListener('keydown', ev => {
+    if (ev.key === 'Enter' && !ev.isComposing && ev.keyCode !== 229) doJoin();
+  }));
+  $('#btnResumeYes').onclick = () => { stampSession(); loadServer(false); };
+  // 「제가 아니에요」: 앞사람 기록은 이 기기에 그대로 두고(못 보낸 글이 있을 수 있음) 들어오기 화면으로
+  $('#btnResumeNo').onclick = () => {
+    store.del(SESS_KEY);
+    Object.assign(S, { mode: null, code: '', token: '', no: '', name: '', room: null, entries: {}, pending: {}, open: null });
+    showJoin('');
+  };
+
+  const p = new URLSearchParams(location.search);
+  const sess = store.get(SESS_KEY, null);
+  const sameRoom = sess && (!p.get('c') || normCode(p.get('c')) === sess.code);
+  if (p.has('demo')) startDemo();
+  else if (sess && sess.mode === 'server' && sess.token && sameRoom) {
+    Object.assign(S, { mode: 'server', code: sess.code, token: sess.token, no: sess.no, name: sess.name });
+    if (!sess.last || Date.now() - sess.last > RESUME_ASK_MS) {
+      $('#resumeTitle').textContent = `${sess.no} ${sess.name} 학생으로 이어서 쓸까요?`;
+      show('#resumeView');
+    } else { stampSession(); loadServer(false); }
+  } else if (sess && sess.mode === 'demo' && !p.get('c')) startDemo();
+  else showJoin('');
+})();
+</script>
+</body>
+</html>
