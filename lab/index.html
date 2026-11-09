@@ -38,7 +38,8 @@ a{color:inherit}
 @media(max-width:1100px){.h2top{grid-template-columns:1fr 1fr}.hero{grid-column:1/-1}}
 @media(max-width:700px){.h2top{grid-template-columns:1fr}}
 .hero{position:relative;overflow:hidden;display:flex;flex-direction:column;border-radius:20px;background:var(--gc);color:#fff;padding:28px 30px;min-height:300px}
-.hero .deco{position:absolute;right:-10px;top:0;width:52%;height:100%;pointer-events:none;opacity:.22}
+.hero .deco{position:absolute;right:-10px;top:0;width:40%;height:100%;pointer-events:none;opacity:.22}
+.hero .tds,.hero .tdf{max-width:60%}
 .hero>*:not(.deco){position:relative}
 .tdk{font-size:14px;font-weight:700;color:rgba(255,255,255,.82)}
 .tdh{font-size:34px;font-weight:800;letter-spacing:-.035em;line-height:1.22;margin-top:8px}
@@ -50,7 +51,7 @@ a{color:inherit}
 .tda a.pri{background:#fff;border-color:#fff;color:var(--gc)}
 .tda a.pri:hover{background:#f2f4f7}
 .tdf{font-size:14.5px;color:rgba(255,255,255,.82);margin-top:16px}
-@media(max-width:700px){.hero{padding:22px 20px;min-height:0}.tdh{font-size:26px}}
+@media(max-width:700px){.hero{padding:22px 20px;min-height:0}.tdh{font-size:26px}.hero .deco{display:none}.hero .tds,.hero .tdf{max-width:none}}
 
 .panel{background:#fff;border:1px solid var(--line);border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:8px}
 .ph{font-size:14px;font-weight:700;color:var(--ink-dim);margin-bottom:4px}
