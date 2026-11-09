@@ -932,5 +932,8 @@
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => $$('.cell textarea').forEach(grow)).catch(() => {});
 })();
 </script>
+<!-- 내 말로 쓰는 칸은 붙여넣기 막기 · AI 답 붙여넣기 → 내 말로 요약 (원문·제목·쪽수·이름·복사 칸만 붙여넣기 허용) -->
+<script>window.LAB_PASTE_OK=["topic", "A_title", "A_author", "A_body", "B_title", "B_author", "B_body", "who", "copyFallback", "aiText"];</script>
+<script src="../lab-guard.js"></script>
 </body>
 </html>
