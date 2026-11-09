@@ -6,83 +6,212 @@
 <title>읽기 노트 실험실</title>
 <meta name="description" content="독서교육에 쓸 작은 웹 도구 프로토타입 모음. 책 고르기부터 질문하며 읽기, 요약, 구조 파악, 견주어 읽기까지.">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="../rn.css">
 <style>
-  .intro h1 { font-size: 28px; letter-spacing: -.03em; margin: 28px 0 6px; }
-  .intro p { color: var(--ink-2); margin: 0 0 6px; max-width: 46em; }
-  .group { margin-top: 30px; }
-  .group h2 { font-size: 15px; color: var(--accent); margin: 0 0 4px; }
-  .group .gsub { color: var(--muted); font-size: 14px; margin: 0 0 10px; }
-  .tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
-  .tool { display: flex; flex-direction: column; gap: 6px; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; color: var(--ink); text-decoration: none; min-height: 150px; }
-  .tool:hover { border-color: var(--accent); }
-  .tool b { font-size: 18px; letter-spacing: -.02em; }
-  .tool .who { font-size: 12px; color: var(--muted); }
-  .tool p { margin: 0; color: var(--ink-2); font-size: 15px; flex: 1; }
-  .tool .go { color: var(--accent); font-size: 14px; font-weight: 600; }
-  .fine { margin-top: 30px; }
+/* 해누리 과학 시간 메인페이지(2026-11 개편 2판)와 같은 짜임: 회색 바탕 위 흰 칸, 묶음마다 색 하나, 그림자 없음 */
+:root{
+  --bg:#f4f5f7; --paper:#fff; --line:#e3e6ea; --line-soft:#eef0f2;
+  --ink:#15181c; --ink-dim:#3d4450; --ink-mute:#6b7280; --gc:#2f7d55;
+  --body:'Pretendard Variable',Pretendard,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.6;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:anywhere}
+a{color:inherit}
+.hic{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* 위 막대 */
+.topbar{position:sticky;top:0;z-index:40;background:#fff;border-bottom:1px solid var(--line)}
+.topin{max-width:1240px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;gap:14px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+.brand .mk{width:26px;height:26px;border-radius:50%;background:var(--gc);flex:none;box-shadow:inset -6px -5px 0 rgba(0,0,0,.18)}
+.brand b{font-size:18px;font-weight:800;letter-spacing:-.02em;white-space:nowrap}
+.brand small{font-size:14px;color:var(--ink-mute);font-weight:600}
+.tsp{flex:1}
+.obtn{display:inline-flex;align-items:center;gap:6px;font:600 14px var(--body);padding:9px 14px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink);text-decoration:none;white-space:nowrap;transition:border-color .15s,color .15s}
+.obtn:hover{border-color:var(--ink)}
+.obtn .arr{font-weight:700;color:var(--ink-mute)}
+
+.wrap{max-width:1240px;margin:0 auto;padding:22px 24px 10px}
+
+/* 첫 화면 3단 */
+.h2top{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(0,1fr) minmax(0,.95fr);gap:16px}
+@media(max-width:1100px){.h2top{grid-template-columns:1fr 1fr}.hero{grid-column:1/-1}}
+@media(max-width:700px){.h2top{grid-template-columns:1fr}}
+.hero{position:relative;overflow:hidden;display:flex;flex-direction:column;border-radius:20px;background:var(--gc);color:#fff;padding:28px 30px;min-height:300px}
+.hero .deco{position:absolute;right:-10px;top:0;width:52%;height:100%;pointer-events:none;opacity:.22}
+.hero>*:not(.deco){position:relative}
+.tdk{font-size:14px;font-weight:700;color:rgba(255,255,255,.82)}
+.tdh{font-size:34px;font-weight:800;letter-spacing:-.035em;line-height:1.22;margin-top:8px}
+.tds{font-size:15.5px;color:rgba(255,255,255,.85);margin-top:8px;max-width:560px}
+.tda{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto;padding-top:22px}
+.tda a{display:inline-flex;align-items:center;gap:8px;font:700 15px var(--body);padding:12px 18px;border-radius:12px;text-decoration:none;
+  border:1.5px solid rgba(255,255,255,.55);color:#fff;background:rgba(255,255,255,.08);transition:background .15s}
+.tda a:hover{background:rgba(255,255,255,.2)}
+.tda a.pri{background:#fff;border-color:#fff;color:var(--gc)}
+.tda a.pri:hover{background:#f2f4f7}
+.tdf{font-size:14.5px;color:rgba(255,255,255,.82);margin-top:16px}
+@media(max-width:700px){.hero{padding:22px 20px;min-height:0}.tdh{font-size:26px}}
+
+.panel{background:#fff;border:1px solid var(--line);border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:8px}
+.ph{font-size:14px;font-weight:700;color:var(--ink-dim);margin-bottom:4px}
+.lbtn{display:flex;align-items:center;gap:12px;padding:12px 13px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);text-decoration:none;transition:border-color .15s,box-shadow .15s}
+a.lbtn:hover{border-color:var(--u,var(--gc));box-shadow:0 4px 14px -8px rgba(0,0,0,.25)}
+.lbtn .hic{color:var(--u,var(--gc))}
+.lbtn .t{flex:1;min-width:0;display:flex;flex-direction:column}
+.lbtn b{font-size:15.5px;font-weight:700;line-height:1.35}
+.lbtn small{font-size:12.5px;color:var(--ink-mute);margin-top:1px}
+.lbtn .go{flex:none;width:26px;height:26px;border-radius:50%;background:#f0f2f4;display:grid;place-items:center;color:var(--ink-dim);font-size:13px;font-weight:700;transition:background .15s,color .15s}
+a.lbtn:hover .go{background:var(--u,var(--gc));color:#fff}
+.lbtn .no{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:13.5px;font-weight:800;border:2px solid var(--u);color:var(--u)}
+
+/* 묶음(단원 칸과 같은 모양) */
+.unit{margin-top:16px;scroll-margin-top:80px}
+.utab{display:inline-flex;align-items:center;gap:8px;font:700 15.5px var(--body);padding:12px 20px;border-radius:14px 14px 0 0;background:var(--u);color:#fff}
+.utab small{font-size:12.5px;font-weight:600;opacity:.85}
+.upanel{background:#fff;border:1px solid var(--line);border-top:4px solid var(--u);border-radius:0 18px 18px 18px;padding:22px}
+.uhead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.uhead h2{font-size:22px;font-weight:800;letter-spacing:-.03em}
+.uhead p{font-size:14.5px;color:var(--ink-mute)}
+.lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.lcard{display:flex;flex-direction:column;gap:10px;padding:16px;border:1px solid var(--line);border-radius:14px;background:#fff;text-decoration:none;color:var(--ink);transition:border-color .15s,box-shadow .15s}
+.lcard:hover,.lcard:focus-visible{border-color:var(--u);box-shadow:0 6px 18px -12px rgba(0,0,0,.3);outline:none}
+.lc-top{display:flex;align-items:center;gap:10px}
+.lic{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--ul);color:var(--u);flex:none}
+.lic .hic{width:20px;height:20px}
+.lcard h3{font-size:16.5px;font-weight:700;line-height:1.4;letter-spacing:-.01em;flex:1}
+.who{font-size:12px;font-weight:700;color:var(--ink-mute);border:1px solid var(--line);border-radius:999px;padding:2px 9px;white-space:nowrap}
+.lcard p{font-size:14.5px;color:var(--ink-dim);flex:1}
+.sbtn{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;font:700 13.5px var(--body);padding:7px 12px;border-radius:9px;background:var(--ul);color:var(--u);transition:background .15s,color .15s}
+.lcard:hover .sbtn{background:var(--u);color:#fff}
+@media(max-width:700px){.wrap{padding-left:14px;padding-right:14px}.upanel{padding:14px}.lgrid{grid-template-columns:1fr}.topin{padding:0 14px;height:58px}.brand b{font-size:16px}}
+
+/* 알아 두실 것 */
+.notes{margin-top:16px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media(max-width:860px){.notes{grid-template-columns:1fr}}
+.notes .panel p{font-size:15px;color:var(--ink-dim)}
+.notes .panel p b{color:var(--ink)}
+.rec{border-color:var(--gc);background:#f3f9f5}
+.rec p{color:var(--ink)!important}
+
+footer#app-credit{max-width:1240px;margin:2.5rem auto 0;padding:14px 12px;text-align:center;font-size:12.5px;line-height:1.6;color:var(--ink-mute);border-top:1px solid var(--line)}
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M2 4h6a4 4 0 0 1 4 4v12a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v12a3 3 0 0 1 3-3h7z"/></symbol>
+  <symbol id="i-ladder" viewBox="0 0 24 24"><path d="M8 3v18M16 3v18M8 7h8M8 12h8M8 17h8"/></symbol>
+  <symbol id="i-type" viewBox="0 0 24 24"><path d="M4 7V5h16v2M12 5v14M9 19h6"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></symbol>
+  <symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 3v18M7 21h10M5 7h14"/><path d="M5 7l-3 6a3 3 0 0 0 6 0zM19 7l-3 6a3 3 0 0 0 6 0z"/></symbol>
+  <symbol id="i-lens" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
+  <symbol id="i-cut" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.1 15.9M14.5 14.5L20 20M8.1 8.1L12 12"/></symbol>
+  <symbol id="i-two" viewBox="0 0 24 24"><rect x="3" y="4" width="8" height="16" rx="1.5"/><rect x="13" y="4" width="8" height="16" rx="1.5"/><path d="M5.5 8h3M5.5 11h3M15.5 8h3M15.5 11h3"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/></symbol>
+  <symbol id="i-cards" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="15" rx="2"/><path d="M8 3h11a2 2 0 0 1 2 2v13"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6M9 11h6M9 15h4"/></symbol>
+  <symbol id="i-save" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 4v5h8V4M8 20v-6h8v6"/></symbol>
+  <symbol id="i-hand" viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-4 0v5M14 10V4a2 2 0 0 0-4 0v6M10 10.5V6a2 2 0 0 0-4 0v8a8 8 0 0 0 16 0v-3a2 2 0 0 0-4 0"/></symbol>
+  <symbol id="i-ai" viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M9 12h.01M15 12h.01M9 16h6"/></symbol>
+</svg>
 
-<header class="top">
-  <div class="top-in">
-    <a class="brand" href="../">읽기 노트</a>
-    <div class="grow who">실험실</div>
+<header class="topbar">
+  <div class="topin">
+    <a class="brand" href="./"><span class="mk" aria-hidden="true"></span><b>읽기 노트 실험실</b></a>
+    <span class="tsp"></span>
+    <a class="obtn" href="../">읽기 노트 <span class="arr">›</span></a>
   </div>
 </header>
 
-<main class="wrap wide">
-  <section class="intro">
-    <h1>읽기 노트 실험실</h1>
-    <p>독서 수업에 쓸 작은 도구들을 먼저 만들어 본 곳입니다. 모두 학생이 먼저 생각하고 쓰게 만들었고, 서버 없이 그 기기에만 저장됩니다.</p>
-    <p>수업에 맞게 고쳐 쓰실 수 있도록 하나하나를 파일 한 장으로 만들었습니다.</p>
-      <p>학생이 생각을 쓰는 칸은 붙여넣기를 막아 두었습니다. AI를 썼다면 도구 맨 아래 「AI를 썼다면」 칸에 답을 붙여 넣고, 그 아래 칸에 내 말로 요약합니다(요약 칸은 붙여넣기가 안 됩니다).</p>
-  </section>
+<div class="wrap">
+  <section class="h2top">
+    <div class="hero">
+      <svg class="deco" viewBox="0 0 300 300" aria-hidden="true" fill="none" stroke="#fff" stroke-width="2"><path d="M40 70h80a40 40 0 0 1 40 40v150a30 30 0 0 0-30-30H40z"/><path d="M280 70h-80a40 40 0 0 0-40 40v150a30 30 0 0 1 30-30h90z"/><path d="M60 110h70M60 140h70M60 170h55M190 110h70M190 140h70M190 170h55"/></svg>
+      <div class="tdk">독서 수업에 쓸 작은 도구 모음</div>
+      <h1 class="tdh">읽기 노트 실험실</h1>
+      <p class="tds">책 고르기부터 질문하며 읽기, 요약, 글의 짜임, 견주어 읽기까지 열 개를 먼저 만들어 보았습니다. 모두 학생이 먼저 생각하고 쓰게 만들었습니다.</p>
+      <div class="tda">
+        <a class="pri" href="#u1">도구 보러 가기 <span class="arr">↓</span></a>
+        <a href="../?demo">읽기 노트 체험 <span class="arr">›</span></a>
+      </div>
+      <p class="tdf">도구마다 「예시로 채워 보기」를 누르면 다 쓴 모습을 먼저 볼 수 있습니다.</p>
+    </div>
 
-  <section class="group">
-    <h2>책 고르기</h2>
-    <p class="gsub">읽기 전에, 나한테 맞는 책인지 스스로 가늠해 봅니다.</p>
-    <div class="tools">
-      <a class="tool" href="fit-check/"><span class="who">학생</span><b>이 책, 나한테 맞을까?</b><p>아무 쪽이나 펴서 한 쪽을 읽으며 모르는 낱말을 세고, 내 말로 한 줄 써 본 뒤 도전할 책인지 가늠합니다.</p><span class="go">열기 →</span></a>
+    <div class="panel">
+      <div class="ph">읽는 순서대로</div>
+      <a class="lbtn" href="#u1" style="--u:#c4570b"><span class="no">1</span><span class="t"><b>책 고르기</b><small>나한테 맞는 책인지 가늠하기 · 1개</small></span><span class="go">›</span></a>
+      <a class="lbtn" href="#u2" style="--u:#26386f"><span class="no">2</span><span class="t"><b>읽는 동안</b><small>질문·낱말·짜임·사실과 의견·개념 · 5개</small></span><span class="go">›</span></a>
+      <a class="lbtn" href="#u3" style="--u:#0a74a8"><span class="no">3</span><span class="t"><b>읽은 뒤</b><small>줄이기·견주기·저자 인터뷰 · 3개</small></span><span class="go">›</span></a>
+      <a class="lbtn" href="#u4" style="--u:#2f7d55"><span class="no">+</span><span class="t"><b>선생님 도구</b><small>칠판에 띄우는 질문 카드 · 1개</small></span><span class="go">›</span></a>
+    </div>
+
+    <div class="panel">
+      <div class="ph">이렇게 만들었습니다</div>
+      <div class="lbtn"><svg class="hic"><use href="#i-save"/></svg><span class="t"><b>서버 없이 이 기기에만</b><small>낼 때는 인쇄하거나 글로 복사</small></span></div>
+      <div class="lbtn"><svg class="hic"><use href="#i-hand"/></svg><span class="t"><b>생각 칸은 붙여넣기 막힘</b><small>원문·제목 칸은 붙여넣기 됨</small></span></div>
+      <div class="lbtn"><svg class="hic"><use href="#i-ai"/></svg><span class="t"><b>AI를 썼다면</b><small>답을 붙여 넣고 내 말로 요약</small></span></div>
     </div>
   </section>
 
-  <section class="group">
-    <h2>읽는 동안</h2>
-    <p class="gsub">질문하고, 낱말을 짐작하고, 글의 짜임을 그려 봅니다.</p>
-    <div class="tools">
-      <a class="tool" href="question-ladder/"><span class="who">학생</span><b>질문 사다리</b><p>첫 질문을 뜻·까닭·만약·견주기·내 삶으로 한 칸씩 키우고, 질문 바구니를 골라 봅니다.</p><span class="go">열기 →</span></a>
-      <a class="tool" href="word-guess/"><span class="who">학생</span><b>낱말 추측 노트</b><p>모르는 낱말의 뜻을 앞뒤 문장으로 먼저 짐작하고, 사전으로 확인한 뒤 내 문장을 만듭니다.</p><span class="go">열기 →</span></a>
-      <a class="tool" href="para-map/"><span class="who">학생</span><b>문단 지도</b><p>문단마다 역할과 중심 내용, 앞 문단과의 관계를 골라 글의 짜임을 흐름도로 그립니다.</p><span class="go">열기 →</span></a>
-      <a class="tool" href="fact-opinion/"><span class="who">학생</span><b>사실·의견 가르기</b><p>문장마다 사실인지 의견인지 먼저 고르고, 단서와 견줘 보며 확인할 사실을 찾습니다.</p><span class="go">열기 →</span></a>
-      <a class="tool" href="concept-lens/"><span class="who">학생</span><b>개념 렌즈 노트</b><p>핵심 개념 하나를 렌즈로 관계맺기·탐색하기·적용하기·전이하기의 네 걸음을 기록합니다.</p><span class="go">열기 →</span></a>
+  <section class="unit" id="u1" style="--u:#c4570b;--ul:#fff1e4">
+    <div class="utab">책 고르기 <small>1개</small></div>
+    <div class="upanel">
+      <div class="uhead"><h2>책 고르기</h2><p>읽기 전에, 나한테 맞는 책인지 스스로 가늠해 봅니다.</p></div>
+      <div class="lgrid">
+        <a class="lcard" href="fit-check/"><div class="lc-top"><span class="lic"><svg class="hic"><use href="#i-book"/></svg></span><h3>이 책, 나한테 맞을까?</h3><span class="who">학생</span></div><p>아무 쪽이나 펴서 한 쪽을 읽으며 모르는 낱말을 세고, 내 말로 한 줄 써 본 뒤 도전할 책인지 가늠합니다.</p><span class="sbtn">열기 ›</span></a>
+      </div>
     </div>
   </section>
 
-  <section class="group">
-    <h2>읽은 뒤</h2>
-    <p class="gsub">줄여 쓰고, 견주어 읽고, 저자에게 물을 질문을 만듭니다.</p>
-    <div class="tools">
-      <a class="tool" href="shrink/"><span class="who">학생</span><b>줄이고 또 줄이기</b><p>같은 글을 100자, 50자, 한 줄로 세 번 줄여 요약하고, 무엇을 버렸는지 돌아봅니다.</p><span class="go">열기 →</span></a>
-      <a class="tool" href="two-texts/"><span class="who">학생</span><b>두 글 견주기</b><p>같은 화제의 두 글에서 주장·근거·믿을 만한 정도를 견주고, 두 글을 모두 써서 내 생각을 세웁니다.</p><span class="go">열기 →</span></a>
-      <a class="tool" href="author-interview/"><span class="who">학생</span><b>저자 인터뷰 준비</b><p>책을 읽어야만 물을 수 있는 질문을 먼저 만들고, 그다음에 AI 저자 인터뷰 부탁문을 엽니다.</p><span class="go">열기 →</span></a>
+  <section class="unit" id="u2" style="--u:#26386f;--ul:#eceffa">
+    <div class="utab">읽는 동안 <small>5개</small></div>
+    <div class="upanel">
+      <div class="uhead"><h2>읽는 동안</h2><p>질문하고, 낱말을 짐작하고, 글의 짜임을 그려 봅니다.</p></div>
+      <div class="lgrid">
+        <a class="lcard" href="question-ladder/"><div class="lc-top"><span class="lic"><svg class="hic"><use href="#i-ladder"/></svg></span><h3>질문 사다리</h3><span class="who">학생</span></div><p>첫 질문을 뜻·까닭·만약·견주기·내 삶으로 한 칸씩 키우고, 질문 바구니를 골라 봅니다.</p><span class="sbtn">열기 ›</span></a>
+        <a class="lcard" href="word-guess/"><div class="lc-top"><span class="lic"><svg class="hic"><use href="#i-type"/></svg></span><h3>낱말 추측 노트</h3><span class="who">학생</span></div><p>모르는 낱말의 뜻을 앞뒤 문장으로 먼저 짐작하고, 사전으로 확인한 뒤 내 문장을 만듭니다.</p><span class="sbtn">열기 ›</span></a>
+        <a class="lcard" href="para-map/"><div class="lc-top"><span class="lic"><svg class="hic"><use href="#i-map"/></svg></span><h3>문단 지도</h3><span class="who">학생</span></div><p>문단마다 역할과 중심 내용, 앞 문단과의 관계를 골라 글의 짜임을 흐름도로 그립니다.</p><span class="sbtn">열기 ›</span></a>
+        <a class="lcard" href="fact-opinion/"><div class="lc-top"><span class="lic"><svg class="hic"><use href="#i-scale"/></svg></span><h3>사실·의견 가르기</h3><span class="who">학생</span></div><p>문장마다 사실인지 의견인지 먼저 고르고, 단서와 견줘 보며 확인할 사실을 찾습니다.</p><span class="sbtn">열기 ›</span></a>
+        <a class="lcard" href="concept-lens/"><div class="lc-top"><span class="lic"><svg class="hic"><use href="#i-lens"/></svg></span><h3>개념 렌즈 노트</h3><span class="who">학생</span></div><p>핵심 개념 하나를 렌즈로 관계맺기·탐색하기·적용하기·전이하기의 네 걸음을 기록합니다.</p><span class="sbtn">열기 ›</span></a>
+      </div>
     </div>
   </section>
 
-  <section class="group">
-    <h2>선생님 도구</h2>
-    <p class="gsub">칠판에 띄워 함께 이야기할 때 씁니다.</p>
-    <div class="tools">
-      <a class="tool" href="genre-cards/"><span class="who">선생님</span><b>장르별 질문 카드</b><p>소설·시·에세이·교양서·학술서·그림책마다 함께 이야기할 질문을 카드로 크게 띄웁니다.</p><span class="go">열기 →</span></a>
-      <a class="tool" href="../"><span class="who">학생 · 선생님</span><b>읽기 노트</b><p>읽기 전 질문, 부분마다 내 말 요약과 질문, 읽은 뒤 답을 남기고 선생님이 모아 봅니다.</p><span class="go">열기 →</span></a>
+  <section class="unit" id="u3" style="--u:#0a74a8;--ul:#e6f3fa">
+    <div class="utab">읽은 뒤 <small>3개</small></div>
+    <div class="upanel">
+      <div class="uhead"><h2>읽은 뒤</h2><p>줄여 쓰고, 견주어 읽고, 저자에게 물을 질문을 만듭니다.</p></div>
+      <div class="lgrid">
+        <a class="lcard" href="shrink/"><div class="lc-top"><span class="lic"><svg class="hic"><use href="#i-cut"/></svg></span><h3>줄이고 또 줄이기</h3><span class="who">학생</span></div><p>같은 글을 100자, 50자, 한 줄로 세 번 줄여 요약하고, 무엇을 버렸는지 돌아봅니다.</p><span class="sbtn">열기 ›</span></a>
+        <a class="lcard" href="two-texts/"><div class="lc-top"><span class="lic"><svg class="hic"><use href="#i-two"/></svg></span><h3>두 글 견주기</h3><span class="who">학생</span></div><p>같은 화제의 두 글에서 주장·근거·믿을 만한 정도를 견주고, 두 글을 모두 써서 내 생각을 세웁니다.</p><span class="sbtn">열기 ›</span></a>
+        <a class="lcard" href="author-interview/"><div class="lc-top"><span class="lic"><svg class="hic"><use href="#i-mic"/></svg></span><h3>저자 인터뷰 준비</h3><span class="who">학생</span></div><p>책을 읽어야만 물을 수 있는 질문을 먼저 만들고, 그다음에 AI 저자 인터뷰 부탁문을 엽니다.</p><span class="sbtn">열기 ›</span></a>
+      </div>
     </div>
   </section>
 
-  <p class="note fine">여기 있는 도구는 프로토타입입니다. 기록은 그 기기의 브라우저에만 남고, 다른 기기나 선생님께 저절로 보내지지 않습니다. 결과는 각 도구의 인쇄하기나 복사하기로 제출할 수 있습니다.</p>
-</main>
+  <section class="unit" id="u4" style="--u:#2f7d55;--ul:#e8f3ec">
+    <div class="utab">선생님 도구와 읽기 노트 <small>2개</small></div>
+    <div class="upanel">
+      <div class="uhead"><h2>선생님 도구와 읽기 노트</h2><p>칠판에 띄워 함께 이야기하거나, 반 학생들의 기록을 모아 봅니다.</p></div>
+      <div class="lgrid">
+        <a class="lcard" href="genre-cards/"><div class="lc-top"><span class="lic"><svg class="hic"><use href="#i-cards"/></svg></span><h3>장르별 질문 카드</h3><span class="who">선생님</span></div><p>소설·시·에세이·교양서·학술서·그림책마다 함께 이야기할 질문을 카드로 크게 띄웁니다.</p><span class="sbtn">열기 ›</span></a>
+        <a class="lcard" href="../"><div class="lc-top"><span class="lic"><svg class="hic"><use href="#i-note"/></svg></span><h3>읽기 노트</h3><span class="who">학생 · 선생님</span></div><p>읽기 전 질문, 부분마다 내 말 요약과 질문, 읽은 뒤 답을 남기고 선생님이 모아 봅니다.</p><span class="sbtn">열기 ›</span></a>
+      </div>
+    </div>
+  </section>
 
-<footer id="app-credit" style="width:100%;box-sizing:border-box;margin:2.5rem 0 0;padding:14px 12px;text-align:center;font-size:12.5px;line-height:1.6;color:#8a8f98;font-family:system-ui,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;border-top:1px solid rgba(128,128,128,.25);">© 2026 조승재(과학이조선생) · 해누리중학교 · All rights reserved<br><span style="font-size:11px;opacity:.85;">최종 업데이트: 2026-11-08</span></footer>
+  <section class="notes">
+    <div class="panel">
+      <div class="ph">알아 두실 것</div>
+      <p>여기 있는 도구는 프로토타입입니다. 기록은 그 기기의 브라우저에만 남고, 다른 기기나 선생님께 저절로 보내지지 않습니다. 결과는 각 도구의 인쇄하기나 복사하기로 낼 수 있습니다.</p>
+      <p>학생이 생각을 쓰는 칸은 <b>붙여넣기를 막아</b> 두었습니다. AI를 썼다면 도구 맨 아래 「AI를 썼다면」 칸에 답을 붙여 넣고, 그 아래 칸에 내 말로 요약합니다(요약 칸은 붙여넣기가 안 됩니다).</p>
+    </div>
+    <div class="panel rec">
+      <div class="ph">직접 만들어 보시기를 권합니다</div>
+      <p>도구마다 <b>HTML 파일 하나</b>로 만들었습니다. 다만 제 부족한 아이디어로 만든 것이라, 선생님들께서 쓰고 싶은 프로그램은 직접 AI와 대화하고 질문하며 처음부터 만들어 가시기를 추천드립니다.</p>
+    </div>
+  </section>
+</div>
 
+<footer id="app-credit">© 2026 조승재(과학이조선생) · 해누리중학교 · All rights reserved<br><span style="font-size:11px">최종 업데이트: 2026-11-09</span></footer>
 </body>
 </html>

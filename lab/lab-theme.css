@@ -1,0 +1,25 @@
+/* 읽기 노트 실험실 도구: 해누리 과학 시간 메인페이지(2026-11 개편 2판)와 같은 모양.
+   회색 바탕 위 흰 칸, 그림자 없음, 강조색 초록 하나. rn.css 의 공통 변수와 몇 가지 모양만 덮어쓴다. */
+:root{
+  --ink:#15181c; --ink-2:#3d4450; --muted:#6b7280;
+  --line:#e3e6ea; --line-2:#d5d9de;
+  --paper:#ffffff; --bg:#f4f5f7;
+  --accent:#2f7d55; --accent-ink:#ffffff; --accent-soft:#e8f3ec;
+  --done:#2f7d55; --warn:#c2410c; --warn-soft:#fff1e8; --bad:#d6453d;
+  --radius:14px;
+}
+body{-webkit-font-smoothing:antialiased}
+:focus-visible{outline:3px solid #9fd0b5;outline-offset:2px}
+
+/* 위 막대: 흰 바탕 + 초록 동그라미 표식 */
+.top{background:#fff}
+.top .brand{display:inline-flex;align-items:center;gap:8px;color:var(--ink);text-decoration:none}
+.top .brand::before{content:"";width:22px;height:22px;border-radius:50%;background:var(--accent);box-shadow:inset -5px -4px 0 rgba(0,0,0,.18);flex:none}
+
+/* 칸과 단추 */
+.card{border-radius:18px;box-shadow:none}
+.card h2{font-weight:800;letter-spacing:-.02em}
+.btn{border-radius:10px}
+.btn.primary:hover{filter:none;background:#276a48;border-color:#276a48}
+.warn-box{color:#8a2f08}
+.step-tag{color:var(--accent)}
